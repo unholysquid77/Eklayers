@@ -267,3 +267,106 @@ def false_alarm_metrics(outcomes: Sequence[ForecastOutcome], alert_threshold: fl
         for source, items in by_source.items()
     }
     return {"threshold": alert_threshold, "precision": round(precision, 4), "false_positive": false_positive, "brier_score": round(brier, 5), "sources": sources}
+
+
+# ---------------------------------------------------------------------------
+# Concentration scoring
+# ---------------------------------------------------------------------------
+
+def concentration_score(spend_shares: Sequence[float]) -> float:
+    """Herfindahl–Hirschman Index: Σ(normalised_share²).
+
+    Returns 1/n for perfectly equal distribution, 1.0 for pure monopoly.
+    Input shares need not be pre-normalised; the function normalises them.
+    """
+    if not spend_shares:
+        return 0.0
+    total = sum(spend_shares) or EPSILON
+    normalised = [s / total for s in spend_shares]
+    return round(sum(s * s for s in normalised), 6)
+
+
+# ---------------------------------------------------------------------------
+# Supplier risk dimension values (pure math, no Pydantic)
+# ---------------------------------------------------------------------------
+
+_SUPPLIER_RISK_WEIGHTS: dict[str, float] = {
+    "delivery":      0.25,
+    "quality":       0.25,
+    "financial":     0.15,
+    "capacity":      0.15,
+    "compliance":    0.10,
+    "concentration": 0.10,
+}
+
+# Configurable quality ppm ceiling (10 000 ppm ≡ 1 % defect rate → max risk)
+_QUALITY_PPM_CEILING = 10_000.0
+# Compliance event count that maps to full risk
+_COMPLIANCE_EVENT_CEILING = 5
+
+
+def supplier_risk_values(
+    on_time_delivery: float,
+    quality_ppm: float,
+    financial_score: float,
+    capacity_utilization: float,
+    compliance_events: int,
+    spend_share: float = 0.0,
+    weights: Mapping[str, float] | None = None,
+) -> dict:
+    """Compute raw per-dimension risk values and overall 0-100 score.
+
+    All inputs follow the SupplierMetric contract (docs/IO_CONTRACT.md).
+    Returns a plain dict so the function remains standard-library-only; the
+    caller (scoring.py) wraps it into Pydantic models.
+
+    Dimensions (each normalised to [0, 1] where 1 = highest risk):
+    - delivery:      1 − on_time_delivery
+    - quality:       quality_ppm / PPM_CEILING  (clamped)
+    - financial:     1 − financial_score
+    - capacity:      peaks at very high (>90 %) or very low (<30 %) utilisation
+    - compliance:    compliance_events / EVENT_CEILING  (clamped)
+    - concentration: spend_share (fraction of total category spend)
+    """
+    w = weights if weights is not None else _SUPPLIER_RISK_WEIGHTS
+
+    delivery_risk = clamp(1.0 - clamp(on_time_delivery))
+    quality_risk = clamp(quality_ppm / max(_QUALITY_PPM_CEILING, EPSILON))
+    financial_risk = clamp(1.0 - clamp(financial_score))
+    cap = clamp(capacity_utilization)
+    if cap > 0.70:
+        capacity_risk = clamp((cap - 0.70) / 0.30)
+    else:
+        capacity_risk = clamp((0.30 - cap) / 0.30)
+    compliance_risk = clamp(compliance_events / max(_COMPLIANCE_EVENT_CEILING, 1))
+    concentration_risk = clamp(spend_share)
+
+    dim_values: dict[str, float] = {
+        "delivery":      delivery_risk,
+        "quality":       quality_risk,
+        "financial":     financial_risk,
+        "capacity":      capacity_risk,
+        "compliance":    compliance_risk,
+        "concentration": concentration_risk,
+    }
+
+    weighted_sum = sum(dim_values[k] * w.get(k, 0.0) for k in dim_values)
+    weight_total = sum(w.get(k, 0.0) for k in dim_values) or EPSILON
+    score_0_100 = round((weighted_sum / weight_total) * 100.0, 2)
+
+    factor_ledger = [
+        {
+            "name": k,
+            "value": round(v, 4),
+            "contribution": round(v * w.get(k, 0.0) / weight_total * 100.0, 2),
+            "source": "supplier_metrics",
+        }
+        for k, v in dim_values.items()
+    ]
+
+    return {
+        "score_0_100": score_0_100,
+        "dimension_values": {k: round(v, 4) for k, v in dim_values.items()},
+        "weights": {k: w.get(k, 0.0) for k in dim_values},
+        "factor_ledger": factor_ledger,
+    }
