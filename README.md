@@ -1,4 +1,4 @@
-# SupplyChain Sentinel
+# Eklayers
 
 Hackathon implementation scaffold for PS #3 (disruption prediction) and PS #9 (continuous supplier-risk scoring).
 
