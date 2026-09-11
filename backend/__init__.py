@@ -1,1 +1,1 @@
-"""SupplyChain Sentinel backend package."""
+"""Sarvadarshi backend package."""
