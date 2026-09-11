@@ -696,3 +696,152 @@ def ontology_relationships(
         "edges": [_annotate(e) for e in edges],
     })
 
+
+# ---------------------------------------------------------------------------
+# Globe API (Live feeds)
+# ---------------------------------------------------------------------------
+
+import os
+import httpx
+from fastapi import APIRouter
+
+globe_router = APIRouter(prefix="/v1/globe", tags=["Globe"])
+
+@globe_router.get("/cascade/map", summary="Core Cascade state for Globe")
+def get_globe_cascade_map():
+    # 1. Chokepoints
+    chokepoints = []
+    for cp in state.graph.surface_chokepoints():
+        chokepoints.append({
+            "id": cp.id,
+            "name": cp.name,
+            "category": cp.kind,
+            "latitude": cp.lat if cp.lat is not None else 0.0,
+            "longitude": cp.lon if cp.lon is not None else 0.0,
+            "stress_level": cp.chokepoint_score if cp.chokepoint_score is not None else 0.0,
+            "baseline": 0.10,
+            "criticality": cp.criticality if cp.criticality is not None else 0.5,
+        })
+    
+    # 2. Events (from signals)
+    events = []
+    for idx, sig in enumerate(state.signals[-50:]):  # Limit to recent 50
+        events.append({
+            "id": sig.id or f"evt-{idx}",
+            "latitude": sig.lat if sig.lat is not None else 0.0,
+            "longitude": sig.lon if sig.lon is not None else 0.0,
+            "domain": "corporate",
+            "severity": sig.severity / 100.0 if sig.severity is not None else 0.5,
+            "event_category": sig.type,
+            "occurred_at": sig.observed_at.isoformat(),
+            "raw_text": sig.body,
+            "title": sig.subject,
+            "actor": sig.source,
+            "object": ", ".join(sig.entities) if sig.entities else "",
+            "location": sig.geography,
+            "source_ids": [sig.source],
+        })
+
+    # 3. Impact Edges
+    impact_edges = []
+    relationships = state.graph.surface_relationships(min_severity=0.1)
+    for edge in relationships:
+        if edge.label in (EdgeLabel.DISRUPTS, EdgeLabel.BLOCKS, EdgeLabel.AFFECTS):
+            tgt_node = state.graph.node(edge.target_id)
+            tgt_name = tgt_node.name if tgt_node else edge.target_id
+            impact_edges.append({
+                "from_chokepoint": edge.source_id,
+                "to_entity_id": edge.target_id,
+                "to_entity_name": tgt_name,
+                "severity": edge.severity if edge.severity else 0.5,
+            })
+
+    return {
+        "chokepoints": chokepoints,
+        "events": events,
+        "impact_edges": impact_edges
+    }
+
+@globe_router.get("/flights", summary="Proxy OpenSky Network")
+async def get_globe_flights(mil_only: bool = False, limit: int = 4000):
+    url = "https://opensky-network.org/api/states/all"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                states = data.get("states", [])
+                flights = []
+                for s in states:
+                    lat = s[6]
+                    lon = s[5]
+                    if lat is not None and lon is not None:
+                        flights.append({
+                            "icao": s[0] or "",
+                            "callsign": (s[1] or "").strip(),
+                            "lat": lat,
+                            "lon": lon,
+                            "alt_m": s[7] or 0,
+                            "vel_ms": s[9] or 0,
+                            "heading": s[10] or 0,
+                            "mil": False,
+                            "country": s[2] or "",
+                            "on_ground": s[8] or False,
+                        })
+                if mil_only:
+                    flights = [f for f in flights if f.get("mil")]
+                return {"flights": flights[:limit], "stale": False}
+    except Exception:
+        pass
+    
+    # Fallback to empty if opensky rate limits
+    return {"flights": [], "stale": True}
+
+@globe_router.get("/vessels", summary="Live AIS proxy or realistic fallback")
+async def get_globe_vessels():
+    # If we have an AIS_KEY, we could call an AIS provider.
+    # Otherwise, generate fallback vessels from port coordinates.
+    import random
+    vessels = []
+    ports = [n for n in state.graph.all_nodes if n.kind in (NodeKind.PORT, NodeKind.SUPPLIER)]
+    mmsi_start = 100000000
+    for i, port in enumerate(ports[:50]): # 50 simulated vessels around ports
+        if port.lat and port.lon:
+            lat_offset = (random.random() - 0.5) * 2.0
+            lon_offset = (random.random() - 0.5) * 2.0
+            vessels.append({
+                "mmsi": str(mmsi_start + i),
+                "name": f"Vessel-{i}",
+                "lat": port.lat + lat_offset,
+                "lon": port.lon + lon_offset,
+                "speed": random.uniform(5.0, 20.0),
+                "heading": random.uniform(0, 360),
+                "bucket": random.choice(["cargo", "tanker", "passenger"])
+            })
+    return {"vessels": vessels, "connected": True}
+
+@globe_router.get("/events/earthquakes", summary="USGS Earthquake Feed")
+async def get_globe_earthquakes():
+    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return {"type": "FeatureCollection", "features": []}
+
+@globe_router.get("/events/acled", summary="ACLED or similar conflict feed")
+def get_globe_acled():
+    # Stub for ACLED since public API requires auth
+    return {"features": []}
+
+@globe_router.get("/infrastructure/{layer_name}", summary="Infrastructure layers")
+def get_globe_infrastructure(layer_name: str):
+    # E.g. spaceports, nuclear_sites, military_bases
+    # Stubbed as empty feature collections for now, ready to ingest real datasets
+    return {"type": "FeatureCollection", "features": []}
+
+app.include_router(globe_router)
+

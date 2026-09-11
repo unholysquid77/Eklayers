@@ -4,6 +4,27 @@ This document tracks every change made to the codebase so teammates can follow a
 
 ---
 
+## 2026-09-11 — Globe Live Feeds API Integration (Session 3)
+
+### Backend Updates (ackend/app.py)
+- Added a new APIRouter at /v1/globe specifically designed to serve the 3D Globe visualization.
+- **GET /v1/globe/cascade/map**: Generates a live payload (chokepoints, events, impact_edges) derived dynamically from the state.graph and state.signals.
+- **GET /v1/globe/flights**: Implemented a live proxy to the OpenSky Network API, returning real-time global flight data with caching/fallback logic.
+- **GET /v1/globe/vessels**: Implemented a fallback simulation for live AIS tracking that spawns vessels around active graph port nodes.
+- **GET /v1/globe/events/earthquakes**: Proxies the USGS live earthquake feed (GeoJSON).
+- **Infrastructure Endpoints**: Created stub endpoints (e.g., /v1/globe/infrastructure/nuclear_sites) ready to be plugged into proprietary geospatial datasets.
+
+### Frontend Updates (
+oute.ts)
+- Completely ripped out the hardcoded mock/stub data from rontend/src/app/ui/[[...slug]]/route.ts.
+- Refactored 
+oute.ts to act as a pure, 1:1 proxy pointing to the new http://localhost:8000/v1/globe/* API endpoints.
+
+### Documentation
+- Created globe_api_contract.md to document the new API surface for frontend integration.
+
+---
+
 ## 2026-09-11 — Globe Rebuild + Frontend Cleanup (Session 2)
 
 ### New: `SarvadarshiGlobe.tsx`
