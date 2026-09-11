@@ -1,362 +1,422 @@
-'use client';
+﻿'use client';
+import { useState, useEffect, useCallback } from 'react';
+import type { SupplierRiskScore, ConcentrationResult, StressTestResult, MitigationOption, ExposureNode } from '@/lib/contracts';
+import { getSuppliers, getConcentration, runStressTest, getMitigations, getExposure, getAlerts } from '@/lib/api';
 
-import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { Activity, Globe, TrendingUp, AlertTriangle, Shield, Zap, RefreshCw, ChevronRight } from 'lucide-react';
-import type { Supplier, SupplierRiskScore, ExposureRow, StressTestResult, ConcentrationInfo } from '@/lib/contracts';
-import { getSuppliers, getSupplierRisk, getExposure, runStressTest, getConcentration, getDemoNodes, getDemoDependencies } from '@/lib/api';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function scoreColor(s: number) {
+  if (s >= 70) return 'var(--alert-red)';
+  if (s >= 45) return '#ffaa00';
+  if (s >= 25) return '#ffcc00';
+  return 'var(--alert-green)';
+}
+
+function scoreCls(s: number) {
+  if (s >= 70) return 'severity-critical';
+  if (s >= 45) return 'severity-high';
+  if (s >= 25) return 'severity-medium';
+  return 'severity-low';
+}
+
+function dim(label: string, value: number) {
+  return (
+    <div key={label} className="mb-1.5">
+      <div className="flex justify-between text-[10px] mb-0.5">
+        <span className="text-[var(--text-muted)] uppercase">{label}</span>
+        <span className="font-bold" style={{ color: scoreColor(value * 100) }}>{(value * 100).toFixed(0)}</span>
+      </div>
+      <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${value * 100}%`, background: scoreColor(value * 100) }} />
+      </div>
+    </div>
+  );
+}
+
+// Gauge: conic-gradient arc
+function ScoreGauge({ score }: { score: number }) {
+  const c = scoreColor(score);
+  const pct = Math.round(score);
+  const deg = Math.round(score * 1.8); // 0–180 degrees
+  return (
+    <div className="flex flex-col items-center gap-1 py-3">
+      <div
+        className="w-28 h-14 overflow-hidden relative"
+        style={{ borderRadius: '56px 56px 0 0' }}
+      >
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `conic-gradient(from 180deg, ${c} ${deg}deg, var(--bg-tertiary) ${deg}deg)`,
+            transform: 'scaleY(0.5)',
+            transformOrigin: 'bottom center',
+          }}
+        />
+        <div
+          className="absolute inset-2 rounded-full bg-[var(--bg-secondary)]"
+          style={{ transform: 'scaleY(0.5)', transformOrigin: 'bottom center' }}
+        />
+      </div>
+      <div className="hud-text text-3xl font-bold" style={{ color: c }}>{pct}</div>
+      <div className="text-[10px] text-[var(--text-muted)] uppercase">Risk Score</div>
+    </div>
+  );
+}
+
+// Stress test presets
+const STRESS_PRESETS = [
+  { label: 'Singapore Port Closure', scenario: 'port_closure', node: 'port-singapore' },
+  { label: 'Suez Canal Blockage', scenario: 'route_disruption', node: 'port-said' },
+  { label: 'TSMC Taiwan Shutdown', scenario: 'supplier_failure', node: 'sup-beta' },
+];
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function RiskPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
-  const [riskScore, setRiskScore] = useState<SupplierRiskScore | null>(null);
-  const [exposure, setExposure] = useState<ExposureRow[]>([]);
-  const [concentration, setConcentration] = useState<ConcentrationInfo | null>(null);
+  const [suppliers, setSuppliers] = useState<SupplierRiskScore[]>([]);
+  const [selected, setSelected] = useState<SupplierRiskScore | null>(null);
+  const [concentration, setConcentration] = useState<ConcentrationResult | null>(null);
   const [stressResult, setStressResult] = useState<StressTestResult | null>(null);
+  const [mitigations, setMitigations] = useState<MitigationOption[]>([]);
+  const [exposure, setExposure] = useState<ExposureNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [stressLoading, setStressLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'score' | 'exposure' | 'mitigations' | 'stress'>('score');
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [suppliersData, exposureData, concData] = await Promise.all([
-        getSuppliers().catch(() => []),
-        getExposure().catch(() => []),
-        getConcentration().catch(() => null),
-      ]);
-      setSuppliers(suppliersData);
-      setExposure(exposureData);
-      setConcentration(concData);
-    } finally {
+  useEffect(() => {
+    Promise.allSettled([
+      getSuppliers(),
+      getConcentration(),
+    ]).then(([s, c]) => {
+      if (s.status === 'fulfilled') { setSuppliers(s.value); if (s.value.length) setSelected(s.value[0]); }
+      if (c.status === 'fulfilled') setConcentration(c.value);
       setLoading(false);
-    }
+    });
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
-
-  const handleSelectSupplier = async (id: string) => {
-    setSelectedSupplier(id);
-    const risk = await getSupplierRisk(id).catch(() => null);
-    setRiskScore(risk);
-  };
-
-  const handleStressTest = async (targetId: string) => {
-    setStressLoading(true);
+  const handleSelectSupplier = useCallback(async (sup: SupplierRiskScore) => {
+    setSelected(sup);
+    setMitigations([]);
+    setExposure([]);
+    // Load exposure for this supplier
     try {
-      const result = await runStressTest({ target_id: targetId, target_kind: 'port', trials: 500, rng_seed: 7, forced_failure: true });
-      setStressResult(result);
-    } finally {
-      setStressLoading(false);
-    }
-  };
+      // Get first alert referencing this supplier
+      const alerts = await getAlerts();
+      const alertForSup = alerts.find(a => a.subject_id === sup.supplier_id);
+      if (alertForSup) {
+        const nodes = await getExposure(alertForSup.id);
+        setExposure(nodes.slice(0, 10));
+        const mits = await getMitigations(alertForSup.id).catch(() => []);
+        setMitigations(mits);
+      }
+    } catch { /* noop */ }
+  }, []);
 
-  const handleReset = async () => {
-    const { resetDemo } = await import('@/lib/api');
-    await resetDemo();
-    await loadData();
-  };
+  const runStress = useCallback(async (preset: typeof STRESS_PRESETS[0]) => {
+    setStressLoading(true);
+    setStressResult(null);
+    try {
+      const result = await runStressTest({ scenario: preset.scenario, disrupted_node: preset.node });
+      setStressResult(result);
+      setActiveTab('stress');
+    } catch { /* noop */ } finally { setStressLoading(false); }
+  }, []);
+
+  // Derived stats
+  const high = suppliers.filter(s => s.composite_score >= 70).length;
+  const avg  = suppliers.length ? Math.round(suppliers.reduce((a, s) => a + s.composite_score, 0) / suppliers.length) : 0;
+  const warnings = suppliers.filter(s => (s.delta_7d ?? 0) > 10).length;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-void)' }}>
-      {/* Top navigation */}
-      <nav className="glass-panel flex items-center justify-between px-6 py-3 mx-4 mt-4 rounded-xl">
-        <div className="flex items-center gap-4">
-          <Link href="/command" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-            <Globe className="w-4 h-4" />
-            <span className="hud-text text-[10px]">COMMAND</span>
-          </Link>
-          <div className="h-4 w-px bg-[var(--border-primary)]" />
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[var(--gold-primary)]" />
-            <span className="hud-text text-sm text-[var(--text-primary)]">SUPPLYCHAIN SENTINEL</span>
-          </div>
-          <div className="h-4 w-px bg-[var(--border-primary)]" />
-          <span className="hud-text text-[10px] text-[var(--text-muted)]">RISK DASHBOARD</span>
+    <div className="flex flex-col h-screen bg-[var(--bg-void)] text-[var(--text-primary)] overflow-hidden">
+
+      {/* ── Top bar ── */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-[var(--gold-primary)] font-bold text-sm tracking-widest hud-text">SARVADARSHI</span>
+          <span className="hud-text text-xs text-[var(--cyan-primary)]">RISK SCORING</span>
+          <span className="hud-text text-xs text-[var(--text-muted)]">PS #9 — SUPPLIER RISK ENGINE</span>
         </div>
-        <button onClick={handleReset} className="btn-tactical text-[10px] py-1.5 px-3">
-          <RefreshCw className="w-3 h-3 inline mr-1" />
-          RESET
-        </button>
-      </nav>
+        <a href="/command" className="btn-tactical text-xs px-3 py-1">← COMMAND GLOBE</a>
+      </div>
 
-      <div className="flex gap-4 p-4" style={{ height: 'calc(100vh - 88px)' }}>
-        {/* Left: Supplier list */}
-        <div className="w-72 glass-panel flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--border-primary)]">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[var(--gold-primary)]" />
-              <span className="hud-text text-[11px] text-[var(--text-primary)]">SUPPLIER RISK</span>
-            </div>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">
-              {suppliers.length} monitored suppliers
-            </p>
+      {/* ── Summary strip ── */}
+      <div className="flex gap-6 px-6 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-secondary)] shrink-0">
+        {[
+          { label: 'SUPPLIERS MONITORED', value: suppliers.length, cls: 'text-[var(--cyan-primary)]' },
+          { label: 'HIGH RISK (≥70)',      value: high,             cls: high > 0 ? 'text-[var(--alert-red)]' : 'text-[var(--alert-green)]' },
+          { label: 'PORTFOLIO AVG SCORE', value: avg,              cls: `font-bold`, style: { color: scoreColor(avg) } },
+          { label: 'EARLY WARNINGS',       value: warnings,         cls: warnings > 0 ? 'text-[#ffaa00]' : 'text-[var(--alert-green)]' },
+          { label: 'HHI (REGION)',          value: concentration ? concentration.hhi_region.toFixed(3) : '—', cls: 'text-[var(--text-secondary)]' },
+        ].map(stat => (
+          <div key={stat.label} className="flex flex-col gap-0.5">
+            <span className="hud-text text-[9px] text-[var(--text-muted)]">{stat.label}</span>
+            <span className={`text-xl font-bold ${stat.cls}`} style={(stat as { style?: React.CSSProperties }).style}>{stat.value}</span>
           </div>
+        ))}
+      </div>
 
-          <div className="flex-1 overflow-y-auto styled-scrollbar p-3 space-y-2">
-            {loading && (
-              <div className="text-center py-8 text-[var(--text-muted)] text-[11px] font-mono">Loading...</div>
-            )}
-            {suppliers.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => handleSelectSupplier(s.id)}
-                className={`w-full text-left p-3 rounded-lg border transition-all ${
-                  selectedSupplier === s.id
-                    ? 'border-[var(--gold-primary)] bg-[rgba(var(--gold-rgb),0.08)]'
-                    : 'border-[var(--border-secondary)] bg-[var(--bg-secondary)] hover:border-[var(--border-primary)]'
-                }`}
+      {/* ── Main body ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── Supplier list ── */}
+        <div className="w-60 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-primary)] overflow-y-auto styled-scrollbar">
+          <div className="px-3 py-2 hud-text text-[10px] text-[var(--text-muted)] border-b border-[var(--border-primary)]">
+            SUPPLIERS — sorted by risk
+          </div>
+          {loading && <div className="p-4 text-center text-xs text-[var(--text-muted)]">Loading…</div>}
+          {[...suppliers].sort((a, b) => b.composite_score - a.composite_score).map(sup => {
+            const delta = sup.delta_7d ?? 0;
+            return (
+              <div
+                key={sup.supplier_id}
+                className={`px-3 py-2.5 cursor-pointer border-b border-[var(--border-primary)]/30 hover:bg-[var(--bg-tertiary)] ${selected?.supplier_id === sup.supplier_id ? 'bg-[var(--bg-tertiary)] border-l-2 border-l-[var(--cyan-primary)]' : ''}`}
+                onClick={() => handleSelectSupplier(sup)}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold text-[var(--text-primary)]">
-                    {s.id.replace('supplier-', '').replace(/-/g, ' ').toUpperCase()}
-                  </span>
-                  <ChevronRight className="w-3 h-3 text-[var(--text-muted)]" />
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-semibold truncate max-w-[130px]">{sup.supplier_name}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${scoreCls(sup.composite_score)}`}>{Math.round(sup.composite_score)}</span>
                 </div>
-                <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
-                  {s.country_code} &middot; {s.latitude.toFixed(2)}, {s.longitude.toFixed(2)}
+                <div className="flex items-center justify-between text-[9px]">
+                  <span className="text-[var(--text-muted)]">{sup.supplier_id}</span>
+                  {delta !== 0 && (
+                    <span style={{ color: delta > 0 ? 'var(--alert-red)' : 'var(--alert-green)' }}>
+                      {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
+                    </span>
+                  )}
                 </div>
-              </button>
-            ))}
-          </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Center: Risk detail */}
-        <div className="flex-1 flex flex-col gap-4">
-          {/* Risk score card */}
-          {riskScore && (
-            <div className="glass-panel p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-[15px] font-mono font-bold text-[var(--text-primary)]">
-                    {riskScore.supplier_id.replace('supplier-', '').replace(/-/g, ' ').toUpperCase()}
-                  </h2>
-                  <p className="text-[10px] font-mono text-[var(--text-muted)]">Supplier Risk Assessment</p>
-                </div>
-                <div className="gotham-stat">
-                  <span
-                    className="gotham-stat__value text-3xl"
-                    style={{
-                      color: riskScore.score_0_100 > 60 ? 'var(--alert-red)' : riskScore.score_0_100 > 35 ? 'var(--alert-orange)' : 'var(--alert-green)',
-                    }}
-                  >
-                    {riskScore.score_0_100.toFixed(0)}
-                  </span>
-                  <span className="gotham-stat__label">RISK SCORE (0-100)</span>
-                </div>
+        {/* ── Detail panel ── */}
+        {selected ? (
+          <div className="flex-1 overflow-y-auto styled-scrollbar p-5">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="text-xl font-bold">{selected.supplier_name}</div>
+                <div className="text-xs text-[var(--text-muted)]">{selected.supplier_id} · as of {new Date(selected.as_of).toLocaleString()}</div>
+                {(selected.delta_7d ?? 0) > 10 && (
+                  <div className="mt-1 text-xs text-[#ffaa00] font-bold">⚠ EARLY WARNING — Score up {selected.delta_7d?.toFixed(1)} pts in 7 days</div>
+                )}
               </div>
+              <ScoreGauge score={selected.composite_score} />
+            </div>
 
-              {/* Dimension bars */}
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(riskScore.dimension_scores).map(([key, value]) => (
-                  <div key={key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-mono text-[var(--text-secondary)]">
-                        {key.replace(/_/g, ' ').toUpperCase()}
-                      </span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {(value * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${value * 100}%`,
-                          background: value > 0.6 ? 'var(--alert-red)' : value > 0.35 ? 'var(--alert-orange)' : 'var(--alert-green)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Factor ledger */}
-              <div className="mt-4 gotham-divider">
-                <span className="gotham-divider__label">FACTOR LEDGER</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {riskScore.factor_ledger.slice(0, 6).map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-[10px] font-mono px-2 py-1 rounded bg-[var(--bg-secondary)]">
-                    <span className="text-[var(--text-secondary)]">{f.factor.split(':')[0]}</span>
-                    <span style={{ color: f.contribution > 0 ? 'var(--alert-red)' : 'var(--alert-green)' }}>
-                      {f.contribution > 0 ? '+' : ''}{(f.contribution * 100).toFixed(1)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Stress test button */}
-              <div className="mt-4 flex gap-3">
+            {/* Tabs */}
+            <div className="flex gap-1 mb-4 border-b border-[var(--border-primary)]">
+              {(['score','exposure','mitigations','stress'] as const).map(t => (
                 <button
-                  onClick={() => handleStressTest(riskScore.supplier_id)}
-                  disabled={stressLoading}
-                  className="btn-tactical text-[10px]"
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`px-3 py-1.5 text-xs hud-text uppercase transition-colors ${activeTab === t ? 'text-[var(--cyan-primary)] border-b-2 border-[var(--cyan-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
-                  <Zap className="w-3 h-3 inline mr-1" />
-                  {stressLoading ? 'RUNNING...' : 'STRESS TEST (FORCED FAILURE)'}
+                  {t}
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* Cascade exposure */}
-          <div className="glass-panel p-5 flex-1 overflow-y-auto styled-scrollbar">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-[var(--alert-orange)]" />
-              <span className="hud-text text-[11px] text-[var(--text-primary)]">CASCADE EXPOSURE</span>
-              <span className="text-[9px] font-mono text-[var(--text-muted)] ml-auto">
-                Monte Carlo (500 trials, seed=7)
-              </span>
+              ))}
             </div>
 
-            {stressResult && (
-              <div className="mb-4 p-3 rounded-lg border border-[var(--alert-red)]/30 bg-[var(--alert-red)]/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--alert-red)]" />
-                  <span className="text-[11px] font-mono font-bold text-[var(--alert-red)]">STRESS TEST: {stressResult.target_id}</span>
+            {/* Score tab */}
+            {activeTab === 'score' && (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <div className="hud-text text-[10px] text-[var(--text-muted)] mb-2">DIMENSION SCORES</div>
+                  {dim('Delivery',      selected.dimension_scores.delivery)}
+                  {dim('Quality',       selected.dimension_scores.quality)}
+                  {dim('Financial',     selected.dimension_scores.financial)}
+                  {dim('Capacity',      selected.dimension_scores.capacity)}
+                  {dim('Compliance',    selected.dimension_scores.compliance)}
+                  {dim('Concentration', selected.dimension_scores.concentration)}
                 </div>
-                <div className="grid grid-cols-3 gap-3 mb-2">
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value text-sm">{stressResult.exposure.length}</span>
-                    <span className="gotham-stat__label">NODES AFFECTED</span>
-                  </div>
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value text-sm">{stressResult.mitigations.length}</span>
-                    <span className="gotham-stat__label">MITIGATIONS</span>
-                  </div>
-                </div>
-                {stressResult.mitigations.length > 0 && (
+                <div>
+                  <div className="hud-text text-[10px] text-[var(--text-muted)] mb-2">FACTOR LEDGER</div>
                   <div className="space-y-1">
-                    {stressResult.mitigations.map((m, i) => (
-                      <div key={i} className="text-[9px] font-mono text-[var(--text-secondary)]">
-                        {m.node}: {m.mitigation} (stockout: {m.stockout_days?.toFixed(0) ?? 'N/A'}d)
+                    {selected.factor_ledger.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-[var(--border-primary)]/40">
+                        <span className="text-[var(--text-secondary)] truncate max-w-[60%]">{f.factor}</span>
+                        <span className={`font-bold ${f.direction === 'positive' ? 'text-[var(--alert-green)]' : f.direction === 'negative' ? 'text-[var(--alert-red)]' : 'text-[var(--text-muted)]'}`}>
+                          {f.contribution >= 0 ? '+' : ''}{f.contribution.toFixed(2)}
+                        </span>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Procurement flags */}
+                  <div className="mt-4">
+                    <div className="hud-text text-[10px] text-[var(--text-muted)] mb-2">PROCUREMENT FLAGS</div>
+                    {selected.composite_score >= 70 && (
+                      <div className="text-xs text-[var(--alert-red)] mb-1">🔴 Audit triggered — contact sourcing lead</div>
+                    )}
+                    {selected.dimension_scores.concentration < 0.4 && (
+                      <div className="text-xs text-[#ffaa00] mb-1">🟡 Dual-source review needed — high concentration</div>
+                    )}
+                    {selected.dimension_scores.delivery < 0.7 && (
+                      <div className="text-xs text-[#ffcc00] mb-1">🟡 On-time delivery below threshold — expedite review</div>
+                    )}
+                    {selected.composite_score < 30 && (
+                      <div className="text-xs text-[var(--alert-green)] mb-1">🟢 Preferred supplier — eligible for long-term contract</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Exposure tab */}
+            {activeTab === 'exposure' && (
+              <div>
+                <div className="hud-text text-[10px] text-[var(--text-muted)] mb-3">BOM EXPOSURE TREE — Impact if {selected.supplier_name} fails</div>
+                {exposure.length === 0 && <div className="text-xs text-[var(--text-muted)]">No exposure data. An active alert is needed to compute BOM traversal.</div>}
+                {exposure.map(n => (
+                  <div key={n.node_id} className="flex items-center gap-3 py-1.5 border-b border-[var(--border-primary)]/40">
+                    <span className="hud-text text-[9px] text-[var(--text-muted)] w-6">{n.depth}↓</span>
+                    <span className="text-[11px] flex-1">{n.node_name}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{n.node_kind}</span>
+                    <div className="w-20 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${n.exposure_score * 100}%`, background: scoreColor(n.exposure_score * 100) }} />
+                    </div>
+                    <span className="text-[10px] font-bold" style={{ color: scoreColor(n.exposure_score * 100) }}>{(n.exposure_score * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Mitigations tab */}
+            {activeTab === 'mitigations' && (
+              <div>
+                <div className="hud-text text-[10px] text-[var(--text-muted)] mb-3">MITIGATION OPTIONS</div>
+                {mitigations.length === 0 && <div className="text-xs text-[var(--text-muted)]">No mitigations computed. Requires an active alert for this supplier.</div>}
+                {mitigations.map((m, i) => (
+                  <div key={i} className={`glass-panel p-3 mb-2 rounded-lg ${m.recommended ? 'border border-[var(--cyan-primary)]/50' : ''}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold">{m.option}</span>
+                      {m.recommended && <span className="text-[9px] text-[var(--cyan-primary)] border border-[var(--cyan-primary)] px-1 rounded">RECOMMENDED</span>}
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)] mb-2">{m.description}</div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-[9px] text-[var(--text-muted)]">COST EST.</div>
+                        <div className="text-xs font-bold">\${m.cost_estimate.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[var(--text-muted)]">LEAD TIME SAVE</div>
+                        <div className="text-xs font-bold text-[var(--alert-green)]">{m.lead_time_reduction_days}d</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-[var(--text-muted)]">SCORE DELTA</div>
+                        <div className={`text-xs font-bold ${m.risk_score_delta < 0 ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}`}>
+                          {m.risk_score_delta >= 0 ? '+' : ''}{m.risk_score_delta.toFixed(1)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Stress test tab */}
+            {activeTab === 'stress' && (
+              <div>
+                <div className="hud-text text-[10px] text-[var(--text-muted)] mb-3">STRESS SCENARIOS (500 Monte Carlo trials)</div>
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  {STRESS_PRESETS.map(p => (
+                    <button key={p.label} onClick={() => runStress(p)} disabled={stressLoading} className="btn-danger text-xs px-3 py-1.5 disabled:opacity-50">
+                      {stressLoading ? '…' : p.label}
+                    </button>
+                  ))}
+                </div>
+                {stressResult && (
+                  <div className="glass-panel p-4 rounded-lg">
+                    <div className="text-sm font-bold mb-3">{stressResult.scenario} — {stressResult.disrupted_node}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="gotham-stat">
+                        <div className="gotham-stat__value" style={{ color: scoreColor(stressResult.mean_exposure * 100) }}>
+                          {(stressResult.mean_exposure * 100).toFixed(1)}%
+                        </div>
+                        <div className="gotham-stat__label">MEAN EXPOSURE</div>
+                      </div>
+                      <div className="gotham-stat">
+                        <div className="gotham-stat__value text-[var(--alert-red)]">
+                          {(stressResult.p95_exposure * 100).toFixed(1)}%
+                        </div>
+                        <div className="gotham-stat__label">P95 EXPOSURE</div>
+                      </div>
+                      <div className="gotham-stat">
+                        <div className="gotham-stat__value">{stressResult.trials}</div>
+                        <div className="gotham-stat__label">TRIALS</div>
+                      </div>
+                      <div className="gotham-stat">
+                        <div className="gotham-stat__value text-[var(--alert-red)]">
+                          \${(stressResult.revenue_at_risk / 1000).toFixed(0)}K
+                        </div>
+                        <div className="gotham-stat__label">REVENUE AT RISK</div>
+                      </div>
+                    </div>
+                    {stressResult.affected_skus.length > 0 && (
+                      <div className="mt-3">
+                        <div className="hud-text text-[9px] text-[var(--text-muted)] mb-1">AFFECTED SKUs</div>
+                        <div className="flex flex-wrap gap-1">
+                          {stressResult.affected_skus.map(s => (
+                            <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--alert-red)]">{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
-
-            {/* Exposure table */}
-            <table className="w-full">
-              <thead>
-                <tr className="text-[9px] font-mono text-[var(--text-muted)] border-b border-[var(--border-secondary)]">
-                  <th className="text-left py-2 px-2">NODE</th>
-                  <th className="text-right py-2 px-2">P(AFFECTED)</th>
-                  <th className="text-right py-2 px-2">EXPECTED IMPACT</th>
-                  <th className="text-right py-2 px-2">P50 STOCKOUT</th>
-                  <th className="text-right py-2 px-2">P95 STOCKOUT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exposure.map((row) => (
-                  <tr key={row.node_id} className="border-b border-[var(--border-secondary)] hover:bg-[var(--hover-accent)] transition-colors">
-                    <td className="py-2 px-2 text-[10px] font-mono text-[var(--text-primary)]">
-                      {row.node_id}
-                    </td>
-                    <td className="py-2 px-2 text-[10px] font-mono text-right">
-                      <span style={{
-                        color: row.probability_affected > 0.5 ? 'var(--alert-red)' : row.probability_affected > 0.2 ? 'var(--alert-orange)' : 'var(--alert-green)',
-                      }}>
-                        {(row.probability_affected * 100).toFixed(1)}%
-                      </span>
-                    </td>
-                    <td className="py-2 px-2 text-[10px] font-mono text-right text-[var(--text-secondary)]">
-                      {row.expected_impact.toFixed(4)}
-                    </td>
-                    <td className="py-2 px-2 text-[10px] font-mono text-right text-[var(--text-secondary)]">
-                      {row.p50_stockout_days != null ? `${row.p50_stockout_days.toFixed(1)}d` : '—'}
-                    </td>
-                    <td className="py-2 px-2 text-[10px] font-mono text-right text-[var(--text-secondary)]">
-                      {row.p95_stockout_days != null ? `${row.p95_stockout_days.toFixed(1)}d` : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-muted)]">Select a supplier</div>
+        )}
 
-        {/* Right: Concentration info */}
-        <div className="w-64 glass-panel flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--border-primary)]">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[var(--cyan-primary)]" />
-              <span className="hud-text text-[11px] text-[var(--text-primary)]">CONCENTRATION</span>
-            </div>
-          </div>
-
-          <div className="p-4 space-y-4">
-            {concentration ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value">{concentration.suppliers}</span>
-                    <span className="gotham-stat__label">SUPPLIERS</span>
-                  </div>
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value">{concentration.ports}</span>
-                    <span className="gotham-stat__label">PORTS</span>
-                  </div>
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value">{concentration.lanes}</span>
-                    <span className="gotham-stat__label">LANES</span>
-                  </div>
-                  <div className="gotham-stat">
-                    <span className="gotham-stat__value">{concentration.herfindahl_index.toFixed(3)}</span>
-                    <span className="gotham-stat__label">HHI</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg border border-[var(--border-secondary)] bg-[var(--bg-secondary)]">
-                  <div className="text-[10px] font-mono text-[var(--text-muted)] mb-1">SINGLE SOURCE RISK</div>
-                  <div
-                    className="text-[13px] font-mono font-bold"
-                    style={{
-                      color: concentration.single_source_risk === 'high' ? 'var(--alert-red)' : 'var(--alert-green)',
-                    }}
-                  >
-                    {concentration.single_source_risk.toUpperCase()}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8 text-[var(--text-muted)] text-[11px] font-mono">
-                Loading...
+        {/* ── Right panel — Concentration ── */}
+        <div className="w-64 shrink-0 bg-[var(--bg-secondary)] border-l border-[var(--border-primary)] overflow-y-auto styled-scrollbar p-4">
+          <div className="hud-text text-[10px] text-[var(--text-muted)] mb-3">CONCENTRATION RISK</div>
+          {concentration ? (
+            <>
+              <div className={`text-xs font-bold mb-3 px-2 py-1 rounded ${scoreCls(concentration.hhi_region * 100)}`}>
+                {concentration.risk_level.toUpperCase()} — HHI {concentration.hhi_region.toFixed(3)}
               </div>
-            )}
-
-            <div className="gotham-divider">
-              <span className="gotham-divider__label">QUICK ACTIONS</span>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => handleStressTest('port-singapore')}
-                disabled={stressLoading}
-                className="btn-tactical btn-tactical--cyan text-[10px] w-full"
-              >
-                <Zap className="w-3 h-3 inline mr-1" />
-                STRESS: SINGAPORE
-              </button>
-              <button
-                onClick={() => handleStressTest('suez-canal')}
-                disabled={stressLoading}
-                className="btn-tactical btn-tactical--cyan text-[10px] w-full"
-              >
-                <Zap className="w-3 h-3 inline mr-1" />
-                STRESS: SUEZ CANAL
-              </button>
-              <button
-                onClick={() => handleStressTest('supplier-tsmc')}
-                disabled={stressLoading}
-                className="btn-tactical btn-tactical--cyan text-[10px] w-full"
-              >
-                <Zap className="w-3 h-3 inline mr-1" />
-                STRESS: TSMC
-              </button>
-            </div>
-          </div>
+              <div className="mb-4">
+                <div className="hud-text text-[9px] text-[var(--text-muted)] mb-1">BY REGION</div>
+                {Object.entries(concentration.by_region).map(([r, v]) => (
+                  <div key={r} className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] flex-1 truncate">{r}</span>
+                    <div className="w-20 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[var(--gold-primary)]" style={{ width: `${v * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] text-[var(--text-muted)]">{(v * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mb-4">
+                <div className="hud-text text-[9px] text-[var(--text-muted)] mb-1">BY CATEGORY</div>
+                {Object.entries(concentration.by_category).map(([c, v]) => (
+                  <div key={c} className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] flex-1 truncate capitalize">{c}</span>
+                    <div className="w-20 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[var(--cyan-primary)]" style={{ width: `${v * 100}%` }} />
+                    </div>
+                    <span className="text-[10px] text-[var(--text-muted)]">{(v * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className="glass-panel p-3 rounded-lg text-xs">
+                <div className="text-[var(--text-muted)] mb-1">TOP CONCENTRATION RISK</div>
+                <div className="font-bold text-[var(--gold-primary)]">{concentration.top_region}</div>
+                <div className="text-[var(--text-muted)]">{concentration.top_category}</div>
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-[var(--text-muted)]">Loading concentration…</div>
+          )}
         </div>
       </div>
     </div>

@@ -1,458 +1,609 @@
 'use client';
-
-import { useEffect, useRef, useCallback, memo } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type {
+  CascadeMap, Vessel, Flight, RelationArc,
+  ShippingLane, GeoFeatureCollection, LayerVisibility,
+} from '@/lib/contracts';
 
-// ── Constants ────────────────────────────────────────────────────────────────
-const R = 1.0;
-const PIN_BASE_R = 0.004;
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-const COLORS = {
-  earth: 0x0d1117,
-  wire: 0x1f3a60,
-  atmosphere: 0x58a6ff,
-  stressLow: new THREE.Color(0x3fb950),
-  stressMid: new THREE.Color(0xe3b341),
-  stressHi: new THREE.Color(0xf78166),
-  typeColors: {
-    weather_advisory: new THREE.Color(0xf78166),
-    port_congestion: new THREE.Color(0xe3b341),
-    route_closure: new THREE.Color(0xf78166),
-    public_advisory: new THREE.Color(0x58a6ff),
-    capacity_event: new THREE.Color(0xd2a8ff),
-    vessel_delay: new THREE.Color(0x7ee2e2),
-    quality_event: new THREE.Color(0xf78166),
-    financial_event: new THREE.Color(0xe3b341),
-    sanction: new THREE.Color(0xf78166),
-    unrest: new THREE.Color(0xf78166),
-  } as Record<string, THREE.Color>,
+const R = 1.0; // Globe radius
+const CDN = 'https://unpkg.com/three@0.160.0/examples/textures';
+const BORDERS_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+
+const ARC_LABEL_COLORS: Record<string, number> = {
+  disrupts:     0xff3333,
+  blocks:       0xff8800,
+  affects:      0xffcc00,
+  amplifies:    0xff00ff,
+  supplies:     0x00ccff,
+  corroborates: 0x88ff88,
+};
+const VESSEL_COLORS: Record<string, number> = {
+  cargo:     0x4488ff,
+  tanker:    0xffaa00,
+  passenger: 0x44ff88,
+  fishing:   0xffffff,
+  mil:       0xff4444,
+};
+const INFRA_COLORS: Record<string, number> = {
+  port:              0x00ccff,
+  airport:           0xffffff,
+  warehouse:         0xffcc44,
+  refinery:          0xff8800,
+  lng_terminal:      0x00ffcc,
+  storage:           0xaaaaaa,
+  economic_center:   0xffd700,
+  data_center:       0x44ffff,
+  nuclear_site:      0xff44ff,
+  military_base:     0xff4444,
+  spaceport:         0xccccff,
+};
+const LINE_COLORS: Record<string, number> = {
+  pipeline:      0xffaa00,
+  power_line:    0xffff00,
+  undersea_cable:0x00ccff,
+  land_route:    0x88ff44,
 };
 
-const TEX = {
-  night: 'https://cdn.jsdelivr.net/npm/three-globe@2.33.0/example/img/earth-night.jpg',
-  day: 'https://cdn.jsdelivr.net/npm/three-globe@2.33.0/example/img/earth-blue-marble.jpg',
-  bump: 'https://cdn.jsdelivr.net/npm/three-globe@2.33.0/example/img/earth-topology.png',
-};
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-// ── Coordinate helper ────────────────────────────────────────────────────────
-function latLonToVec3(lat: number, lon: number, radius = R): THREE.Vector3 {
-  const phi = (90 - lat) * Math.PI / 180;
-  const theta = (lon + 180) * Math.PI / 180;
+function latLonToVec3(lat: number, lon: number, r = R): THREE.Vector3 {
+  const phi   = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
   return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta),
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta),
   );
 }
 
-function stressColor(level: number, baseline = 0.05): THREE.Color {
-  const diff = Math.max(0, level - baseline);
-  if (diff < 0.10) return COLORS.stressLow;
-  if (diff < 0.30) return COLORS.stressMid;
-  return COLORS.stressHi;
+function stressColor(stress: number): THREE.Color {
+  if (stress < 0.3) return new THREE.Color(0x44ff88);
+  if (stress < 0.6) return new THREE.Color(0xffcc00);
+  return new THREE.Color(0xff3333);
 }
 
-// ── Props ────────────────────────────────────────────────────────────────────
-export interface GlobeFeature {
-  type: string;
-  geometry: { type: string; coordinates: [number, number] };
-  properties: {
-    title: string;
-    type: string;
-    intensity: number;
-    confidence: number;
-    source: string;
-    observed_at: string;
-    [key: string]: unknown;
-  };
+function buildArcPoints(src: THREE.Vector3, tgt: THREE.Vector3, height = 0.35): THREE.Vector3[] {
+  const mid = src.clone().add(tgt).multiplyScalar(0.5).normalize().multiplyScalar(R + height);
+  const curve = new THREE.QuadraticBezierCurve3(src, mid, tgt);
+  return curve.getPoints(48);
 }
 
-interface SarvadarshiGlobeProps {
-  data?: { type: string; features: GlobeFeature[] };
-  onFeatureClick?: (feature: GlobeFeature) => void;
-  className?: string;
+function buildLineFromCoords(coords: [number, number][], r = R): THREE.BufferGeometry {
+  const pts = coords.map(([lon, lat]) => latLonToVec3(lat, lon, r * 1.002));
+  return new THREE.BufferGeometry().setFromPoints(pts);
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-function SarvadarshiGlobeInner({ data, onFeatureClick, className }: SarvadarshiGlobeProps) {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface SarvadarshiGlobeProps {
+  cascadeData?: CascadeMap | null;
+  vessels?: Vessel[];
+  flights?: Flight[];
+  earthquakes?: GeoFeatureCollection | null;
+  infraLayers?: Partial<Record<string, GeoFeatureCollection>>;
+  shippingLanes?: { type: string; features: ShippingLane[] } | null;
+  bomArcs?: RelationArc[];
+  activeLayers: LayerVisibility;
+  onFeatureClick?: (feature: { id: string; name: string; kind: string; data: unknown }) => void;
+}
+
+type LayerKey = keyof typeof EMPTY_GROUPS;
+const EMPTY_GROUPS = {
+  borders: null as THREE.Group | null,
+  chokepoints: null as THREE.Group | null,
+  events: null as THREE.Group | null,
+  cascadeArcs: null as THREE.Group | null,
+  vessels: null as THREE.Group | null,
+  flights: null as THREE.Group | null,
+  shippingLanes: null as THREE.Group | null,
+  landRoutes: null as THREE.Group | null,
+  infraPoints: null as THREE.Group | null,
+  infraLines: null as THREE.Group | null,
+  bomArcs: null as THREE.Group | null,
+  earthquakes: null as THREE.Group | null,
+  stars: null as THREE.Points | null,
+  atmosphere: null as THREE.Mesh | null,
+  latRings: null as THREE.Group | null,
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function SarvadarshiGlobe({
+  cascadeData, vessels = [], flights = [], earthquakes,
+  infraLayers = {}, shippingLanes, bomArcs = [],
+  activeLayers, onFeatureClick,
+}: SarvadarshiGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<{
+    renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-    controls: { autoRotate: boolean; update: () => void };
-    layers: {
-      pins: THREE.Group;
-      pulses: THREE.Group;
-      arcs: THREE.Group;
-      events: THREE.Group;
-      borders: THREE.Group;
-    };
-    earthMat: THREE.MeshPhongMaterial;
-    wireMat: THREE.LineBasicMaterial;
-    atmoMat: THREE.ShaderMaterial;
+    controls: OrbitControls;
+    globe: THREE.Mesh;
+    groups: typeof EMPTY_GROUPS;
+    clickables: { mesh: THREE.Object3D; data: unknown }[];
+    animId: number;
   } | null>(null);
-  const dataRef = useRef(data);
-  dataRef.current = data;
 
-  // ── Initialize Three.js scene ────────────────────────────────────────────
+  // ------------------------------------------------------------------
+  // Init Three.js scene
+  // ------------------------------------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
-    const container = containerRef.current;
+    const el = containerRef.current;
 
     // Scene
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x030507, 0.18);
+    scene.background = new THREE.Color(0x020408);
 
     // Camera
-    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(0, 0.6, 3.2);
+    const camera = new THREE.PerspectiveCamera(45, el.clientWidth / el.clientHeight, 0.01, 1000);
+    camera.position.set(0, 0, 2.8);
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setClearColor(0x000000, 0);
-    container.appendChild(renderer.domElement);
+    renderer.setSize(el.clientWidth, el.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    el.appendChild(renderer.domElement);
 
-    // Controls (simple auto-rotate)
-    const controls = { autoRotate: true, autoRotateSpeed: 0.35, update() {} };
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 1.2;
+    controls.maxDistance = 6;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
 
     // Lights
-    scene.add(new THREE.AmbientLight(0x203040, 0.7));
-    const key = new THREE.DirectionalLight(0x58a6ff, 0.8);
-    key.position.set(3, 2, 2);
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(0xf78166, 0.25);
-    fill.position.set(-3, -1, -1);
-    scene.add(fill);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+    sun.position.set(5, 3, 5);
+    scene.add(sun);
 
     // Starfield
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 1200;
-    const starPos = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount; i++) {
-      const r = 18 + Math.random() * 8;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      starPos[i * 3 + 1] = r * Math.cos(phi);
-      starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    const starPositions: number[] = [];
+    for (let i = 0; i < 1800; i++) {
+      const r = 80 + Math.random() * 40;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      starPositions.push(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th));
     }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
-      color: 0xaabbdd, size: 0.02, sizeAttenuation: true, transparent: true, opacity: 0.7,
-    })));
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 }));
+    scene.add(stars);
 
     // Earth
     const texLoader = new THREE.TextureLoader();
-    texLoader.crossOrigin = 'anonymous';
-    const texBump = texLoader.load(TEX.bump);
-
-    const earthGeo = new THREE.SphereGeometry(R, 96, 96);
+    const earthGeo = new THREE.SphereGeometry(R, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
-      color: 0xffffff,
-      specular: new THREE.Color(0x101828),
-      shininess: 4,
-      bumpMap: texBump,
-      bumpScale: 0.012,
-      emissive: new THREE.Color(0x050a12),
+      map: texLoader.load(`${CDN}/earth_atmos_4096.jpg`),
+      specularMap: texLoader.load(`${CDN}/earth_specular_2048.jpg`),
+      normalMap: texLoader.load(`${CDN}/earth_normal_2048.jpg`),
+      specular: new THREE.Color(0x112244),
+      shininess: 18,
     });
-    const earth = new THREE.Mesh(earthGeo, earthMat);
-    scene.add(earth);
+    const globe = new THREE.Mesh(earthGeo, earthMat);
+    scene.add(globe);
 
-    // Load night texture
-    texLoader.load(TEX.night, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      earthMat.map = tex;
-      earthMat.emissiveMap = tex;
-      earthMat.emissive.setHex(0xffffff);
-      earthMat.emissiveIntensity = 0.55;
-      earthMat.color.setHex(0x9aa8bf);
-      earthMat.needsUpdate = true;
-    });
-
-    // Wire overlay
-    const wireGeo = new THREE.SphereGeometry(R * 1.001, 36, 24);
-    const wireMat = new THREE.LineBasicMaterial({ color: COLORS.wire, transparent: true, opacity: 0.10 });
-    scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(wireGeo), wireMat));
-
-    // Atmosphere halo
-    const atmoGeo = new THREE.SphereGeometry(R * 1.05, 48, 48);
-    const atmoMat = new THREE.ShaderMaterial({
-      transparent: true, side: THREE.BackSide, depthWrite: false,
-      uniforms: { uColor: { value: new THREE.Color(COLORS.atmosphere) } },
+    // Atmosphere
+    const atmMat = new THREE.ShaderMaterial({
+      transparent: true, side: THREE.FrontSide, blending: THREE.AdditiveBlending,
       vertexShader: `
         varying vec3 vNormal;
-        void main(){
-          vNormal = normalize(normalMatrix * normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`,
+        void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `
         varying vec3 vNormal;
-        uniform vec3 uColor;
-        void main(){
-          float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-          gl_FragColor = vec4(uColor, 1.0) * intensity;
+        void main() {
+          float d = abs(dot(vNormal, vec3(0,0,1)));
+          float ring = pow(1.0 - d, 4.0);
+          gl_FragColor = vec4(0.1,0.4,1.0,ring * 0.5);
         }`,
     });
-    scene.add(new THREE.Mesh(atmoGeo, atmoMat));
+    const atm = new THREE.Mesh(new THREE.SphereGeometry(R * 1.04, 64, 64), atmMat);
+    scene.add(atm);
 
     // Latitude rings
-    function ring(lat: number, color = 0x203048, opacity = 0.35) {
-      const rad = lat * Math.PI / 180;
-      const r = R * Math.cos(rad);
-      const y = R * Math.sin(rad);
-      const g = new THREE.BufferGeometry();
-      const segs = 128;
-      const arr = new Float32Array((segs + 1) * 3);
-      for (let i = 0; i <= segs; i++) {
-        const a = i / segs * Math.PI * 2;
-        arr[i * 3] = r * Math.cos(a);
-        arr[i * 3 + 1] = y;
-        arr[i * 3 + 2] = r * Math.sin(a);
-      }
-      g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-      return new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+    const latRings = new THREE.Group();
+    for (const lat of [0, 23.5, -23.5, 66.5, -66.5]) {
+      const pts: THREE.Vector3[] = [];
+      for (let lon = 0; lon <= 360; lon += 2) pts.push(latLonToVec3(lat, lon - 180, R * 1.001));
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const mat = new THREE.LineBasicMaterial({ color: lat === 0 ? 0x334455 : 0x223344, opacity: 0.3, transparent: true });
+      latRings.add(new THREE.Line(geo, mat));
     }
-    scene.add(ring(0, 0x2c4668, 0.45));
-    scene.add(ring(23.5));
-    scene.add(ring(-23.5));
-    scene.add(ring(66.5, 0x1a2638, 0.25));
-    scene.add(ring(-66.5, 0x1a2638, 0.25));
+    scene.add(latRings);
 
     // Layer groups
-    const layers = {
-      pins: new THREE.Group(),
-      pulses: new THREE.Group(),
-      arcs: new THREE.Group(),
-      events: new THREE.Group(),
-      borders: new THREE.Group(),
-    };
-    Object.values(layers).forEach(g => scene.add(g));
+    const groups = { ...EMPTY_GROUPS };
+    const layerKeys = ['borders','chokepoints','events','cascadeArcs','vessels','flights','shippingLanes','landRoutes','infraPoints','infraLines','bomArcs','earthquakes'] as LayerKey[];
+    for (const k of layerKeys) {
+      const g = new THREE.Group();
+      g.name = k;
+      scene.add(g);
+      (groups as Record<string, unknown>)[k] = g;
+    }
+    (groups as Record<string, unknown>).stars = stars;
+    (groups as Record<string, unknown>).atmosphere = atm;
+    (groups as Record<string, unknown>).latRings = latRings;
 
-    // Country borders
-    const BORDERS_URL = 'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector/geojson/ne_110m_admin_0_countries.geojson';
-    fetch(BORDERS_URL)
-      .then(r => r.json())
-      .then((geo) => {
-        const mat = new THREE.LineBasicMaterial({ color: 0x58a6ff, transparent: true, opacity: 0.28 });
-        const borderR = R * 1.0015;
-        for (const feat of geo.features || []) {
-          const g = feat.geometry;
-          if (!g) continue;
-          const polys = g.type === 'Polygon' ? [g.coordinates]
-            : g.type === 'MultiPolygon' ? g.coordinates : [];
-          for (const poly of polys) {
-            for (const ringCoords of poly) {
-              const pts: THREE.Vector3[] = [];
-              for (const [lon, lat] of ringCoords) {
-                if (lon == null || lat == null) continue;
-                pts.push(latLonToVec3(lat, lon, borderR));
-              }
-              if (pts.length < 2) continue;
-              const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-              layers.borders.add(new THREE.LineLoop(lineGeo, mat));
-            }
-          }
-        }
-      })
-      .catch(() => {});
-
-    // Raycaster for clicks
+    // Raycaster
     const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const clickable: THREE.Object3D[] = [];
-
+    const clickables: { mesh: THREE.Object3D; data: unknown }[] = [];
     renderer.domElement.addEventListener('click', (e) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      if (!onFeatureClick) return;
+      const rect = el.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
       raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(clickable, false);
-      if (hits.length && hits[0].object.userData.feature) {
-        onFeatureClick?.(hits[0].object.userData.feature);
+      const hits = raycaster.intersectObjects(clickables.map(c => c.mesh), true);
+      if (hits.length > 0) {
+        const hit = hits[0];
+        const entry = clickables.find(c => c.mesh === hit.object || c.mesh.getObjectById(hit.object.id));
+        if (entry) onFeatureClick(entry.data as Parameters<NonNullable<typeof onFeatureClick>>[0]);
       }
     });
 
-    // Animation
-    let last = performance.now();
-    let autoRotateAngle = 0;
-    function animate(now: number) {
-      requestAnimationFrame(animate);
-      const dt = (now - last) / 1000;
-      last = now;
-
-      // Auto-rotate
-      if (controls.autoRotate) {
-        autoRotateAngle += controls.autoRotateSpeed * dt * 0.1;
-        camera.position.x = 3.2 * Math.sin(autoRotateAngle);
-        camera.position.z = 3.2 * Math.cos(autoRotateAngle);
-        camera.position.y = 0.6;
-        camera.lookAt(0, 0, 0);
-      }
-
-      // Pulse halos
-      layers.pulses.children.forEach(h => {
-        const ud = h.userData;
-        ud.phase = (ud.phase || 0) + dt * 2.0;
-        const s = 1 + Math.sin(ud.phase) * 0.25;
-        h.scale.setScalar(s);
-        (h.material as THREE.MeshBasicMaterial).opacity = 0.15 + 0.15 * Math.sin(ud.phase);
-      });
-
-      // Event twinkle
-      layers.events.children.forEach(d => {
-        const ud = d.userData;
-        ud.phase = (ud.phase || 0) + dt * 2.5;
-        const s = 1 + Math.sin(ud.phase) * 0.35;
-        d.scale.setScalar(s);
-      });
-
-      // Arc glow
-      layers.arcs.children.forEach(a => {
-        const ud = a.userData;
-        ud.phase = (ud.phase || 0) + dt * 1.3;
-        (a.material as THREE.LineBasicMaterial).opacity =
-          ud.baseOpacity * (0.7 + 0.3 * Math.sin(ud.phase));
-      });
-
+    // Animation loop
+    let animId = 0;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      controls.update();
       renderer.render(scene, camera);
-    }
-    requestAnimationFrame(animate);
+    };
+    animate();
 
     // Resize
     const onResize = () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.aspect = el.clientWidth / el.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(el.clientWidth, el.clientHeight);
     };
     window.addEventListener('resize', onResize);
 
-    sceneRef.current = { scene, camera, renderer, controls, layers, earthMat, wireMat, atmoMat };
+    sceneRef.current = { renderer, scene, camera, controls, globe, groups, clickables, animId };
+
+    // Country borders
+    fetch(BORDERS_URL)
+      .then(r => r.json())
+      .then((gj) => {
+        if (!sceneRef.current) return;
+        const g = sceneRef.current.groups.borders as THREE.Group;
+        const mat = new THREE.LineBasicMaterial({ color: 0x334455, opacity: 0.5, transparent: true });
+        for (const feat of (gj as { features: { geometry: { type: string; coordinates: unknown[] } }[] }).features) {
+          const geom = feat.geometry;
+          const rings = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+          for (const poly of rings as number[][][][]) {
+            for (const ring of poly) {
+              const pts = ring.map(([lon, lat]: number[]) => latLonToVec3(lat, lon, R * 1.001));
+              g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+            }
+          }
+        }
+      }).catch(() => { /* CDN may fail silently */ });
 
     return () => {
+      cancelAnimationFrame(animId);
       window.removeEventListener('resize', onResize);
       renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
+      el.removeChild(renderer.domElement);
       sceneRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // ── Build scene objects from data ──────────────────────────────────────────
+  // ------------------------------------------------------------------
+  // Layer visibility effect
+  // ------------------------------------------------------------------
   useEffect(() => {
-    const ctx = sceneRef.current;
-    if (!ctx || !data) return;
-    const { layers } = ctx;
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const { groups } = ref;
+    const g = groups as Record<string, THREE.Object3D | null>;
+    if (g.borders)      g.borders.visible      = activeLayers.countryBorders;
+    if (g.chokepoints)  g.chokepoints.visible  = activeLayers.chokepointPins;
+    if (g.events)       g.events.visible       = activeLayers.eventDots;
+    if (g.cascadeArcs)  g.cascadeArcs.visible  = activeLayers.cascadeArcs;
+    if (g.vessels)      g.vessels.visible      = activeLayers.vessels;
+    if (g.flights)      g.flights.visible      = activeLayers.flights;
+    if (g.shippingLanes) g.shippingLanes.visible = activeLayers.shippingLanes;
+    if (g.landRoutes)   g.landRoutes.visible   = activeLayers.landRoutes;
+    if (g.bomArcs)      g.bomArcs.visible      = activeLayers.bomArcs;
+    if (g.earthquakes)  g.earthquakes.visible  = activeLayers.earthquakes;
+    // infraPoints/infraLines toggled individually via feature kind
+  }, [activeLayers]);
 
-    // Clear previous
-    layers.pins.clear();
-    layers.pulses.clear();
-    layers.arcs.clear();
-    layers.events.clear();
+  // ------------------------------------------------------------------
+  // Cascade data (chokepoints + events + impact arcs)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref || !cascadeData) return;
+    const { groups, clickables } = ref;
+    const cpGroup = groups.chokepoints as THREE.Group;
+    const evGroup = groups.events as THREE.Group;
+    const arcGroup = groups.cascadeArcs as THREE.Group;
+    cpGroup.clear(); evGroup.clear(); arcGroup.clear();
+    clickables.length = 0;
 
-    const clickable: THREE.Object3D[] = [];
-
-    // Build port/signal pins
-    for (const feat of data.features) {
-      const [lon, lat] = feat.geometry.coordinates;
-      if (lat == null || lon == null) continue;
-      const intensity = feat.properties.intensity || 0.3;
-      const pos = latLonToVec3(lat, lon, R * 1.01);
-      const col = stressColor(intensity);
-      const rad = PIN_BASE_R + Math.min(0.016, intensity * 0.016);
-
-      // Pin sphere
+    // Chokepoints
+    for (const cp of cascadeData.chokepoints) {
+      if (!cp.latitude && !cp.longitude) continue;
+      const pos = latLonToVec3(cp.latitude, cp.longitude, R * 1.003);
+      const color = stressColor(cp.stress_level);
       const pin = new THREE.Mesh(
-        new THREE.SphereGeometry(rad, 10, 10),
-        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.88 }),
+        new THREE.CylinderGeometry(0.005, 0.002, 0.022, 6),
+        new THREE.MeshBasicMaterial({ color }),
       );
       pin.position.copy(pos);
-      pin.userData = { feature: feat };
-      layers.pins.add(pin);
-      clickable.push(pin);
+      pin.lookAt(new THREE.Vector3(0,0,0));
+      pin.rotateX(Math.PI / 2);
+      cpGroup.add(pin);
+      clickables.push({ mesh: pin, data: { id: cp.id, name: cp.name, kind: 'chokepoint', data: cp } });
 
-      // Standing ray
-      const height = 0.012 + intensity * 0.04;
-      const rayGeo = new THREE.CylinderGeometry(rad * 0.12, rad * 0.28, height, 5);
-      const rayMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.45 });
-      const ray = new THREE.Mesh(rayGeo, rayMat);
-      ray.position.copy(pos.clone().multiplyScalar(1 + height / (2 * R)));
-      ray.lookAt(new THREE.Vector3(0, 0, 0));
-      ray.rotateX(Math.PI / 2);
-      layers.pins.add(ray);
-
-      // Pulsing halo for high intensity
-      if (intensity > 0.5) {
+      // Halo for high stress
+      if (cp.stress_level > 0.5) {
         const halo = new THREE.Mesh(
-          new THREE.SphereGeometry(rad * 1.7, 12, 12),
-          new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.06 }),
+          new THREE.RingGeometry(0.01, 0.018, 16),
+          new THREE.MeshBasicMaterial({ color, opacity: 0.35, transparent: true, side: THREE.DoubleSide }),
         );
-        halo.position.copy(pos);
-        halo.userData = { phase: Math.random() * Math.PI * 2 };
-        layers.pulses.add(halo);
+        halo.position.copy(pos.clone().multiplyScalar(1.002));
+        halo.lookAt(new THREE.Vector3(0,0,0));
+        cpGroup.add(halo);
       }
-
-      // Event dot (colored by type)
-      const typeColor = COLORS.typeColors[feat.properties.type] || new THREE.Color(0x888888);
-      const eventDot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.004 + intensity * 0.008, 8, 8),
-        new THREE.MeshBasicMaterial({ color: typeColor, transparent: true, opacity: 0.9 }),
-      );
-      const jitter = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-      );
-      eventDot.position.copy(pos.clone().add(jitter).normalize().multiplyScalar(R * 1.005));
-      eventDot.userData = { phase: Math.random() * Math.PI * 2 };
-      layers.events.add(eventDot);
     }
 
-    // Build cascade arcs between features
-    if (data.features.length > 1) {
-      for (let i = 0; i < Math.min(data.features.length, 8); i++) {
-        for (let j = i + 1; j < Math.min(data.features.length, 8); j++) {
-          const f1 = data.features[i];
-          const f2 = data.features[j];
-          const [lon1, lat1] = f1.geometry.coordinates;
-          const [lon2, lat2] = f2.geometry.coordinates;
-          if (lat1 == null || lat2 == null) continue;
+    // Events
+    for (const ev of cascadeData.events) {
+      const pos = latLonToVec3(ev.latitude, ev.longitude, R * 1.003);
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.004, 6, 6),
+        new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(ev.severity * 0.3, 1, 0.6) }),
+      );
+      dot.position.copy(pos);
+      evGroup.add(dot);
+    }
 
-          const from = latLonToVec3(lat1, lon1, R * 1.01);
-          const to = latLonToVec3(lat2, lon2, R * 1.01);
-          const mid = from.clone().add(to).multiplyScalar(0.5).normalize().multiplyScalar(R * 1.15);
-          const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
-          const pts = curve.getPoints(48);
+    // Impact arcs
+    const cpById = Object.fromEntries(cascadeData.chokepoints.map(c => [c.id, c]));
+    for (const edge of cascadeData.impact_edges) {
+      const src = cpById[edge.from_chokepoint];
+      if (!src) continue;
+      const tgt = cascadeData.chokepoints.find(c => c.id === edge.to_entity_id)
+        || cascadeData.events.find(e => e.id === edge.to_entity_id);
+      if (!tgt) continue;
+      const tgtLat = 'latitude' in tgt ? tgt.latitude : 0;
+      const tgtLon = 'longitude' in tgt ? tgt.longitude : 0;
+      const pts = buildArcPoints(
+        latLonToVec3(src.latitude, src.longitude),
+        latLonToVec3(tgtLat, tgtLon),
+        0.3 + edge.severity * 0.2,
+      );
+      const color = stressColor(edge.severity);
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color, opacity: 0.5 + edge.severity * 0.4, transparent: true }),
+      );
+      arcGroup.add(line);
+    }
+  }, [cascadeData]);
 
-          const avgIntensity = ((f1.properties.intensity || 0.3) + (f2.properties.intensity || 0.3)) / 2;
-          const arcGeo = new THREE.BufferGeometry().setFromPoints(pts);
-          const arcMat = new THREE.LineBasicMaterial({
-            color: stressColor(avgIntensity + 0.2, 0),
-            transparent: true,
-            opacity: 0.05 + avgIntensity * 0.10,
-          });
-          const line = new THREE.Line(arcGeo, arcMat);
-          line.userData = { phase: Math.random() * Math.PI * 2, baseOpacity: arcMat.opacity };
-          layers.arcs.add(line);
+  // ------------------------------------------------------------------
+  // Vessels
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const g = groups_of(ref, 'vessels');
+    g.clear();
+    for (const v of vessels) {
+      const pos = latLonToVec3(v.lat, v.lon, R * 1.003);
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.003, 4, 4),
+        new THREE.MeshBasicMaterial({ color: VESSEL_COLORS[v.bucket] ?? 0xffffff }),
+      );
+      dot.position.copy(pos);
+      g.add(dot);
+    }
+  }, [vessels]);
+
+  // ------------------------------------------------------------------
+  // Flights
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const g = groups_of(ref, 'flights');
+    g.clear();
+    const positions: number[] = [];
+    for (const f of flights) {
+      if (f.on_ground) continue;
+      const pos = latLonToVec3(f.lat, f.lon, R * 1.006 + (f.alt_m / 40000) * 0.04);
+      positions.push(pos.x, pos.y, pos.z);
+    }
+    if (positions.length) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      g.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.003 })));
+    }
+  }, [flights]);
+
+  // ------------------------------------------------------------------
+  // Shipping lanes
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref || !shippingLanes) return;
+    const g = groups_of(ref, 'shippingLanes');
+    g.clear();
+    for (const feat of shippingLanes.features) {
+      const stress = feat.properties.stress ?? feat.properties.baseline_stress ?? 0.2;
+      const geo = buildLineFromCoords(feat.geometry.coordinates);
+      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+        color: stressColor(stress as number),
+        opacity: 0.55,
+        transparent: true,
+      }));
+      g.add(line);
+    }
+  }, [shippingLanes]);
+
+  // ------------------------------------------------------------------
+  // Infrastructure layers (points + lines)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const ptGroup = groups_of(ref, 'infraPoints');
+    const lnGroup = groups_of(ref, 'infraLines');
+    ptGroup.clear();
+    lnGroup.clear();
+
+    const pointKinds = new Set(['port','airport','warehouse','refinery','lng_terminal','storage','economic_center','data_center','nuclear_site','military_base','spaceport']);
+    const lineKinds  = new Set(['pipeline','power_line','undersea_cable','land_route']);
+
+    for (const [layerName, fc] of Object.entries(infraLayers)) {
+      if (!fc) continue;
+      for (const feat of fc.features) {
+        const props = feat.properties as Record<string, unknown>;
+        const kind  = (props.kind as string) || layerName;
+        const geomType = feat.geometry.type;
+
+        if (geomType === 'Point' && pointKinds.has(kind)) {
+          const [lon, lat] = feat.geometry.coordinates as [number, number];
+          const pos = latLonToVec3(lat, lon, R * 1.003);
+          const color = INFRA_COLORS[kind] ?? 0xffffff;
+          // Visible toggle by kind
+          const visible = isInfraVisible(kind, activeLayers);
+          const dot = new THREE.Mesh(
+            new THREE.OctahedronGeometry(0.006, 0),
+            new THREE.MeshBasicMaterial({ color }),
+          );
+          dot.position.copy(pos);
+          dot.visible = visible;
+          dot.userData = { kind };
+          ptGroup.add(dot);
+          ref.clickables.push({ mesh: dot, data: { id: props.id as string, name: props.name as string, kind, data: props } });
+        }
+
+        if ((geomType === 'LineString') && lineKinds.has(kind)) {
+          const coords = feat.geometry.coordinates as [number, number][];
+          const color = LINE_COLORS[kind] ?? 0xffffff;
+          const visible = isInfraVisible(kind, activeLayers);
+          const line = new THREE.Line(
+            buildLineFromCoords(coords),
+            new THREE.LineBasicMaterial({ color, opacity: 0.5, transparent: true }),
+          );
+          line.userData = { kind };
+          line.visible = visible;
+          lnGroup.add(line);
         }
       }
     }
+  }, [infraLayers]);
 
-    // Update clickable refs
-    ctx.controls.autoRotate = true;
-  }, [data]);
+  // Update infra visibility when activeLayers changes
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const update = (g: THREE.Group) => {
+      g.traverse(obj => {
+        const kind = obj.userData?.kind as string;
+        if (kind) obj.visible = isInfraVisible(kind, activeLayers);
+      });
+    };
+    update(groups_of(ref, 'infraPoints'));
+    update(groups_of(ref, 'infraLines'));
+  }, [activeLayers]);
 
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{ width: '100%', height: '100%', background: 'radial-gradient(ellipse at center, #0B1220 0%, #030507 80%)' }}
-    />
-  );
+  // ------------------------------------------------------------------
+  // BOM / ontology arcs
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const g = groups_of(ref, 'bomArcs');
+    g.clear();
+    for (const arc of bomArcs) {
+      const src = latLonToVec3(arc.source.lat, arc.source.lon);
+      const tgt = latLonToVec3(arc.target.lat, arc.target.lon);
+      const pts = buildArcPoints(src, tgt, 0.25 + arc.severity * 0.15);
+      const color = ARC_LABEL_COLORS[arc.label] ?? 0x88aaff;
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color, opacity: 0.35 + arc.severity * 0.5, transparent: true }),
+      );
+      g.add(line);
+    }
+  }, [bomArcs]);
+
+  // ------------------------------------------------------------------
+  // Earthquakes
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref || !earthquakes) return;
+    const g = groups_of(ref, 'earthquakes');
+    g.clear();
+    for (const feat of earthquakes.features) {
+      const coords = feat.geometry.coordinates as [number, number, number];
+      const mag = (feat.properties as Record<string, number>).mag ?? 1;
+      const pos = latLonToVec3(coords[1], coords[0], R * 1.002);
+      const size = Math.max(0.003, Math.min(0.02, mag * 0.003));
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(size, 5, 5),
+        new THREE.MeshBasicMaterial({ color: 0xff44aa, opacity: 0.7, transparent: true }),
+      );
+      dot.position.copy(pos);
+      g.add(dot);
+    }
+  }, [earthquakes]);
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />;
 }
 
-const SarvadarshiGlobe = memo(SarvadarshiGlobeInner);
-export default SarvadarshiGlobe;
+// ---------------------------------------------------------------------------
+// Util
+// ---------------------------------------------------------------------------
+
+function groups_of(ref: { groups: unknown }, key: string): THREE.Group {
+  return (ref.groups as Record<string, THREE.Group>)[key]!;
+}
+
+function isInfraVisible(kind: string, lv: LayerVisibility): boolean {
+  const map: Record<string, keyof LayerVisibility> = {
+    port:           'ports',
+    airport:        'airports',
+    warehouse:      'warehouses',
+    refinery:       'refineries',
+    lng_terminal:   'lngTerminals',
+    storage:        'storageFacilities',
+    economic_center:'economicCenters',
+    data_center:    'dataCenters',
+    nuclear_site:   'nuclearSites',
+    military_base:  'militaryBases',
+    spaceport:      'spaceports',
+    pipeline:       'pipelines',
+    power_line:     'powerLines',
+    undersea_cable: 'underseaCables',
+    land_route:     'landRoutes',
+  };
+  const key = map[kind];
+  return key ? lv[key] as boolean : true;
+}

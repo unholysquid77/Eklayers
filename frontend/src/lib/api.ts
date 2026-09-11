@@ -1,97 +1,100 @@
-/** Typed API client for the Sarvadarshi backend. */
+﻿/**
+ * Sarvadarshi — typed API client.
+ * All requests go to NEXT_PUBLIC_BACKEND_URL (default: http://localhost:8000).
+ */
+import type {
+  AlertCard, SupplierRiskScore, ExposureNode, ChokepointForecast,
+  ConcentrationResult, StressTestResult, MitigationOption,
+  CascadeMap, VesselsResponse, FlightsResponse,
+  OntologyEdgesResponse, ShippingLanesResponse, GeoFeatureCollection,
+  InfraLayerName,
+} from './contracts';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-async function fetchJSON<T = any>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-  });
-  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
-  return res.json();
+async function _get<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  const json = await res.json();
+  // Unwrap envelope when present
+  return ('data' in json ? json.data : json) as T;
 }
 
-// ── Alert / Disruption endpoints ─────────────────────────────────────────────
-
-export async function getAlerts() {
-  const resp = await fetchJSON<ApiEnvelope<Alert[]>>('/v1/alerts');
-  return resp.data;
-}
-
-export async function getAlertDetail(alertId: string) {
-  const resp = await fetchJSON<ApiEnvelope<Alert>>(`/v1/alerts/${alertId}`);
-  return resp.data;
-}
-
-export async function getExposure(alertId?: string) {
-  const params = alertId ? `?alert_id=${alertId}` : '';
-  const resp = await fetchJSON<ApiEnvelope<ExposureRow[]>>(`/v1/exposure${params}`);
-  return resp.data;
-}
-
-// ── Supplier risk endpoints ─────────────────────────────────────────────────
-
-export async function getSuppliers() {
-  const resp = await fetchJSON<ApiEnvelope<Supplier[]>>('/v1/suppliers');
-  return resp.data;
-}
-
-export async function getSupplierRisk(supplierId: string) {
-  const resp = await fetchJSON<ApiEnvelope<SupplierRiskScore>>(`/v1/suppliers/${supplierId}/risk`);
-  return resp.data;
-}
-
-// ── Map / layers ─────────────────────────────────────────────────────────────
-
-export async function getMapLayers() {
-  const resp = await fetchJSON<ApiEnvelope<GeoJSON.FeatureCollection>>('/v1/map/layers');
-  return resp.data;
-}
-
-// ── Stress tests ─────────────────────────────────────────────────────────────
-
-export async function runStressTest(req: StressTestRequest) {
-  const resp = await fetchJSON<ApiEnvelope<StressTestResult>>('/v1/stress-tests', {
+async function _post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    body: JSON.stringify(req),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    cache: 'no-store',
   });
-  return resp.data;
+  if (!res.ok) throw new Error(`POST ${path} → ${res.status}`);
+  const json = await res.json();
+  return ('data' in json ? json.data : json) as T;
 }
 
-// ── Concentration ────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Supply chain core
+// ---------------------------------------------------------------------------
 
-export async function getConcentration() {
-  const resp = await fetchJSON<ApiEnvelope<ConcentrationInfo>>('/v1/concentration');
-  return resp.data;
-}
+export const getAlerts = () => _get<AlertCard[]>('/v1/alerts');
+export const getAlert  = (id: string) => _get<AlertCard>(`/v1/alerts/${id}`);
+export const getExposure = (alertId: string) => _get<ExposureNode[]>(`/v1/exposure?alert_id=${alertId}`);
+export const getChokepointForecast = (nodeId: string) => _get<ChokepointForecast>(`/v1/chokepoints/${nodeId}/forecast`);
 
-// ── Demo / fixtures ──────────────────────────────────────────────────────────
+export const getSuppliers = () => _get<SupplierRiskScore[]>('/v1/suppliers');
+export const getSupplierRisk = (id: string) => _get<SupplierRiskScore>(`/v1/suppliers/${id}/risk`);
+export const getConcentration = () => _get<ConcentrationResult>('/v1/concentration');
 
-export async function resetDemo() {
-  const resp = await fetchJSON<ApiEnvelope<{ accepted: number; deduplicated: number }>>('/v1/demo/reset', {
-    method: 'POST',
-  });
-  return resp.data;
-}
+export const runStressTest = (body: { scenario: string; disrupted_node: string }) =>
+  _post<StressTestResult>('/v1/stress-tests', body);
 
-export async function getDemoLocations() {
-  const resp = await fetchJSON<ApiEnvelope<DemoLocation[]>>('/v1/demo/locations');
-  return resp.data;
-}
+export const getMitigations = (alertId: string) =>
+  _post<MitigationOption[]>('/v1/mitigations/compare', { alert_id: alertId });
 
-export async function getDemoNodes() {
-  const resp = await fetchJSON<ApiEnvelope<DemoNode[]>>('/v1/demo/nodes');
-  return resp.data;
-}
+export const resetDemo = () => _post<{ status: string }>('/v1/demo/reset', {});
+export const ingestLive = () => _post<unknown>('/v1/ingest/live', {});
 
-export async function getDemoDependencies() {
-  const resp = await fetchJSON<ApiEnvelope<DemoDependency[]>>('/v1/demo/dependencies');
-  return resp.data;
-}
+// ---------------------------------------------------------------------------
+// Globe feeds
+// ---------------------------------------------------------------------------
 
-// ── Ingestion ────────────────────────────────────────────────────────────────
+export const getGlobeCascadeMap = () =>
+  fetch(`${BASE}/v1/globe/cascade/map`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<CascadeMap>;
 
-export async function ingestLive() {
-  const resp = await fetchJSON<ApiEnvelope<{ runs: any[] }>>('/v1/ingest/live', { method: 'POST' });
-  return resp.data;
-}
+export const getGlobeVessels = () =>
+  fetch(`${BASE}/v1/globe/vessels`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<VesselsResponse>;
+
+export const getGlobeFlights = (limit = 2000) =>
+  fetch(`${BASE}/v1/globe/flights?limit=${limit}`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<FlightsResponse>;
+
+export const getGlobeEarthquakes = () =>
+  fetch(`${BASE}/v1/globe/events/earthquakes`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<GeoFeatureCollection>;
+
+export const getGlobeShippingLanes = () =>
+  fetch(`${BASE}/v1/globe/shipping_lanes`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<ShippingLanesResponse>;
+
+export const getGlobeInfraLayer = (layer: InfraLayerName) =>
+  fetch(`${BASE}/v1/globe/infrastructure/${layer}`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<GeoFeatureCollection>;
+
+export const getGlobeOntologyEdges = () =>
+  fetch(`${BASE}/v1/globe/ontology/edges`, { cache: 'no-store' })
+    .then(r => r.json()) as Promise<OntologyEdgesResponse>;
+
+export const getGlobeChokepointForecast = (nodeId: string) =>
+  _get<ChokepointForecast>(`/v1/globe/chokepoints/${nodeId}/forecast`);
+
+// Bulk-fetch all infra layers in parallel
+export const getAllInfraLayers = async (names: InfraLayerName[]) => {
+  const results = await Promise.allSettled(names.map(n => getGlobeInfraLayer(n).then(d => [n, d] as [InfraLayerName, GeoFeatureCollection])));
+  const out: Partial<Record<InfraLayerName, GeoFeatureCollection>> = {};
+  for (const r of results) {
+    if (r.status === 'fulfilled') out[r.value[0]] = r.value[1];
+  }
+  return out as Record<InfraLayerName, GeoFeatureCollection>;
+};
