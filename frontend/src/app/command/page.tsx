@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { AlertTriangle, Activity, Globe, RefreshCw, Zap } from 'lucide-react';
-import type { Alert, DemoLocation } from '@/lib/contracts';
-import { getAlerts, getDemoLocations, resetDemo } from '@/lib/api';
-import SarvadarshiGlobe, { type GlobeFeature } from '@/components/SarvadarshiGlobe';
+import { AlertTriangle, Activity, Globe, RefreshCw, Zap, Anchor, Ship } from 'lucide-react';
+import type { Alert, ExposureRow, DemoLocation } from '@/lib/contracts';
+import { getAlerts, getExposure, getDemoLocations, resetDemo } from '@/lib/api';
+
+const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 
 export default function CommandPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [locations, setLocations] = useState<DemoLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
-  const [globeData, setGlobeData] = useState<{ type: string; features: GlobeFeature[] } | null>(null);
+  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number; ts: number } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -23,30 +25,6 @@ export default function CommandPage() {
       ]);
       setAlerts(alertsData);
       setLocations(locsData);
-
-      // Build globe features from alerts + locations
-      const features: GlobeFeature[] = alertsData.map((a: Alert) => {
-        const loc = locsData.find((l: DemoLocation) =>
-          a.subject?.toLowerCase().includes(l.id.replace('port-', '').replace('-', ' '))
-        );
-        return {
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: loc ? [loc.longitude, loc.latitude] : [0, 0],
-          },
-          properties: {
-            title: a.subject,
-            type: a.signal_type,
-            intensity: a.posterior,
-            confidence: a.severity / 100,
-            source: a.source,
-            observed_at: a.observed_at,
-            alert_id: a.id,
-          },
-        };
-      });
-      setGlobeData({ type: 'FeatureCollection', features });
     } finally {
       setLoading(false);
     }
@@ -63,24 +41,47 @@ export default function CommandPage() {
     setSelectedAlert(alert);
   };
 
-  const handleGlobeClick = (feature: GlobeFeature) => {
-    const alertId = feature.properties.alert_id;
-    if (alertId) {
-      const alert = alerts.find(a => a.id === alertId);
-      if (alert) setSelectedAlert(alert);
-    }
+  const handleLocate = (lat: number, lng: number) => {
+    setFlyTarget({ lat, lng, zoom: 6, ts: Date.now() });
   };
 
-  const maxPosterior = alerts.length > 0 ? Math.max(...alerts.map(a => a.posterior)) : 0;
-  const criticalCount = alerts.filter(a => a.posterior > 0.5).length;
+  // Build GeoJSON from alerts for the globe
+  const alertFeatures = alerts.map((a) => {
+    const loc = locations.find((l) => a.subject?.toLowerCase().includes(l.id.replace('port-', '').replace('-', ' ')));
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: loc ? [loc.longitude, loc.latitude] : [0, 0],
+      },
+      properties: {
+        title: a.subject,
+        type: a.signal_type,
+        intensity: a.posterior,
+        confidence: a.severity / 100,
+        source: a.source,
+        observed_at: a.observed_at,
+        alert_id: a.id,
+      },
+    };
+  });
+
+  const mapData = {
+    type: 'FeatureCollection' as const,
+    features: alertFeatures,
+  };
+
+  const maxPosterior = alerts.length > 0 ? Math.max(...alerts.map((a) => a.posterior)) : 0;
+  const criticalCount = alerts.filter((a) => a.posterior > 0.5).length;
 
   return (
     <div className="relative w-full h-screen overflow-hidden" style={{ background: 'var(--bg-void)' }}>
       {/* Globe */}
-      <SarvadarshiGlobe
-        data={globeData || undefined}
-        onFeatureClick={handleGlobeClick}
-        className="absolute inset-0 z-0"
+      <OsirisMap
+        data={mapData}
+        activeLayers={{ alerts: true }}
+        projection="mercator"
+        flyToLocation={flyTarget}
       />
 
       {/* Top bar */}
@@ -88,7 +89,7 @@ export default function CommandPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Globe className="w-5 h-5 text-[var(--gold-primary)]" />
-            <span className="hud-text text-sm text-[var(--text-primary)]">SARVADARSHI</span>
+            <span className="hud-text text-sm text-[var(--text-primary)]">SUPPLYCHAIN SENTINEL</span>
           </div>
           <div className="h-4 w-px bg-[var(--border-primary)]" />
           <span className="hud-text text-[10px] text-[var(--text-muted)]">COMMAND</span>
@@ -193,6 +194,7 @@ export default function CommandPage() {
           ))}
         </div>
 
+        {/* Bottom status */}
         <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between">
           <span className="text-[9px] font-mono text-[var(--text-muted)]">
             {locations.length} monitored locations
