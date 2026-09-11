@@ -1,7 +1,7 @@
-﻿@echo off
+@echo off
 echo Starting Sarvadarshi Backend (FastAPI)...
-:: Try python -m uvicorn first, if it fails, try uvicorn directly
-start "Sarvadarshi Backend" cmd /k "python -m uvicorn backend.app:app --reload --port 8000 || uvicorn backend.app:app --reload --port 8000"
+:: Try python -m uvicorn first, if it fails, try py / uvicorn directly on all interfaces (0.0.0.0)
+start "Sarvadarshi Backend" cmd /k "python -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000 || py -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000 || uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000"
 
 echo Starting Sarvadarshi Frontend (Next.js)...
 start "Sarvadarshi Frontend" cmd /k "cd frontend && npm run dev"
