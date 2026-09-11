@@ -8,6 +8,7 @@ import type {
   CascadeMap, VesselsResponse, FlightsResponse,
   OntologyEdgesResponse, ShippingLanesResponse, GeoFeatureCollection,
   InfraLayerName,
+  ChokepointResearchReq, ChokepointResearchDossier,
 } from './contracts';
 import { MOCK_CASCADE, MOCK_ALERTS, MOCK_SHIPPING } from './mock';
 
@@ -165,3 +166,7 @@ export const runConsoleStressTestSimulate = (req: StressTestSimulateReq) =>
     target_id: req.target_id,
     target_name: req.target_id,
   }));
+
+export const researchChokepoint = (req: ChokepointResearchReq) =>
+  _post<ChokepointResearchDossier>('/v1/chokepoints/research', req);
+

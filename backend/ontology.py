@@ -1135,7 +1135,92 @@ def build_ontology_graph(
             impact_multiplier=min(0.90, 0.50 + crit * 0.40),
             properties={"lead_time_days": bom_edge.lead_time_days,
                         "quantity": bom_edge.quantity},
-            provenance=["bom_ingestion"],
+            provenance=["operational_ingestion"],
         ))
+
+    # 7. Seed top chokepoints & relations from Paqshi archive
+    import json
+    from pathlib import Path
+    seed_path = Path(__file__).parent / "paqshi_seed.json"
+    if seed_path.exists():
+        try:
+            with open(seed_path, "r", encoding="utf-8") as f:
+                pdata = json.load(f)
+            # Add top chokepoints
+            for cp in pdata.get("chokepoints", []):
+                cid = cp.get("id")
+                if not cid:
+                    continue
+                node = g.node(cid)
+                if not node:
+                    g.add_node(OntologyNode(
+                        id=cid,
+                        kind=NodeKind.CHOKEPOINT.value,
+                        name=cp.get("name") or cid,
+                        criticality=float(cp.get("criticality") or 0.5),
+                        lat=cp.get("latitude"),
+                        lon=cp.get("longitude"),
+                        is_chokepoint=True,
+                        chokepoint_score=float(cp.get("stress_level") or 0.35),
+                        properties={
+                            "category": cp.get("category"),
+                            "subcategory": cp.get("subcategory"),
+                            "country": cp.get("country"),
+                            "baseline_stress": cp.get("baseline_stress"),
+                            "source": "paqshi_archive",
+                        },
+                    ))
+                else:
+                    node.is_chokepoint = True
+                    node.chokepoint_score = max(node.chokepoint_score, float(cp.get("stress_level") or 0.35))
+                    if cp.get("latitude") and not node.lat:
+                        node.lat = cp.get("latitude")
+                        node.lon = cp.get("longitude")
+
+            # Add top relations
+            for rel in pdata.get("relations", []):
+                from_cp = rel.get("from_cp")
+                to_cp = rel.get("to_cp")
+                if not from_cp or not to_cp:
+                    continue
+                for nid in (from_cp, to_cp):
+                    if not g.node(nid):
+                        g.add_node(OntologyNode(
+                            id=nid,
+                            kind=NodeKind.CHOKEPOINT.value,
+                            name=nid.replace("cp.", "").replace("_", " ").title(),
+                            is_chokepoint=True,
+                            chokepoint_score=0.35,
+                        ))
+                
+                rtype = rel.get("relation_type", "geographic")
+                weight = float(rel.get("weight") or 0.3)
+                if rtype == "disrupts" or weight >= 0.6:
+                    lbl = EdgeLabel.DISRUPTS.value
+                elif rtype == "blocks" or weight >= 0.5:
+                    lbl = EdgeLabel.BLOCKS.value
+                elif rtype == "amplifies" or weight >= 0.35:
+                    lbl = EdgeLabel.AMPLIFIES.value
+                else:
+                    lbl = EdgeLabel.AFFECTS.value
+
+                rel_id = rel.get("id") or _eid(from_cp, to_cp, lbl)
+                g.upsert_edge(OntologyEdge(
+                    id=rel_id,
+                    source_id=from_cp,
+                    target_id=to_cp,
+                    label=lbl,
+                    severity=weight,
+                    confidence=0.88,
+                    properties={
+                        "relation_type": rtype,
+                        "label": rel.get("label"),
+                        "metadata": rel.get("metadata"),
+                        "source": "paqshi_archive",
+                    },
+                    provenance=["paqshi_archive"],
+                ))
+        except Exception:
+            pass
 
     return g

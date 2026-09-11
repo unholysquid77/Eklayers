@@ -426,3 +426,8 @@ class ConsoleStressTestResponse(BaseModel):
     simulation_id: str
     time_to_stock_out_days: float
     cascading_effects: list[str] = Field(default_factory=list)
+
+class ChokepointResearchRequest(BaseModel):
+    query: str
+    chokepoint_id: str | None = None
+

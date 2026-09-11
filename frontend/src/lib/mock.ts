@@ -1,26 +1,84 @@
-import type { CascadeMap, AlertCard, Vessel, Flight, GeoFeatureCollection } from "./contracts";
+import type { CascadeMap, AlertCard, GeoFeatureCollection } from "./contracts";
 
 export const MOCK_CASCADE: CascadeMap = {
   chokepoints: [
-    { id: "cp-1", name: "Suez Canal", category: "port", latitude: 30.5852, longitude: 32.2659, stress_level: 0.8, baseline: 0.2, criticality: 0.9 },
-    { id: "cp-2", name: "Strait of Malacca", category: "transit", latitude: 4.1147, longitude: 100.13, stress_level: 0.5, baseline: 0.3, criticality: 0.8 },
+    { id: "port-singapore", name: "Port of Singapore", category: "port", latitude: 1.264, longitude: 103.840, stress_level: 0.85, baseline: 0.2, criticality: 0.9 },
+    { id: "suez-canal", name: "Suez Canal", category: "lane", latitude: 30.500, longitude: 32.300, stress_level: 0.90, baseline: 0.25, criticality: 0.95 },
+    { id: "strait-malacca", name: "Strait of Malacca", category: "lane", latitude: 2.500, longitude: 101.500, stress_level: 0.65, baseline: 0.2, criticality: 0.8 },
+    { id: "port-rotterdam", name: "Port of Rotterdam", category: "port", latitude: 51.922, longitude: 4.479, stress_level: 0.45, baseline: 0.15, criticality: 0.8 },
+    { id: "supplier-tsmc", name: "TSMC Hsinchu Fab", category: "supplier_site", latitude: 24.780, longitude: 121.010, stress_level: 0.75, baseline: 0.1, criticality: 0.95 },
   ],
   events: [
-    { id: "evt-1", latitude: 31.0, longitude: 32.5, severity: 0.9, domain: "geopolitical", event_category: "Conflict", occurred_at: new Date().toISOString(), raw_text: "", title: "Canal Blockage", actor: "", object: "", location: "", source_ids: [] },
+    { id: "evt-1", latitude: 1.264, longitude: 103.840, severity: 0.85, domain: "weather", event_category: "Severe Weather", occurred_at: new Date().toISOString(), raw_text: "Monsoon squalls causing berth delay", title: "Singapore Berth Congestion", actor: "", object: "port-singapore", location: "Singapore", source_ids: ["open-meteo"] },
+    { id: "evt-2", latitude: 30.500, longitude: 32.300, severity: 0.90, domain: "geopolitics", event_category: "Maritime Security", occurred_at: new Date().toISOString(), raw_text: "Security advisory along Red Sea corridor", title: "Red Sea / Suez Route Alert", actor: "", object: "suez-canal", location: "Red Sea", source_ids: ["gdacs"] },
   ],
   impact_edges: [
-    { from_chokepoint: "cp-1", to_entity_id: "cp-2", to_entity_name: "Strait of Malacca", severity: 0.8 }
+    { from_chokepoint: "port-singapore", to_entity_id: "part-semiconductor", to_entity_name: "Automotive MCU IC", severity: 0.85 },
+    { from_chokepoint: "suez-canal", to_entity_id: "port-rotterdam", to_entity_name: "Port of Rotterdam", severity: 0.90 },
   ]
 };
 
 export const MOCK_ALERTS: AlertCard[] = [
-  { id: "al-1", subject_id: "cp-1", title: "Suez Canal Blockage", severity: "critical", prior: 0.2, posterior: 0.8, delta: 0.6, evidence: [], created_at: new Date().toISOString() }
+  {
+    id: "alert-sg-01",
+    subject_id: "port-singapore",
+    subject_kind: "port",
+    alert_type: "port_congestion",
+    prior: 0.15,
+    posterior: 0.82,
+    severity: 88.4,
+    p50_days: 9.2,
+    p80_days: 14.5,
+    p95_days: 21.0,
+    sku_count: 3,
+    order_count: 5,
+    evidence_ledger: [
+      { name: "Severe Monsoon Squall", llr: 1.85, weight: 1.0, source: "Open-Meteo", confidence: 0.9, contribution: 32.4 },
+      { name: "Container Dwell Spike +4.2d", llr: 1.42, weight: 0.9, source: "AIS Port Telemetry", confidence: 0.85, contribution: 24.8 },
+      { name: "Corroborated Maritime Advisory", llr: 0.95, weight: 0.8, source: "GDACS", confidence: 0.88, contribution: 18.2 },
+    ],
+    as_of: new Date().toISOString(),
+    confidence: 0.88,
+    provenance: ["live_signals", "bayesian_pipeline"],
+  },
+  {
+    id: "alert-suez-02",
+    subject_id: "suez-canal",
+    subject_kind: "lane",
+    alert_type: "route_disruption",
+    prior: 0.10,
+    posterior: 0.79,
+    severity: 76.2,
+    p50_days: 12.0,
+    p80_days: 18.5,
+    p95_days: 28.0,
+    sku_count: 2,
+    order_count: 3,
+    evidence_ledger: [
+      { name: "Red Sea Transit Advisory", llr: 2.1, weight: 1.0, source: "UKMTO Advisory", confidence: 0.95, contribution: 40.0 },
+    ],
+    as_of: new Date().toISOString(),
+    confidence: 0.92,
+    provenance: ["live_signals", "bayesian_pipeline"],
+  }
 ];
 
 export const MOCK_SHIPPING: GeoFeatureCollection = {
   type: "FeatureCollection",
   features: [
-    { type: "Feature", geometry: { type: "LineString", coordinates: [[32.2659, 30.5852], [100.13, 4.1147]] }, properties: { name: "Asia-Europe", stress: 0.7 } }
+    {
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [103.840, 1.264],
+          [101.500, 2.500],
+          [32.300, 30.500],
+          [4.479, 51.922],
+        ]
+      },
+      properties: { name: "Asia-Europe Mainline", stress: 0.78, traffic: "Heavy" }
+    }
   ]
 };
 

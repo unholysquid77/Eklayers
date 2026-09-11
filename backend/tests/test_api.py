@@ -289,3 +289,24 @@ def test_demo_reset_clears_signals():
     # Alerts should be empty again
     alerts = _assert_envelope(client.get("/v1/alerts"))
     assert alerts == []
+
+
+# ---------------------------------------------------------------------------
+# Chokepoints Research
+# ---------------------------------------------------------------------------
+
+def test_chokepoints_research_endpoint():
+    resp = client.post("/v1/chokepoints/research", json={
+        "query": "Malacca Strait container ship congestion",
+        "chokepoint_id": "lane-malacca"
+    })
+    data = _assert_envelope(resp)
+    assert data["query"] == "Malacca Strait container ship congestion"
+    assert data["chokepoint_id"] == "lane-malacca"
+    assert "severity" in data
+    assert "confidence" in data
+    assert "bayesian_update" in data
+    assert "ontology_mutations" in data
+    assert data["ontology_mutations"]["nodes_added"] >= 1
+    assert data["ontology_mutations"]["edges_added"] >= 1
+

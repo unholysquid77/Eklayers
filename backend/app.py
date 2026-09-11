@@ -34,6 +34,7 @@ from .models import (
     SignalIngestResponse,
     StressTestRequest,
     SupplierRiskScore,
+    ChokepointResearchRequest,
 )
 from .scoring import (
     compare_mitigations,
@@ -515,28 +516,118 @@ def trigger_live_ingestion():
     from .sources import (GDACSAdapter, GoogleNewsAdapter, MonitoredLocation,
                           NWSAlertsAdapter, OpenMeteoAdapter, USGSEarthquakeAdapter,
                           WorldBankContainerTrafficAdapter)
+    from .models import RiskSignal, EntityMatch
+    from .ingestion import normalize_signal
+    from dateutil.parser import parse as parse_date
                           
     pipeline = IngestionPipeline(SignalStore("data/sarvadarshi.db"))
-    adapters = [OpenMeteoAdapter(), GDACSAdapter(), NWSAlertsAdapter(), USGSEarthquakeAdapter(), WorldBankContainerTrafficAdapter()]
-    # add GoogleNewsAdapter conditionally or always
-    adapters.append(GoogleNewsAdapter())
+    adapters = [USGSEarthquakeAdapter(), GDACSAdapter(), NWSAlertsAdapter(), OpenMeteoAdapter(), GoogleNewsAdapter()]
     
-    # get sample locations from graph
     locations = []
-    for node in state.graph.all_nodes[:20]: # limit to 20 for speed during live trigger
+    for node in state.graph.all_nodes:
         if node.lat is not None and node.lon is not None:
-            locations.append(MonitoredLocation(id=node.id, kind=node.kind.value, latitude=node.lat, longitude=node.lon, country_code=getattr(node, "country", "US")))
+            locations.append(MonitoredLocation(
+                id=node.id,
+                kind=node.kind if isinstance(node.kind, str) else node.kind.value,
+                latitude=node.lat,
+                longitude=node.lon,
+                country_code=getattr(node, "country", "US"),
+            ))
     
     total_accepted = 0
     errors = []
+    
     for adapter in adapters:
-        summary = pipeline.run(adapter, locations)
-        total_accepted += summary.accepted
-        if summary.error:
-            errors.append(summary.error)
-            
-    # The pipeline.run already forwards accepted signals to /v1/ingest/signals which adds them to state
-    return _envelope({"status": "ok", "ingested": total_accepted, "errors": errors})
+        source_def = pipeline.sources.get(adapter.source_name)
+        if not source_def:
+            continue
+        try:
+            for raw in adapter.fetch(locations[:30]):
+                try:
+                    norm = normalize_signal(raw, source_def)
+                    pipeline.store.persist(norm)
+
+                    obs = norm["observed_at"]
+                    if isinstance(obs, str):
+                        try:
+                            obs_dt = parse_date(obs)
+                        except Exception:
+                            obs_dt = datetime.now(timezone.utc)
+                    else:
+                        obs_dt = obs or datetime.now(timezone.utc)
+                    if obs_dt.tzinfo is None:
+                        obs_dt = obs_dt.replace(tzinfo=timezone.utc)
+
+                    lat = norm.get("lat")
+                    lon = norm.get("lon")
+                    geom = norm.get("geometry")
+                    if geom and isinstance(geom, dict) and geom.get("type") == "Point":
+                        coords = geom.get("coordinates", [])
+                        if len(coords) >= 2:
+                            lon, lat = coords[0], coords[1]
+                    
+                    entities = []
+                    for e in norm.get("entities", []):
+                        if isinstance(e, dict):
+                            entities.append(EntityMatch(kind=e.get("kind", "node"), id=e.get("id", ""), match_confidence=float(e.get("match_confidence", 1.0))))
+                        elif isinstance(e, EntityMatch):
+                            entities.append(e)
+
+                    # Text-based matching if entities is empty
+                    if not entities:
+                        text_to_search = f"{raw.get('title', '')} {raw.get('body', '')}".lower()
+                        for node in state.graph.all_nodes:
+                            if node.id.lower() in text_to_search or (node.name and node.name.lower() in text_to_search):
+                                entities.append(EntityMatch(kind=node.kind if isinstance(node.kind, str) else node.kind.value, id=node.id, match_confidence=0.85))
+                                if not lat and node.lat:
+                                    lat, lon = node.lat, node.lon
+                                break
+                    
+                    # Spatial matching if lat/lon present but no entities
+                    if not entities and lat is not None and lon is not None:
+                        for node in state.graph.all_nodes:
+                            if node.lat and node.lon:
+                                dist = ((node.lat - lat)**2 + (node.lon - lon)**2)**0.5
+                                if dist < 8.0:
+                                    entities.append(EntityMatch(kind=node.kind if isinstance(node.kind, str) else node.kind.value, id=node.id, match_confidence=0.80))
+                                    break
+
+                    sig = RiskSignal(
+                        id=norm["id"],
+                        type=norm["type"],
+                        source=norm["source"],
+                        source_url=norm.get("source_url"),
+                        observed_at=obs_dt,
+                        lat=lat,
+                        lon=lon,
+                        geometry=geom,
+                        entities=entities,
+                        intensity=norm["intensity"],
+                        confidence=norm["confidence"],
+                        credibility=norm["credibility"],
+                        raw_payload_hash=norm.get("raw_payload_hash"),
+                    )
+
+                    if sig.raw_payload_hash not in state.signal_hashes:
+                        state.signals.append(sig)
+                        if sig.raw_payload_hash:
+                            state.signal_hashes.add(sig.raw_payload_hash)
+                        total_accepted += 1
+                except Exception:
+                    pass
+        except Exception as exc:
+            errors.append(f"{adapter.source_name}: {exc}")
+
+    if total_accepted > 0:
+        state._refresh_derived()
+
+    return _envelope({
+        "status": "ok",
+        "ingested": total_accepted,
+        "total_signals": len(state.signals),
+        "total_alerts": len(state.alerts),
+        "errors": errors,
+    })
 
 @app.post("/v1/demo/reset", summary="Reset all state to seed data")
 def demo_reset():
@@ -625,7 +716,22 @@ def ontology_chokepoints(
     return _envelope(result)
 
 
+@app.post("/v1/chokepoints/research", summary="Execute autonomous web intelligence research on a chokepoint")
+def research_chokepoint(req: ChokepointResearchRequest):
+    """Executes live multi-source web intelligence on a chokepoint or disruption topic.
+
+    Parses disruption signals, runs Bayesian log-likelihood update on the target node,
+    injects newly discovered nodes and labeled relationship arcs into the ontology graph,
+    and returns a structured intelligence dossier with provenance and source citations.
+    """
+    from .chokepoint_researcher import ChokepointResearcher
+    researcher = ChokepointResearcher(graph=state.graph, app_state=state)
+    dossier = researcher.research(query=req.query, chokepoint_id=req.chokepoint_id)
+    return _envelope(dossier, confidence=dossier.get("confidence", 0.85), provenance=["web_news_rss", "bayesian_llr", "ontology_graph"])
+
+
 @app.get("/v1/ontology/traverse/{node_id}", summary="BFS traversal from a node")
+
 def ontology_traverse(
     node_id: str,
     direction: str = Query("downstream", enum=["downstream", "upstream", "both"]),
@@ -753,22 +859,50 @@ def get_globe_cascade_map():
             "criticality": cp.criticality if cp.criticality is not None else 0.5,
         })
     
-    # 2. Events (from signals)
+    # 2. Events (from Paqshi archive seed + live signals)
     events = []
-    for idx, sig in enumerate(state.signals[-50:]):  # Limit to recent 50
+    from pathlib import Path
+    import json
+    seed_path = Path(__file__).parent / "paqshi_seed.json"
+    if seed_path.exists():
+        try:
+            with open(seed_path, "r", encoding="utf-8") as f:
+                pdata = json.load(f)
+                for e in pdata.get("events", []):
+                    lat = e.get("latitude")
+                    lon = e.get("longitude")
+                    events.append({
+                        "id": e.get("id"),
+                        "latitude": lat if lat is not None else 0.0,
+                        "longitude": lon if lon is not None else 0.0,
+                        "domain": e.get("domain") or "geopolitical",
+                        "severity": min(1.0, float(e.get("confidence") or 0.7)),
+                        "event_category": e.get("event_category") or "disruption",
+                        "occurred_at": e.get("occurred_at") or _utcnow().isoformat(),
+                        "raw_text": f"{e.get('actor') or ''} {e.get('action') or ''} {e.get('object') or ''}".strip(),
+                        "title": f"{e.get('action', 'Disruption')}: {e.get('object', '')[:80]}",
+                        "actor": e.get("actor") or "Intelligence Feed",
+                        "object": e.get("object") or "",
+                        "location": e.get("location") or "",
+                        "source_ids": ["paqshi_archive"],
+                    })
+        except Exception:
+            pass
+
+    for idx, sig in enumerate(state.signals[-50:]):
         events.append({
             "id": sig.id or f"evt-{idx}",
             "latitude": sig.lat if sig.lat is not None else 0.0,
             "longitude": sig.lon if sig.lon is not None else 0.0,
             "domain": "corporate",
-            "severity": sig.severity / 100.0 if sig.severity is not None else 0.5,
+            "severity": sig.intensity,
             "event_category": sig.type,
             "occurred_at": sig.observed_at.isoformat(),
-            "raw_text": sig.body,
-            "title": sig.subject,
+            "raw_text": f"Disruption signal {sig.type} at {sig.source}",
+            "title": f"Signal: {sig.type}",
             "actor": sig.source,
-            "object": ", ".join(sig.entities) if sig.entities else "",
-            "location": sig.geography,
+            "object": ", ".join([e.id for e in sig.entities]) if sig.entities else "",
+            "location": f"{sig.lat}, {sig.lon}" if sig.lat and sig.lon else "",
             "source_ids": [sig.source],
         })
 
@@ -1071,7 +1205,20 @@ _INFRA_FIXTURES: dict[str, dict] = {
         {"type":"Feature","geometry":{"type":"LineString","coordinates":[[28.040,-26.200],[27.850,-29.100],[26.900,-33.920],[18.420,-33.920]]},"properties":{"id":"lr-sa-n2","name":"South Africa N2 National Road","kind":"land_route","type":"road","stress":0.20}},
     ]},
 
-    "gamma_irradiators": {"type": "FeatureCollection", "features": []},
+    "gamma_irradiators": {"type": "FeatureCollection", "features": [
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-87.949,41.746]},"properties":{"id":"gam-willowbrook","name":"Sterigenics Willowbrook","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"US"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-81.932,34.949]},"properties":{"id":"gam-spartanburg","name":"Steris Spartanburg","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"US"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-75.790,45.317]},"properties":{"id":"gam-ottawa","name":"Nordion Ottawa","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"CA"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[8.271,50.000]},"properties":{"id":"gam-mainz","name":"Synergy Health Mainz","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"DE"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[4.942,45.797]},"properties":{"id":"gam-civrieux","name":"Ionisos Civrieux","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"FR"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[120.620,31.300]},"properties":{"id":"gam-suzhou","name":"Sterigenics Bekaert Suzhou","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"CN"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[73.850,18.550]},"properties":{"id":"gam-pune","name":"Hindustan Antibiotics Pune","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"IN"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[34.887,32.085]},"properties":{"id":"gam-petach-tikva","name":"Steris Petach Tikva","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"IL"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[23.761,61.498]},"properties":{"id":"gam-tampere","name":"Sterigenics Tampere","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"FI"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[8.000,47.370]},"properties":{"id":"gam-daniken","name":"Steris Daniken","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"CH"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-111.891,40.761]},"properties":{"id":"gam-slc","name":"Sterigenics Salt Lake","kind":"gamma_irradiator","type":"Co-60 sterilization","country":"US"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-123.121,49.283]},"properties":{"id":"gam-vancouver","name":"Iotron Vancouver","kind":"gamma_irradiator","type":"EB + gamma","country":"CA"}},
+    ]},
 }
 
 
@@ -1081,7 +1228,14 @@ def get_globe_infrastructure(layer_name: str):
 
     Stress levels on shipping lanes are dynamically computed from current alerts.
     """
-    data = _INFRA_FIXTURES.get(layer_name)
+    aliases = {
+        "storage": "storage_facilities",
+        "storage_facilities": "storage_facilities",
+        "ai_data_centers": "data_centers",
+        "data_centers": "data_centers",
+    }
+    resolved = aliases.get(layer_name, layer_name)
+    data = _INFRA_FIXTURES.get(resolved)
     if data is None:
         return {"type": "FeatureCollection", "features": []}
     return data
