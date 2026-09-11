@@ -4,6 +4,74 @@ This document tracks every change made to the codebase so teammates can follow a
 
 ---
 
+## 2026-09-11 — Globe Rebuild + Frontend Cleanup (Session 2)
+
+### New: `SarvadarshiGlobe.tsx`
+
+Three.js globe component ported from `Paqshi_references/brain_mode.html` (user's own code):
+
+- Earth sphere with NASA night texture + bump map
+- Atmosphere halo shader (blue glow)
+- Starfield (1200 stars)
+- Latitude rings (equator, tropics, polar circles)
+- Country borders (Natural Earth 110m GeoJSON, fetched once)
+- Port/signal pins with stress-level colors (green/yellow/red)
+- Pulsing halos on high-intensity pins
+- Event dots colored by signal type
+- Cascade arcs between features (quadratic Bezier curves)
+- Click-to-inspect via raycaster
+- Auto-rotation with damped camera
+
+Replaced `OsirisMap.tsx` (3,268-line Paqshi OSINT component with CCTV, aircraft, satellite tracking).
+
+### Updated: `/command` page
+
+- Now uses `SarvadarshiGlobe` instead of `OsirisMap`
+- Globe receives alert data as GeoJSON features
+- Click on globe pin opens corresponding alert detail
+- Fixed branding: "SUPPLYCHAIN SENTINEL" → "SARVADARSHI"
+
+### Removed: Paqshi bloat
+
+**36 components deleted:**
+AiOverview, ArcGISPanel, CameraViewer, CctvPreviews, ChainBrief, DirectionsBar, DrawHud, DrawingToolbar, FlightWatchPanel, GlobalStatusBar, IntelFeed, KeyboardShortcuts, LayerPanel, LiveAlerts, LiveNewsPreviews, MapControls, MarketChart, MarketsPanel, NavigationView, OsintPanel, OsirisMap, SatelliteCard, ScaleBar, ScmPanel, SearchBar, SharePanel, SpaceCam, StyleStudio, TokenPanel, ViewPresets, WorldRemote + test files
+
+**~90 API routes deleted:** CCTV, satellites, flights, aircraft, markets, directions, malware, ArcGIS, etc.
+
+**~50 lib files deleted:** camera-feed, malware-intel, satellite-layer, navigation, orbit, skyline, etc.
+
+**Deleted:** `middleware.ts` (Paqshi Umami analytics), `instrumentation.ts`, `docs/` page, `scratch/` directory, `lib/sdk/`
+
+### Added: `three` dependency
+
+Added `three@^0.160.0` and `@types/three@^0.160.0` to `package.json`.
+
+### What remains in frontend
+
+```
+src/
+  app/
+    command/page.tsx    — Globe + alerts
+    risk/page.tsx       — Supplier dashboard
+    layout.tsx          — Root layout (Sarvadarshi branded)
+    page.tsx            — Redirect to /command
+    globals.css         — Design system
+  components/
+    ErrorBoundary.tsx   — Error boundary
+    SarvadarshiGlobe.tsx — Three.js globe
+  lib/
+    api.ts              — Typed API client
+    contracts.ts        — TypeScript interfaces
+```
+
+### Pending
+
+1. Run `npm install` to install `three` dependency
+2. Run `next build` to verify TypeScript compiles
+3. End-to-end test with backend running
+
+---
+
 ## 2026-09-11 — Initial Build (Session 1)
 
 ### Backend
