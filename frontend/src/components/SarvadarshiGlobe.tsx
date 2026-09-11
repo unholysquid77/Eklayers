@@ -792,14 +792,15 @@ export default function SarvadarshiGlobe({
     flGroup.clear();
     eqGroup.clear();
 
-    // 1. Live AIS Vessels
+    // 1. Live AIS Vessels (with Anomaly Halos)
     if (activeLayers.vessels && vessels.length > 0) {
       for (const v of vessels) {
         if (v.lat == null || v.lon == null) continue;
         const pos = latLonToVec3(v.lat, v.lon, R * 1.006);
-        const col = v.bucket === 'tanker' ? COLOR_AMBER : v.bucket === 'passenger' ? COLOR_TACTICAL_GREEN : 0x38bdf8;
+        const isAnom = !!(v as any).is_anomaly;
+        const col = isAnom ? COLOR_CRIMSON : v.bucket === 'tanker' ? COLOR_AMBER : v.bucket === 'passenger' ? COLOR_TACTICAL_GREEN : 0x38bdf8;
         const vMesh = new THREE.Mesh(
-          new THREE.ConeGeometry(0.0035, 0.008, 4),
+          new THREE.ConeGeometry(isAnom ? 0.006 : 0.0045, isAnom ? 0.012 : 0.009, 4),
           new THREE.MeshBasicMaterial({ color: col })
         );
         vMesh.position.copy(pos);
@@ -809,18 +810,35 @@ export default function SarvadarshiGlobe({
           vMesh.rotateZ((v.heading * Math.PI) / 180);
         }
         vsGroup.add(vMesh);
+
+        // Highlight anomalous vessel with pulsing outer ring
+        if (isAnom) {
+          const anomRing = new THREE.Mesh(
+            new THREE.RingGeometry(0.008, 0.014, 16),
+            new THREE.MeshBasicMaterial({
+              color: 0xef4444,
+              opacity: 0.85,
+              transparent: true,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            })
+          );
+          anomRing.position.copy(pos);
+          anomRing.lookAt(new THREE.Vector3(0, 0, 0));
+          vsGroup.add(anomRing);
+        }
       }
     }
 
-    // 2. Live Flights (Airborne at R * 1.035)
+    // 2. Live Flights (Airborne at R * 1.032 - Crisp Neon Visuals)
     if (activeLayers.flights && flights.length > 0) {
-      const flMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
       for (const fl of flights) {
         if (fl.lat == null || fl.lon == null) continue;
-        const pos = latLonToVec3(fl.lat, fl.lon, R * 1.030);
+        const pos = latLonToVec3(fl.lat, fl.lon, R * 1.032);
+        const col = fl.mil ? 0xf43f5e : 0xa78bfa;
         const flMesh = new THREE.Mesh(
-          new THREE.ConeGeometry(0.003, 0.009, 3),
-          flMat
+          new THREE.ConeGeometry(0.0045, 0.011, 3),
+          new THREE.MeshBasicMaterial({ color: col })
         );
         flMesh.position.copy(pos);
         flMesh.lookAt(new THREE.Vector3(0, 0, 0));

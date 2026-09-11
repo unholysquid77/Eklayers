@@ -220,13 +220,19 @@ export interface MitigationOption {
 // Globe — Cascade
 export interface GlobeChokepoint {
   id: string;
+  node_id?: string;
   name: string;
   category: string;
   latitude: number;
   longitude: number;
+  lat?: number;
+  lon?: number;
   stress_level: number;
   baseline: number;
+  baseline_vessels_day?: number;
+  throughput_pct?: number;
   criticality: number;
+  confidence?: number;
   country?: string;
 }
 
@@ -273,6 +279,9 @@ export interface Vessel {
   speed: number;
   heading: number;
   bucket: VesselBucket;
+  is_anomaly?: boolean;
+  anomaly_type?: string;
+  anomaly_desc?: string;
 }
 
 export interface VesselsResponse {
@@ -425,20 +434,20 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   chokepointPins: true,
   countryBorders: true,
   vessels: true,
-  flights: false,
+  flights: true,
   shippingLanes: true,
   landRoutes: false,
   warehouses: true,
   ports: true,
-  airports: false,
+  airports: true,
   pipelines: false,
   powerLines: false,
-  refineries: false,
-  lngTerminals: false,
+  refineries: true,
+  lngTerminals: true,
   storageFacilities: false,
   underseaCables: false,
   economicCenters: false,
-  dataCenters: false,
+  dataCenters: true,
   nuclearSites: false,
   militaryBases: false,
   spaceports: false,

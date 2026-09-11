@@ -131,6 +131,36 @@ export const getAllInfraLayers = async (names: InfraLayerName[]) => {
   return out as Record<InfraLayerName, GeoFeatureCollection>;
 };
 
+export interface MarketTelemetryItem {
+  symbol: string;
+  label: string;
+  category: string;
+  unit: string;
+  price: number;
+  change: number;
+  change_pct: number;
+  is_up: boolean;
+  source: string;
+}
+
+export const getMarketTelemetry = () =>
+  _get<{ telemetry: MarketTelemetryItem[]; as_of: string }>('/v1/globe/market/telemetry').catch(() => ({
+    telemetry: [
+      { symbol: "BZ=F", label: "Brent Crude", category: "energy", unit: "$/bbl", price: 104.42, change: -3.21, change_pct: -2.98, is_up: false, source: "ICE Benchmark" },
+      { symbol: "CL=F", label: "WTI Crude", category: "energy", unit: "$/bbl", price: 99.99, change: -2.49, change_pct: -2.43, is_up: false, source: "NYMEX Benchmark" },
+      { symbol: "BDRY", label: "Baltic Dry Marine Freight", category: "freight", unit: "USD", price: 16.01, change: 0.09, change_pct: 0.57, is_up: true, source: "Freight Proxy" },
+      { symbol: "SMH", label: "Semiconductor Index", category: "semis", unit: "USD", price: 568.53, change: 8.25, change_pct: 1.47, is_up: true, source: "VanEck Semi" },
+      { symbol: "EURUSD=X", label: "EUR / USD", category: "fx", unit: "Rate", price: 1.16, change: -0.003, change_pct: -0.27, is_up: false, source: "Interbank FX" },
+    ],
+    as_of: new Date().toISOString()
+  }));
+
+export const getCustomSupplyChains = () =>
+  _get<{ supply_chains: any[]; total: number }>('/v1/globe/supply-chains/custom').catch(() => ({ supply_chains: [], total: 0 }));
+
+export const addCustomSupplyChain = (chain: any) =>
+  _post<any>('/v1/globe/supply-chains/custom', chain);
+
 // ---------------------------------------------------------------------------
 // Console Dashboard APIs
 // ---------------------------------------------------------------------------

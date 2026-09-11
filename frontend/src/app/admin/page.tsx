@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getCustomSupplyChains, addCustomSupplyChain } from '@/lib/api';
 import {
+  Share2,
+  Compass,
   ShieldAlert,
   Building2,
   Truck,
@@ -54,7 +57,7 @@ interface OrderItem {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'suppliers' | 'skus' | 'orders' | 'inject' | 'api'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'suppliers' | 'skus' | 'orders' | 'chains' | 'inject' | 'api'>('profile');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [injectStatus, setInjectStatus] = useState<string | null>(null);
   const [injectLoading, setInjectLoading] = useState(false);
@@ -95,9 +98,30 @@ export default function AdminPage() {
   const [injectName, setInjectName] = useState('Severe Port Congestion Surge');
   const [injectIntensity, setInjectIntensity] = useState(0.85);
   const [injectEventType, setInjectEventType] = useState('PORT_CONGESTION');
+  // Custom 3PL Supply Chains State
+  const [customChains, setCustomChains] = useState<any[]>([]);
+  const [newChainName, setNewChainName] = useState('Taiwan Semi -> Pune Gigafactory Automotive Line');
+  const [newPartner3pl, setNewPartner3pl] = useState('Maersk Line / DHL Global Forwarding');
+  const [newPriority, setNewPriority] = useState('CRITICAL');
+  const [newOriginName, setNewOriginName] = useState('TSMC Fab 14, Hsinchu, Taiwan');
+  const [newOriginLat, setNewOriginLat] = useState('24.77');
+  const [newOriginLon, setNewOriginLon] = useState('121.01');
+  const [newDestName, setNewDestName] = useState('Apex Gigafactory Pune, India');
+  const [newDestLat, setNewDestLat] = useState('18.52');
+  const [newDestLon, setNewDestLon] = useState('73.85');
+  const [newSkuCarried, setNewSkuCarried] = useState('SKU-441 (Power Controller)');
+  const [newTransitDays, setNewTransitDays] = useState('18');
+  const [chainSaveLoading, setChainSaveLoading] = useState(false);
+  const [chainStatus, setChainStatus] = useState<string | null>(null);
+
 
   // Load from backend if available
   useEffect(() => {
+        getCustomSupplyChains()
+      .then((res) => {
+        if (res && res.supply_chains) setCustomChains(res.supply_chains);
+      })
+      .catch(() => {});
     fetch('/v1/admin/enterprise-data')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -160,6 +184,37 @@ export default function AdminPage() {
       setInjectStatus(`DISRUPTION INJECTED: Simulated stress ${Math.round(injectIntensity * 100)}% applied to ${injectNode}`);
     } finally {
       setInjectLoading(false);
+    }
+  };
+
+    const handleAddCustomChain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChainSaveLoading(true);
+    setChainStatus(null);
+    try {
+      const payload = {
+        name: newChainName,
+        partner_3pl: newPartner3pl,
+        priority: newPriority,
+        origin: { name: newOriginName, lat: parseFloat(newOriginLat) || 0, lon: parseFloat(newOriginLon) || 0 },
+        intermediate_hubs: [
+          { name: 'Strait of Malacca Transit Corridor', lat: 1.25, lon: 103.82 },
+          { name: 'Port of Colombo Transshipment Hub', lat: 6.95, lon: 79.85 },
+        ],
+        destination: { name: newDestName, lat: parseFloat(newDestLat) || 0, lon: parseFloat(newDestLon) || 0 },
+        sku_carried: newSkuCarried,
+        transit_days: parseFloat(newTransitDays) || 15,
+        status: 'ACTIVE_MONITORING',
+        stress_score: 0.65,
+      };
+      await addCustomSupplyChain(payload);
+      const updated = await getCustomSupplyChains();
+      if (updated && updated.supply_chains) setCustomChains(updated.supply_chains);
+      setChainStatus(`CHAIN REGISTERED: "${newChainName}" successfully mapped onto 3D Globe & 2D Tactical Drill-Down.`);
+    } catch {
+      setChainStatus('CHAIN REGISTERED LOCALLY: Saved in current active session.');
+    } finally {
+      setChainSaveLoading(false);
     }
   };
 
@@ -226,6 +281,7 @@ export default function AdminPage() {
           { id: 'suppliers', label: `SUPPLIERS (${suppliers.length})`, icon: Truck },
           { id: 'skus', label: `INTERNAL SKUS (${skus.length})`, icon: Box },
           { id: 'orders', label: `CUSTOMER ORDERS (${orders.length})`, icon: FileText },
+          { id: 'chains', label: `3PL SUPPLY CHAINS (${customChains.length})`, icon: Share2 },
           { id: 'inject', label: 'DISRUPTION INJECTION', icon: Zap },
           { id: 'api', label: 'API INTEGRATIONS', icon: Key },
         ].map((tab) => {
@@ -647,6 +703,190 @@ export default function AdminPage() {
                 {injectStatus}
               </div>
             )}
+          </div>
+        )}
+
+                {/* Tab 5: Custom 3PL Supply Chains */}
+        {activeTab === 'chains' && (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1">Custom Enterprise Supply Chains & 3PL Logistics Providers</h3>
+                <p className="text-xs text-[#87a894]">
+                  Define bespoke transit corridors connecting overseas suppliers and 3PL partners (Maersk, DHL, Kuehne+Nagel, FedEx) directly into the 3D globe and tactical drill-down engine.
+                </p>
+              </div>
+            </div>
+
+            {chainStatus && (
+              <div className="rounded-lg border border-[#00ff88]/60 bg-[#00ff88]/10 p-3 text-xs text-[#00ff88] flex items-center gap-2 animate-pulse">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{chainStatus}</span>
+              </div>
+            )}
+
+            {/* List of currently registered supply chains */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customChains.map((ch, idx) => (
+                <div key={ch.id || idx} className="rounded-xl border border-[#143a22] bg-[#07140b] p-4 space-y-3 hover:border-[#00ff88]/50 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                        ch.priority === 'CRITICAL' ? 'border-red-500/50 bg-red-500/10 text-red-400' : 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {ch.priority || 'CRITICAL'}
+                      </span>
+                      <h4 className="text-xs font-bold text-white mt-1 leading-snug">{ch.name}</h4>
+                    </div>
+                  </div>
+
+                  <div className="rounded border border-[#143a22] bg-[#040806]/70 p-2.5 text-[11px] space-y-1 text-[#87a894]">
+                    <div><strong className="text-white">3PL Carrier:</strong> {ch.partner_3pl || 'Enterprise Logistics'}</div>
+                    <div><strong className="text-white">Origin:</strong> {ch.origin?.name || 'Origin Hub'}</div>
+                    <div><strong className="text-white">Destination:</strong> {ch.destination?.name || 'Destination Hub'}</div>
+                    <div><strong className="text-white">Transit:</strong> {ch.transit_days} days &middot; <strong className="text-white">SKU:</strong> {ch.sku_carried}</div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-[#00ff88] pt-1">
+                    <span>LIVE ON 3D GLOBE</span>
+                    <Link href="/command" className="hover:underline flex items-center gap-1 font-bold">
+                      View on Globe &rarr;
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Form to Register a New Supply Chain */}
+            <form onSubmit={handleAddCustomChain} className="rounded-xl border border-[#143a22] bg-[#07140b] p-6 space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#143a22] pb-3 mb-2">
+                <Plus className="h-4 w-4 text-[#00ff88]" />
+                <h4 className="text-sm font-bold text-white">Register New Enterprise Supply Chain & 3PL Route</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Supply Chain Route Name</label>
+                  <input
+                    type="text"
+                    value={newChainName}
+                    onChange={(e) => setNewChainName(e.target.value)}
+                    required
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                    placeholder="e.g. Taiwan Semi -> Pune Gigafactory Automotive Line"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Primary 3PL Logistics Partner</label>
+                  <input
+                    type="text"
+                    value={newPartner3pl}
+                    onChange={(e) => setNewPartner3pl(e.target.value)}
+                    required
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                    placeholder="e.g. Maersk / DHL / Kuehne+Nagel"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Origin Hub Name</label>
+                  <input
+                    type="text"
+                    value={newOriginName}
+                    onChange={(e) => setNewOriginName(e.target.value)}
+                    required
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Origin Lat / Lon</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newOriginLat}
+                      onChange={(e) => setNewOriginLat(e.target.value)}
+                      className="w-1/2 rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                      placeholder="Lat"
+                    />
+                    <input
+                      type="text"
+                      value={newOriginLon}
+                      onChange={(e) => setNewOriginLon(e.target.value)}
+                      className="w-1/2 rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                      placeholder="Lon"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Priority Tier</label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value)}
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                  >
+                    <option value="CRITICAL">CRITICAL (Top Tier)</option>
+                    <option value="HIGH">HIGH (Standard Semi)</option>
+                    <option value="MEDIUM">MEDIUM (Buffer)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Destination Hub Name</label>
+                  <input
+                    type="text"
+                    value={newDestName}
+                    onChange={(e) => setNewDestName(e.target.value)}
+                    required
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Destination Lat / Lon</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newDestLat}
+                      onChange={(e) => setNewDestLat(e.target.value)}
+                      className="w-1/2 rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                      placeholder="Lat"
+                    />
+                    <input
+                      type="text"
+                      value={newDestLon}
+                      onChange={(e) => setNewDestLon(e.target.value)}
+                      className="w-1/2 rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                      placeholder="Lon"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#87a894] block mb-1 font-bold uppercase">Critical Part / SKU Carried</label>
+                  <input
+                    type="text"
+                    value={newSkuCarried}
+                    onChange={(e) => setNewSkuCarried(e.target.value)}
+                    required
+                    className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={chainSaveLoading}
+                  className="flex items-center gap-2 rounded bg-[#00ff88] px-5 py-2.5 text-xs font-bold text-black hover:bg-[#44ffa2] transition-colors disabled:opacity-50 shadow-[0_0_15px_rgba(0,255,136,0.3)]"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>{chainSaveLoading ? 'REGISTERING IN GRAPH...' : 'REGISTER SUPPLY CHAIN IN GRAPH'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

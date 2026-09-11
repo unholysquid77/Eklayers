@@ -2,6 +2,8 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
+  Table,
+  MapPin,
   ShieldAlert,
   AlertTriangle,
   Clock,
@@ -43,6 +45,9 @@ import { DEFAULT_LAYER_VISIBILITY, INFRA_LAYER_NAMES } from '@/lib/contracts';
 import TacticalDrillDownModal from '@/components/TacticalDrillDownModal';
 import { ChevronLeft } from 'lucide-react';
 import {
+  getMarketTelemetry,
+  MarketTelemetryItem,
+  getCustomSupplyChains,
   getAlerts,
   getGlobeCascadeMap,
   getGlobeVessels,
@@ -153,6 +158,11 @@ export default function CommandPage() {
   const [shippingLanes, setShippingLanes] = useState<{ type: string; features: ShippingLane[] } | null>(null);
   const [bomArcs, setBomArcs] = useState<RelationArc[]>([]);
   const [infraLayers, setInfraLayers] = useState<Partial<Record<string, GeoFeatureCollection>>>({});
+  const [marketTelemetry, setMarketTelemetry] = useState<MarketTelemetryItem[]>([]);
+  const [customSupplyChains, setCustomSupplyChains] = useState<any[]>([]);
+  const [chokepointsTableOpen, setChokepointsTableOpen] = useState(false);
+  const [chokepointsSearch, setChokepointsSearch] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [liveLoading, setLiveLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'exposure' | 'forecast' | 'mitigations' | 'evidence'>('exposure');
@@ -185,12 +195,17 @@ export default function CommandPage() {
   const loadStatic = useCallback(async () => {
     setLoading(true);
     try {
-      const [al, cd, sl, oe, infra] = await Promise.allSettled([
+      const [al, cd, sl, oe, infra, vs, fl, eq, mkt, csc] = await Promise.allSettled([
         getAlerts().catch(() => MOCK_ALERTS),
         getGlobeCascadeMap().catch(() => MOCK_CASCADE),
         getGlobeShippingLanes().catch(() => MOCK_SHIPPING),
         getGlobeOntologyEdges().catch(() => ({ arcs: [] })),
         getAllInfraLayers(INFRA_LAYER_NAMES).catch(() => ({})),
+        getGlobeVessels().catch(() => ({ vessels: [], connected: false })),
+        getGlobeFlights(1500).catch(() => ({ flights: [], stale: false })),
+        getGlobeEarthquakes().catch(() => null),
+        getMarketTelemetry().catch(() => ({ telemetry: [], as_of: '' })),
+        getCustomSupplyChains().catch(() => ({ supply_chains: [], total: 0 })),
       ]);
       if (al.status === 'fulfilled') setAlerts(al.value && al.value.length ? al.value : MOCK_ALERTS);
       if (cd.status === 'fulfilled' && cd.value && cd.value.chokepoints && cd.value.chokepoints.length > 0) {
@@ -201,6 +216,11 @@ export default function CommandPage() {
       if (sl.status === 'fulfilled' && sl.value) setShippingLanes(sl.value as { type: string; features: ShippingLane[] });
       if (oe.status === 'fulfilled' && oe.value && oe.value.arcs) setBomArcs(oe.value.arcs);
       if (infra.status === 'fulfilled' && infra.value) setInfraLayers(infra.value);
+      if (vs.status === 'fulfilled' && vs.value?.vessels) setVessels(vs.value.vessels);
+      if (fl.status === 'fulfilled' && fl.value?.flights) setFlights(fl.value.flights);
+      if (eq.status === 'fulfilled' && eq.value) setEarthquakes(eq.value);
+      if (mkt.status === 'fulfilled' && mkt.value?.telemetry) setMarketTelemetry(mkt.value.telemetry);
+      if (csc.status === 'fulfilled' && csc.value?.supply_chains) setCustomSupplyChains(csc.value.supply_chains);
     } finally {
       setLoading(false);
     }
@@ -351,6 +371,15 @@ export default function CommandPage() {
         </div>
         <div className="h-3.5 w-px bg-[#143a22]" />
         <button
+          onClick={() => setChokepointsTableOpen(true)}
+          className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-[#00ff88] transition"
+          title="Open Tracked Chokepoints Table"
+        >
+          <Table className="w-3.5 h-3.5 text-[#00ff88]" />
+          <span>CHOKEPOINTS ({cpCount})</span>
+        </button>
+        <div className="h-3.5 w-px bg-[#143a22]" />
+        <button
           onClick={() => setResearchOpen(true)}
           className="flex items-center gap-1.5 text-xs text-[#44ffa2] hover:text-white transition"
         >
@@ -360,6 +389,26 @@ export default function CommandPage() {
         <div className="h-3.5 w-px bg-[#143a22]" />
         <ZuluClock />
       </div>
+
+      {/* ── Live Market Benchmark Telemetry Ticker ── */}
+      {marketTelemetry.length > 0 && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 rounded-full border border-[#143a22] bg-[#040806]/90 px-4 py-1 font-mono text-[10px] backdrop-blur-md shadow-lg overflow-x-auto max-w-[92vw]">
+          <span className="flex items-center gap-1.5 font-bold text-[#00ff88] uppercase shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] animate-pulse" />
+            BENCHMARKS:
+          </span>
+          {marketTelemetry.map((item) => (
+            <div key={item.symbol} className="flex items-center gap-1.5 shrink-0">
+              <span className="text-slate-400 font-bold">{item.label}:</span>
+              <span className="text-white font-bold">{item.price.toFixed(2)}</span>
+              <span className={`font-bold flex items-center ${item.change >= 0 ? 'text-[#00ff88]' : 'text-red-400'}`}>
+                {item.change >= 0 ? '▲' : '▼'}{Math.abs(item.change_pct).toFixed(2)}%
+              </span>
+            </div>
+          ))}
+          <span className="text-[9px] text-[#87a894] font-bold shrink-0">[YFINANCE TELEMETRY]</span>
+        </div>
+      )}
 
       {/* ── Main Command Viewport ── */}
       <div className="flex flex-1 overflow-hidden relative w-full h-full">
@@ -786,37 +835,50 @@ export default function CommandPage() {
             <div className="flex-1 overflow-y-auto styled-scrollbar p-3 space-y-2.5">
               {alerts.map((a) => {
                 const meta = getSevMeta(a.severity);
+                const isCritical = a.posterior >= 0.7;
+                const isElevated = a.posterior >= 0.45;
                 return (
                   <div
                     key={a.id}
                     onClick={() => selectAlert(a)}
-                    className="p-3 rounded-lg bg-[#040806]/80 border border-[#143a22] hover:border-cyan-500/50 hover:bg-[#0a1710]/60 cursor-pointer transition-all space-y-2 group"
+                    className="p-3 rounded-lg bg-[#040806]/90 border border-[#143a22] hover:border-[#00ff88]/60 hover:bg-[#0a1710]/70 cursor-pointer transition-all space-y-2.5 group"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${meta.cls}`}>
-                        {meta.label}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-amber-400">
-                        {(a.posterior * 100).toFixed(0)}% DISRUPTION
-                      </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded border ${meta.cls}`}>
+                            {meta.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 truncate">
+                            {a.subject_id}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-100 group-hover:text-[#00ff88] transition-colors leading-snug">
+                          {a.title || `${a.alert_type.toUpperCase()} — ${a.subject_id}`}
+                        </h4>
+                      </div>
+
+                      {/* Large Bold Intensity Percentage Block */}
+                      <div className={`flex flex-col items-center justify-center rounded-lg border px-2.5 py-1.5 shrink-0 ${
+                        isCritical
+                          ? 'border-red-500/60 bg-red-500/15 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.25)]'
+                          : isElevated
+                          ? 'border-amber-500/60 bg-amber-500/15 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                          : 'border-[#00ff88]/50 bg-[#00ff88]/10 text-[#00ff88]'
+                      }`}>
+                        <span className="text-sm font-black font-mono tracking-tight leading-none">
+                          {(a.posterior * 100).toFixed(0)}%
+                        </span>
+                        <span className="text-[8px] font-mono font-bold opacity-80 uppercase mt-0.5">
+                          {isCritical ? 'CRITICAL' : isElevated ? 'ELEVATED' : 'STABLE'}
+                        </span>
+                      </div>
                     </div>
 
-                    <h4 className="text-xs font-semibold text-slate-100 group-hover:text-[#44ffa2] transition-colors leading-tight">
-                      {a.title || `${a.alert_type.toUpperCase()} — ${a.subject_id}`}
-                    </h4>
-
-                    {/* Mini progress bar */}
-                    <div className="h-1.5 bg-[#0a1710] rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${a.posterior * 100}%`, backgroundColor: meta.bar }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                      <span>{a.subject_id}</span>
-                      <span className="text-[#00ff88] flex items-center gap-0.5">
-                        Inspect <ChevronRight className="w-3 h-3" />
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5 border-t border-[#143a22]/60">
+                      <span className="text-[#87a894]">BAYESIAN LLR SCORE</span>
+                      <span className="text-[#00ff88] flex items-center gap-0.5 font-bold group-hover:translate-x-0.5 transition-transform">
+                        Inspect Telemetry <ChevronRight className="w-3 h-3" />
                       </span>
                     </div>
                   </div>
@@ -1035,7 +1097,7 @@ export default function CommandPage() {
       )}
 
 
-      {/* ── 2D High-Resolution Google Earth / Satellite Tactical Drill-Down Modal ── */}
+      {/* ── 2D Tactical OpenStreetMap B&W / Carto Dark Drill-Down Modal with Full Layers ── */}
       {drillDownTarget && (
         <TacticalDrillDownModal
           isOpen={drillDownTarget.isOpen}
@@ -1045,7 +1107,134 @@ export default function CommandPage() {
           title={drillDownTarget.title}
           category={drillDownTarget.category}
           stress={drillDownTarget.stress}
+          cascadeData={cascadeData}
+          vessels={vessels}
+          flights={flights}
+          infraLayers={infraLayers}
+          shippingLanes={shippingLanes}
+          customSupplyChains={customSupplyChains}
         />
+      )}
+
+      {/* ── Tracked Strategic Chokepoints Tactical Table Modal ── */}
+      {chokepointsTableOpen && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="w-full max-w-5xl bg-[#07140b] border border-[#00ff88]/50 rounded-xl shadow-[0_0_50px_rgba(0,255,136,0.15)] flex flex-col max-h-[88vh] overflow-hidden font-mono">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#143a22] bg-[#040806] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Table className="w-5 h-5 text-[#00ff88]" />
+                <div>
+                  <h3 className="text-sm font-black text-white tracking-wider uppercase">
+                    STRATEGIC CHOKEPOINTS INVENTORY & BASELINE TELEMETRY
+                  </h3>
+                  <p className="text-[11px] text-[#87a894]">
+                    Real-time stress indices, daily vessel baselines, and instant 2D sub-meter drill-down
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="Filter chokepoint..."
+                  value={chokepointsSearch}
+                  onChange={(e) => setChokepointsSearch(e.target.value)}
+                  className="rounded border border-[#143a22] bg-[#07140b] px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-[#00ff88] focus:outline-none w-48"
+                />
+                <button
+                  onClick={() => setChokepointsTableOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-[#143a22]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Table Content */}
+            <div className="flex-1 overflow-y-auto styled-scrollbar p-6">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#143a22] text-[10px] text-[#87a894] uppercase tracking-wider">
+                    <th className="pb-3 font-bold">Chokepoint / Transit Hub</th>
+                    <th className="pb-3 font-bold">Coordinates</th>
+                    <th className="pb-3 font-bold">Stress Index</th>
+                    <th className="pb-3 font-bold">Baseline Traffic</th>
+                    <th className="pb-3 font-bold">Throughput Pct</th>
+                    <th className="pb-3 font-bold">Epistemic Status</th>
+                    <th className="pb-3 font-bold text-right">Tactical Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#143a22]/50">
+                  {(cascadeData?.chokepoints || [])
+                    .filter((cp) => !chokepointsSearch || cp.name.toLowerCase().includes(chokepointsSearch.toLowerCase()))
+                    .sort((a, b) => b.stress_level - a.stress_level)
+                    .map((cp) => {
+                      const isHigh = cp.stress_level > 0.65;
+                      const isMed = cp.stress_level > 0.4;
+                      const cpLat = cp.latitude ?? cp.lat ?? 0;
+                      const cpLon = cp.longitude ?? cp.lon ?? 0;
+                      const cpKey = cp.id ?? cp.node_id ?? cp.name;
+                      return (
+                        <tr key={cpKey} className="hover:bg-[#0a1710]/50 transition-colors">
+                          <td className="py-3 pr-3 font-bold text-white flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                isHigh ? 'bg-red-500 animate-ping' : isMed ? 'bg-amber-400' : 'bg-[#00ff88]'
+                              }`}
+                            />
+                            <span>{cp.name}</span>
+                          </td>
+                          <td className="py-3 text-[#87a894]">
+                            {cpLat.toFixed(2)}°N, {cpLon.toFixed(2)}°E
+                          </td>
+                          <td className="py-3">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold ${
+                                isHigh
+                                  ? 'border-red-500/50 bg-red-500/15 text-red-400'
+                                  : isMed
+                                  ? 'border-amber-500/50 bg-amber-500/15 text-amber-400'
+                                  : 'border-[#00ff88]/40 bg-[#00ff88]/10 text-[#00ff88]'
+                              }`}
+                            >
+                              {Math.round(cp.stress_level * 100)}% {isHigh ? 'CRITICAL' : isMed ? 'ELEVATED' : 'NOMINAL'}
+                            </span>
+                          </td>
+                          <td className="py-3 text-white">
+                            {cp.baseline_vessels_day || 120} vessels/day
+                          </td>
+                          <td className="py-3 text-white">
+                            {Math.round((cp.throughput_pct || 0.85) * 100)}%
+                          </td>
+                          <td className="py-3 text-[#00ff88] text-[10px]">
+                            [OBSERVED]
+                          </td>
+                          <td className="py-3 text-right">
+                            <button
+                              onClick={() => {
+                                setChokepointsTableOpen(false);
+                                setDrillDownTarget({
+                                  isOpen: true,
+                                  lat: cpLat,
+                                  lon: cpLon,
+                                  title: cp.name,
+                                  category: 'Strategic Maritime Chokepoint',
+                                  stress: cp.stress_level,
+                                });
+                              }}
+                              className="rounded border border-[#00ff88]/50 bg-[#00ff88]/15 px-2.5 py-1 text-[11px] font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition-colors"
+                            >
+                              DRILL DOWN 2D &rarr;
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Bottom Telemetry Status Strip ── */}

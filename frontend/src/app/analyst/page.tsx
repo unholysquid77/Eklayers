@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
+  RefreshCw,
   Sparkles,
   Send,
   ExternalLink,
@@ -149,18 +150,26 @@ export default function AIAnalystPage() {
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => handleExecuteQuery(history[0]?.query || 'Explain what is happening in Singapore right now and how it impacts our production.')}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded border border-[#00ff88]/60 bg-[#00ff88]/20 px-3.5 py-1.5 text-xs font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(0,255,136,0.25)]"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>REGENERATE INTELLIGENCE SYNTHESIS</span>
+          </button>
+          <button
             onClick={() => handleExecuteQuery('Explain what is happening in Singapore right now and how it impacts our production.')}
             className="flex items-center gap-1.5 rounded border border-[#143a22] bg-[#07140b] px-3 py-1.5 text-xs text-[#87a894] hover:border-[#00ff88]/50 hover:text-white transition-colors"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Reset Baseline Query
+            Reset Baseline
           </button>
           <Link
             href="/scenarios"
             className="flex items-center gap-1.5 rounded border border-[#00ff88]/40 bg-[#00ff88]/10 px-3 py-1.5 text-xs font-semibold text-[#00ff88] hover:bg-[#00ff88]/20 transition-colors"
           >
             <Layers className="h-3.5 w-3.5" />
-            Open Scenario Sandbox
+            Scenario Sandbox
           </Link>
         </div>
       </div>

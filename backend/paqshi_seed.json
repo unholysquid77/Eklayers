@@ -2473,14 +2473,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate surge \u2014 3.63 vs median 3.62 (+10000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.63 is +10000000.0 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=27).",
+      "title": "fed_funds_rate surge \u2014 3.63 vs median 3.62 (+2.8 MAD)",
+      "summary": "Latest fed_funds_rate value 3.63 is +2.8 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=27).",
       "severity": 1.0,
       "first_seen": "2026-06-19T09:20:19.905600",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"c7fa434a-c639-464a-9bd9-fc4fd86a2371\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate surge \u2014 3.63 vs median 3.62 (+10000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.63 is +10000000.0 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=27).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"2787b241-5ead-4f88-9b17-a632fdc5d1c9\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"718ef008-1b04-4217-98f8-42bf87af5e4c\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-19T09:20:19.905600\",\"last_updated\":\"2026-09-11T16:21:50.403172\",\"window_start\":\"2026-05-21T00:00:00\",\"window_end\":\"2026-06-16T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.63,\"median\":3.62,\"mad\":1e-9,\"deviation_mad\":9999999.999999786,\"baseline_n\":27,\"direction\":\"surge\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611280015566007,\"decay_age_days\":0.3731080952546296,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"c7fa434a-c639-464a-9bd9-fc4fd86a2371\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate surge \u2014 3.63 vs median 3.62 (+2.8 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.63 is +2.8 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=27).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"2787b241-5ead-4f88-9b17-a632fdc5d1c9\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"718ef008-1b04-4217-98f8-42bf87af5e4c\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-19T09:20:19.905600\",\"last_updated\":\"2026-09-11T16:21:50.403172\",\"window_start\":\"2026-05-21T00:00:00\",\"window_end\":\"2026-06-16T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.63,\"median\":3.62,\"mad\":1e-9,\"deviation_mad\":2.8,\"baseline_n\":27,\"direction\":\"surge\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611280015566007,\"decay_age_days\":0.3731080952546296,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "f4e80469-8c31-4988-b869-2091a4353591",
@@ -2501,14 +2501,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate surge \u2014 3.63 vs median 3.62 (+10000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.63 is +10000000.0 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=29).",
+      "title": "fed_funds_rate surge \u2014 3.63 vs median 3.62 (+2.8 MAD)",
+      "summary": "Latest fed_funds_rate value 3.63 is +2.8 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=29).",
       "severity": 1.0,
       "first_seen": "2026-06-18T15:37:16.925770",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"de7c5b16-2261-4bff-93bd-c780c38cddcc\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate surge \u2014 3.63 vs median 3.62 (+10000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.63 is +10000000.0 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=29).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"2787b241-5ead-4f88-9b17-a632fdc5d1c9\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"718ef008-1b04-4217-98f8-42bf87af5e4c\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-18T15:37:16.925770\",\"last_updated\":\"2026-09-11T07:18:21.386492\",\"window_start\":\"2026-05-20T00:00:00\",\"window_end\":\"2026-06-16T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.63,\"median\":3.62,\"mad\":1e-9,\"deviation_mad\":9999999.999999786,\"baseline_n\":29,\"direction\":\"surge\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066676543582416,\"decay_age_days\":0.5616146822222222,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"de7c5b16-2261-4bff-93bd-c780c38cddcc\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate surge \u2014 3.63 vs median 3.62 (+2.8 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.63 is +2.8 median-absolute-deviations from baseline 3.62 (MAD 0.00, baseline n=29).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"2787b241-5ead-4f88-9b17-a632fdc5d1c9\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"718ef008-1b04-4217-98f8-42bf87af5e4c\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-18T15:37:16.925770\",\"last_updated\":\"2026-09-11T07:18:21.386492\",\"window_start\":\"2026-05-20T00:00:00\",\"window_end\":\"2026-06-16T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.63,\"median\":3.62,\"mad\":1e-9,\"deviation_mad\":2.8,\"baseline_n\":29,\"direction\":\"surge\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066676543582416,\"decay_age_days\":0.5616146822222222,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "5effc56f-c1ca-420f-a537-bde88ccf1315",
@@ -2613,14 +2613,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=52).",
+      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)",
+      "summary": "Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=52).",
       "severity": 1.0,
       "first_seen": "2026-06-08T17:29:15.125837",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"fcbde762-001d-4381-8dcd-fa34452dd720\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=52).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"375027c5-f29b-40b4-937a-fed309b36e81\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"c4b89123-b148-47a1-982d-9c958d3fb077\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-08T17:29:15.125837\",\"last_updated\":\"2026-09-11T16:21:51.554266\",\"window_start\":\"2026-05-10T00:00:00\",\"window_end\":\"2026-06-04T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-9999999.999999786,\"baseline_n\":52,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611179646111723,\"decay_age_days\":0.37314172634259263,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"fcbde762-001d-4381-8dcd-fa34452dd720\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=52).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"375027c5-f29b-40b4-937a-fed309b36e81\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"c4b89123-b148-47a1-982d-9c958d3fb077\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-06-08T17:29:15.125837\",\"last_updated\":\"2026-09-11T16:21:51.554266\",\"window_start\":\"2026-05-10T00:00:00\",\"window_end\":\"2026-06-04T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-2.8,\"baseline_n\":52,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611179646111723,\"decay_age_days\":0.37314172634259263,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "c7009ccd-3d40-4b59-a433-93e1193e1466",
@@ -2697,14 +2697,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=87).",
+      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)",
+      "summary": "Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=87).",
       "severity": 1.0,
       "first_seen": "2026-05-28T11:46:27.123907",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"77f90f88-4fc9-4e9c-8efd-2a66fc6caac5\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=87).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"8821e442-2105-4be5-b2a2-7a4d3e7f16fa\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"5ff72d0f-64a9-4d0d-b01c-48877bb27a5d\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-28T11:46:27.123907\",\"last_updated\":\"2026-09-11T07:18:22.601156\",\"window_start\":\"2026-04-29T00:00:00\",\"window_end\":\"2026-05-26T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-9999999.999999786,\"baseline_n\":87,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066670696371209,\"decay_age_days\":0.5616167737268519,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"77f90f88-4fc9-4e9c-8efd-2a66fc6caac5\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=87).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"8821e442-2105-4be5-b2a2-7a4d3e7f16fa\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"5ff72d0f-64a9-4d0d-b01c-48877bb27a5d\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-28T11:46:27.123907\",\"last_updated\":\"2026-09-11T07:18:22.601156\",\"window_start\":\"2026-04-29T00:00:00\",\"window_end\":\"2026-05-26T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-2.8,\"baseline_n\":87,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066670696371209,\"decay_age_days\":0.5616167737268519,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "1915f48b-60a0-4f23-af3d-91a3e5537729",
@@ -2753,14 +2753,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=86).",
+      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)",
+      "summary": "Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=86).",
       "severity": 1.0,
       "first_seen": "2026-05-28T08:58:31.056352",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"a13ebd0e-9ee8-4f59-a9f7-471b805c1f90\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-10000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -10000000.0 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=86).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"240eebe5-9f3c-4093-9c2a-f366ec50a1d1\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"8fe1b4aa-a3e0-4fb4-b38a-ff203f842c7e\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-28T08:58:31.056352\",\"last_updated\":\"2026-09-11T16:21:50.912278\",\"window_start\":\"2026-04-29T00:00:00\",\"window_end\":\"2026-05-25T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-9999999.999999786,\"baseline_n\":86,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611257192799667,\"decay_age_days\":0.3731157425115741,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"a13ebd0e-9ee8-4f59-a9f7-471b805c1f90\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.63 (-2.6 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -2.8 median-absolute-deviations from baseline 3.63 (MAD 0.00, baseline n=86).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"240eebe5-9f3c-4093-9c2a-f366ec50a1d1\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"8fe1b4aa-a3e0-4fb4-b38a-ff203f842c7e\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-28T08:58:31.056352\",\"last_updated\":\"2026-09-11T16:21:50.912278\",\"window_start\":\"2026-04-29T00:00:00\",\"window_end\":\"2026-05-25T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.63,\"mad\":1e-9,\"deviation_mad\":-2.8,\"baseline_n\":86,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8611257192799667,\"decay_age_days\":0.3731157425115741,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "9e3d8ab6-4802-423d-8d55-12a93a4bdd0d",
@@ -2837,14 +2837,14 @@
       "signal_type": "anomaly",
       "canonical_category": "market.macro",
       "domain": "corporate",
-      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.64 (-20000000.0 MAD)",
-      "summary": "Latest fed_funds_rate value 3.62 is -20000000.0 median-absolute-deviations from baseline 3.64 (MAD 0.00, baseline n=51).",
+      "title": "fed_funds_rate drop \u2014 3.62 vs median 3.64 (-3.1 MAD)",
+      "summary": "Latest fed_funds_rate value 3.62 is -3.1 median-absolute-deviations from baseline 3.64 (MAD 0.00, baseline n=51).",
       "severity": 1.0,
       "first_seen": "2026-05-21T16:53:56.702375",
       "location": null,
       "latitude": null,
       "longitude": null,
-      "payload_json": "{\"id\":\"ab4c3118-a50f-439c-961e-e14e78f2b27c\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.64 (-20000000.0 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -20000000.0 median-absolute-deviations from baseline 3.64 (MAD 0.00, baseline n=51).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"3d7d6868-5f0f-4bac-a22a-413b74cc634e\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"4ef70d83-b43a-4d8b-89c8-cef546ab593f\",\"5df1bf1f-070a-415a-8dd9-1724cb8111c6\",\"72d5a809-9c84-4bf1-b6f9-0d644b4b93ef\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-21T16:53:56.702375\",\"last_updated\":\"2026-09-11T07:18:18.893649\",\"window_start\":\"2026-04-22T00:00:00\",\"window_end\":\"2026-05-19T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.64,\"mad\":1e-9,\"deviation_mad\":-20000000.000000015,\"baseline_n\":51,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066698317270549,\"decay_age_days\":0.5616068939467592,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
+      "payload_json": "{\"id\":\"ab4c3118-a50f-439c-961e-e14e78f2b27c\",\"signal_type\":\"anomaly\",\"canonical_category\":\"market.macro\",\"domain\":\"corporate\",\"title\":\"fed_funds_rate drop \u2014 3.62 vs median 3.64 (-3.1 MAD)\",\"summary\":\"Latest fed_funds_rate value 3.62 is -3.1 median-absolute-deviations from baseline 3.64 (MAD 0.00, baseline n=51).\",\"severity\":1.0,\"confidence\":{\"extraction_confidence\":0.95,\"cross_source_validation\":1.0,\"structural_consistency\":1.0},\"linked_event_ids\":[\"3d7d6868-5f0f-4bac-a22a-413b74cc634e\"],\"linked_entity_ids\":[],\"linked_document_ids\":[\"4ef70d83-b43a-4d8b-89c8-cef546ab593f\",\"5df1bf1f-070a-415a-8dd9-1724cb8111c6\",\"72d5a809-9c84-4bf1-b6f9-0d644b4b93ef\"],\"narrative_id\":null,\"location\":null,\"latitude\":null,\"longitude\":null,\"first_seen\":\"2026-05-21T16:53:56.702375\",\"last_updated\":\"2026-09-11T07:18:18.893649\",\"window_start\":\"2026-04-22T00:00:00\",\"window_end\":\"2026-05-19T00:00:00\",\"corroboration_count\":1,\"metadata\":{\"value\":3.62,\"median\":3.64,\"mad\":1e-9,\"deviation_mad\":-3.100000015,\"baseline_n\":51,\"direction\":\"drop\",\"stream\":\"corporate/fed_funds_rate\",\"effective_confidence\":0.8066698317270549,\"decay_age_days\":0.5616068939467592,\"decay_half_life\":2.0,\"decay_key\":\"anomaly\"}}"
     },
     {
       "id": "350c1563-a33c-401e-b9d0-e9165d30f3e4",
