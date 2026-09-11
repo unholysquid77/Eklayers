@@ -4,6 +4,138 @@ This document tracks every change made to the codebase so teammates can follow a
 
 ---
 
+## 2026-09-11 — Globe Rebuild + Frontend Cleanup (Session 2)
+
+### New: `SarvadarshiGlobe.tsx`
+
+Three.js globe component ported from `Paqshi_references/brain_mode.html` (user's own code):
+
+- Earth sphere with NASA night texture + bump map
+- Atmosphere halo shader (blue glow)
+- Starfield (1200 stars)
+- Latitude rings (equator, tropics, polar circles)
+- Country borders (Natural Earth 110m GeoJSON, fetched once)
+- Port/signal pins with stress-level colors (green/yellow/red)
+- Pulsing halos on high-intensity pins
+- Event dots colored by signal type
+- Cascade arcs between features (quadratic Bezier curves)
+- Click-to-inspect via raycaster
+- Auto-rotation with damped camera
+
+Replaced `OsirisMap.tsx` (3,268-line Paqshi OSINT component with CCTV, aircraft, satellite tracking).
+
+### Updated: `/command` page
+
+- Now uses `SarvadarshiGlobe` instead of `OsirisMap`
+- Globe receives alert data as GeoJSON features
+- Click on globe pin opens corresponding alert detail
+- Fixed branding: "SUPPLYCHAIN SENTINEL" → "SARVADARSHI"
+
+### Removed: Paqshi bloat
+
+**36 components deleted:**
+AiOverview, ArcGISPanel, CameraViewer, CctvPreviews, ChainBrief, DirectionsBar, DrawHud, DrawingToolbar, FlightWatchPanel, GlobalStatusBar, IntelFeed, KeyboardShortcuts, LayerPanel, LiveAlerts, LiveNewsPreviews, MapControls, MarketChart, MarketsPanel, NavigationView, OsintPanel, OsirisMap, SatelliteCard, ScaleBar, ScmPanel, SearchBar, SharePanel, SpaceCam, StyleStudio, TokenPanel, ViewPresets, WorldRemote + test files
+
+**~90 API routes deleted:** CCTV, satellites, flights, aircraft, markets, directions, malware, ArcGIS, etc.
+
+**~50 lib files deleted:** camera-feed, malware-intel, satellite-layer, navigation, orbit, skyline, etc.
+
+**Deleted:** `middleware.ts` (Paqshi Umami analytics), `instrumentation.ts`, `docs/` page, `scratch/` directory, `lib/sdk/`
+
+### Added: `three` dependency
+
+Added `three@^0.160.0` and `@types/three@^0.160.0` to `package.json`.
+
+### What remains in frontend
+
+```
+src/
+  app/
+    command/page.tsx    — Globe + alerts
+    risk/page.tsx       — Supplier dashboard
+    layout.tsx          — Root layout (Sarvadarshi branded)
+    page.tsx            — Redirect to /command
+    globals.css         — Design system
+  components/
+    ErrorBoundary.tsx   — Error boundary
+    SarvadarshiGlobe.tsx — Three.js globe
+  lib/
+    api.ts              — Typed API client
+    contracts.ts        — TypeScript interfaces
+```
+
+---
+
+## 2026-09-11 — Globe Rebuild + API Routes Restored (Session 2b)
+
+### What changed
+
+The user wanted `brain_mode.html` as the actual globe page (not a React component), with all its original features preserved, plus the deleted Paqshi API routes restored to feed data into it.
+
+### New files
+
+| File | Purpose |
+|---|---|
+| `frontend/public/brain_mode.html` | Copied from `Paqshi_references/brain_mode.html` — the actual Three.js globe with all features (aircraft, vessels, borders, events, arcs, chokepoints, time scrub, tactical map, etc.) |
+| `frontend/src/app/ui/[[...slug]]/route.ts` | Catch-all proxy for `/ui/*` routes that brain_mode.html fetches from. Tries Paqshi backend first (`PAQSHI_BACKEND_URL` env), falls back to mock data |
+| `frontend/src/components/SarvadarshiGlobe.tsx` | Three.js globe React component (for `/command` page) |
+
+### How it works
+
+1. `GET /` redirects to `/brain_mode.html` (served from `public/`)
+2. brain_mode.html loads Three.js from CDN import map
+3. On boot, it fetches `/ui/cascade/map` → proxy route → Paqshi backend or mock data
+4. Globe renders chokepoints (stress-colored pins), events (domain-colored dots), impact arcs
+5. Layer toggles fetch `/ui/flights`, `/ui/vessels` → proxy route → external APIs or mock data
+6. Click on chokepoint fetches `/ui/chokepoints/{id}` → drill-down panel
+7. Brief ticker fetches `/ui/brief/latest` → bottom ticker bar
+
+### Mock data (when Paqshi backend is offline)
+
+The proxy route returns deterministic mock data for all `/ui/*` endpoints:
+- 10 chokepoints (Suez, Hormuz, Malacca, Panama, Singapore, Shanghai, Rotterdam, LA, Cape, Bab el-Mandeb)
+- 8 events (geopolitics, corporate, climate, technology)
+- 7 impact edges
+- 6 flights (civil + military)
+- 6 vessels (cargo, tanker, passenger, fishing, military)
+- All detail endpoints (chokepoint history, events, alerts, brief, tracks, country, cluster)
+
+### What's preserved from brain_mode.html
+
+Everything:
+- Three.js globe with NASA textures, atmosphere shader, starfield, latitude rings
+- Country borders (Natural Earth 110m)
+- Chokepoint pins with stress colors + pulsing halos
+- Event dots by domain (geopolitics/corporate/climate/technology)
+- Cascade arcs (quadratic Bezier)
+- Aircraft layer (InstancedMesh, civil + military)
+- Vessel layer (InstancedMesh, by bucket type)
+- Vessel tracks (great-circle arcs)
+- Time scrubber
+- 2D tactical MapLibre drill-down overlay
+- Layer controls
+- Brief ticker
+- Country drill-down
+- FPV follow mode
+- Click-to-inspect raycaster
+
+### Restored Paqshi API routes
+
+All ~90 Next.js API routes restored from git history (under `frontend/src/app/api/`). These are available if someone runs the Paqshi backend and points `PAQSHI_BACKEND_URL` at it.
+
+### Remaining branding fixes needed
+
+The restored Paqshi components/files still contain "OSIRIS" and "Paqshi" references. These can be cleaned up in a follow-up pass. The critical user-facing text (brain_mode.html title, layout metadata) still says "Paqshi" — this should be updated.
+
+### Pending
+
+1. Run `npm install` to install `three` dependency
+2. Test: start Next.js dev server, visit `http://localhost:3000`, globe should render
+3. Optional: set `PAQSHI_BACKEND_URL` for real data instead of mocks
+4. Clean up remaining OSIRIS/Paqshi branding in restored files
+
+---
+
 ## 2026-09-11 — Initial Build (Session 1)
 
 ### Backend
