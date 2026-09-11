@@ -1,0 +1,31 @@
+{
+  "name": "Paqshi — Global Intelligence Platform",
+  "short_name": "Paqshi",
+  "description": "Paqshi multi-domain OSINT intelligence platform — chokepoint stress, signals, watches and a live global situational globe.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06060C",
+  "theme_color": "#58a6ff",
+  "orientation": "landscape-primary",
+  "categories": ["security", "intelligence", "analytics", "news"],
+  "icons": [
+    {
+      "src": "/paqshi-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/osiris-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

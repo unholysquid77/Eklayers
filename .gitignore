@@ -1,0 +1,13 @@
+# Runtime secrets and generated files
+.env
+.env.local
+.idea/
+node_modules/
+.next/
+__pycache__/
+*.py[cod]
+*.db
+*.db-*
+data/raw/
+data/processed/
+.venv
