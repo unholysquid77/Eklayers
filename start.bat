@@ -1,6 +1,6 @@
-﻿@echo off
+@echo off
 echo Starting Sarvadarshi Backend (FastAPI)...
-start "Sarvadarshi Backend" cmd /k "uvicorn backend.app:app --reload --port 8000"
+start "Sarvadarshi Backend" cmd /k "python -m uvicorn backend.app:app --reload --port 8000"
 
 echo Starting Sarvadarshi Frontend (Next.js)...
 start "Sarvadarshi Frontend" cmd /k "cd frontend && npm run dev"

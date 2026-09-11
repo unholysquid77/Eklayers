@@ -12,7 +12,7 @@ import type {
 // ---------------------------------------------------------------------------
 
 const R = 1.0; // Globe radius
-const CDN = 'https://unpkg.com/three@0.160.0/examples/textures';
+const CDN = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets';
 const BORDERS_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
 const ARC_LABEL_COLORS: Record<string, number> = {
@@ -192,7 +192,7 @@ export default function SarvadarshiGlobe({
     const texLoader = new THREE.TextureLoader();
     const earthGeo = new THREE.SphereGeometry(R, 64, 64);
     const earthMat = new THREE.MeshPhongMaterial({
-      map: texLoader.load(`${CDN}/earth_atmos_4096.jpg`),
+      map: texLoader.load(`${CDN}/earth_atmos_2048.jpg`),
       specularMap: texLoader.load(`${CDN}/earth_specular_2048.jpg`),
       normalMap: texLoader.load(`${CDN}/earth_normal_2048.jpg`),
       specular: new THREE.Color(0x112244),

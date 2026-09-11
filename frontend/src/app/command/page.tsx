@@ -87,13 +87,14 @@ const SEV_META = {
 // ---------------------------------------------------------------------------
 
 function ZuluClock() {
-  const [t, setT] = useState('');
+  const [t, setT] = useState<string>('');
   useEffect(() => {
     const tick = () => setT(new Date().toISOString().replace('T', 'Z ').slice(0, 20) + 'Z');
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+  if (!t) return <span className="hud-text text-xs text-[var(--cyan-primary)] tabular-nums">SYNCING...</span>;
   return <span className="hud-text text-xs text-[var(--cyan-primary)] tabular-nums">{t}</span>;
 }
 
