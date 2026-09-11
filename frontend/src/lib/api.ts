@@ -104,3 +104,64 @@ export const getAllInfraLayers = async (names: InfraLayerName[]) => {
   }
   return out as Record<InfraLayerName, GeoFeatureCollection>;
 };
+
+// ---------------------------------------------------------------------------
+// Console Dashboard APIs
+// ---------------------------------------------------------------------------
+
+import type {
+  ConsoleSummary, MonteCarloSimulationData, ChokepointsResponse,
+  ChokepointDetails, HeadlinesResponse, SignalsResponse,
+  ConsoleStressForecast, SupplyChainsResponse, ConsoleAlertsResponse,
+  StressTestSimulateReq, StressTestSimulateRes,
+} from './contracts';
+
+import {
+  MOCK_CONSOLE_SUMMARY, MOCK_MONTE_CARLO, MOCK_CONSOLE_CHOKEPOINTS,
+  MOCK_CHOKEPOINT_DETAILS, MOCK_HEADLINES, MOCK_SIGNALS,
+  MOCK_STRESS_FORECAST, MOCK_SUPPLY_CHAINS, MOCK_CONSOLE_ALERTS,
+  MOCK_SIMULATE_RESPONSE,
+} from './mock';
+
+export const getConsoleSummary = () =>
+  _get<ConsoleSummary>('/api/console/summary').catch(() => MOCK_CONSOLE_SUMMARY);
+
+export const getMonteCarloSimulations = () =>
+  _get<MonteCarloSimulationData>('/api/console/simulations/monte-carlo').catch(() => MOCK_MONTE_CARLO);
+
+export const getConsoleChokepoints = () =>
+  _get<ChokepointsResponse>('/api/console/chokepoints').catch(() => ({ chokepoints: MOCK_CONSOLE_CHOKEPOINTS }));
+
+export const getConsoleChokepointDetails = (id: string) =>
+  _get<ChokepointDetails>(`/api/console/chokepoints/${id}/details`).catch(() => {
+    return MOCK_CHOKEPOINT_DETAILS[id] || {
+      id,
+      centrality_score: 0.88,
+      flow_capacity_variance: 0.16,
+      historical_stress_coefficient: 1.15,
+      vulnerability_index: 0.72,
+    };
+  });
+
+export const getConsoleHeadlines = () =>
+  _get<HeadlinesResponse>('/api/console/headlines').catch(() => ({ headlines: MOCK_HEADLINES }));
+
+export const getConsoleSignals = () =>
+  _get<SignalsResponse>('/api/console/signals').catch(() => ({ signals: MOCK_SIGNALS }));
+
+export const getConsoleStressForecast = () =>
+  _get<ConsoleStressForecast>('/api/console/stress/forecast').catch(() => MOCK_STRESS_FORECAST);
+
+export const getConsoleSupplyChains = () =>
+  _get<SupplyChainsResponse>('/api/console/supply-chains').catch(() => ({ supply_chains: MOCK_SUPPLY_CHAINS }));
+
+export const getConsoleAlerts = () =>
+  _get<ConsoleAlertsResponse>('/api/console/alerts').catch(() => ({ alerts: MOCK_CONSOLE_ALERTS }));
+
+export const runConsoleStressTestSimulate = (req: StressTestSimulateReq) =>
+  _post<StressTestSimulateRes>('/api/console/stress-test/simulate', req).catch(() => ({
+    ...MOCK_SIMULATE_RESPONSE,
+    target_type: req.target_type,
+    target_id: req.target_id,
+    target_name: req.target_id,
+  }));

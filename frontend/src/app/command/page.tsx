@@ -193,8 +193,10 @@ export default function CommandPage() {
         </div>
         <ZuluClock />
         <div className="flex items-center gap-2">
-          <button onClick={handleReset} className="btn-tactical text-xs px-3 py-1">RESET DEMO</button>
-          <a href="/risk" className="btn-tactical--cyan text-xs px-3 py-1">RISK DASHBOARD →</a>
+          <a href="/command" className="px-2.5 py-1 text-xs font-mono rounded bg-[var(--cyan-dim)]/30 text-[var(--cyan-primary)] border border-[var(--border-cyan)] font-semibold">🌐 GLOBE</a>
+          <a href="/console" className="px-2.5 py-1 text-xs font-mono rounded text-[var(--text-secondary)] hover:text-[var(--cyan-primary)] hover:bg-[var(--bg-tertiary)] transition border border-transparent hover:border-[var(--border-secondary)]">📊 CONSOLE</a>
+          <a href="/risk" className="px-2.5 py-1 text-xs font-mono rounded text-[var(--text-secondary)] hover:text-[var(--gold-light)] hover:bg-[var(--bg-tertiary)] transition border border-transparent hover:border-[var(--border-secondary)]">🛡️ RISK</a>
+          <button onClick={handleReset} className="btn-tactical text-xs px-2.5 py-1 ml-2">RESET DEMO</button>
         </div>
       </div>
 

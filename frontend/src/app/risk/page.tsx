@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useEffect, useCallback } from 'react';
 import type { SupplierRiskScore, ConcentrationResult, StressTestResult, MitigationOption, ExposureNode } from '@/lib/contracts';
 import { getSuppliers, getConcentration, runStressTest, getMitigations, getExposure, getAlerts } from '@/lib/api';
@@ -141,7 +141,11 @@ export default function RiskPage() {
           <span className="hud-text text-xs text-[var(--cyan-primary)]">RISK SCORING</span>
           <span className="hud-text text-xs text-[var(--text-muted)]">PS #9 — SUPPLIER RISK ENGINE</span>
         </div>
-        <a href="/command" className="btn-tactical text-xs px-3 py-1">← COMMAND GLOBE</a>
+        <div className="flex items-center gap-2">
+          <a href="/command" className="px-2.5 py-1 text-xs font-mono rounded text-[var(--text-secondary)] hover:text-[var(--cyan-primary)] hover:bg-[var(--bg-tertiary)] transition border border-transparent hover:border-[var(--border-secondary)]">🌐 GLOBE</a>
+          <a href="/console" className="px-2.5 py-1 text-xs font-mono rounded text-[var(--text-secondary)] hover:text-[var(--cyan-primary)] hover:bg-[var(--bg-tertiary)] transition border border-transparent hover:border-[var(--border-secondary)]">📊 CONSOLE</a>
+          <a href="/risk" className="px-2.5 py-1 text-xs font-mono rounded bg-[var(--cyan-dim)]/30 text-[var(--cyan-primary)] border border-[var(--border-cyan)] font-semibold">🛡️ RISK</a>
+        </div>
       </div>
 
       {/* ── Summary strip ── */}

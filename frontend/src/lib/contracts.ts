@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sarvadarshi — TypeScript contracts for backend API.
  */
 
@@ -89,3 +89,157 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
   nuclearSites: false, militaryBases: false, spaceports: false,
   earthquakes: true, acled: false, bomArcs: true,
 };
+
+// ---------------------------------------------------------------------------
+// Console Dashboard Contracts
+// ---------------------------------------------------------------------------
+
+export interface ConsoleSummary {
+  chokepoints_count: number;
+  signals_count: number;
+  forecasts_count: number;
+  supply_chains_count: number;
+  max_stress: number;
+  average_weighted_stress: number;
+}
+
+export interface HistogramBin {
+  days: number;
+  count: number;
+  probability: number;
+}
+
+export interface MonteCarloSimulationData {
+  simulations: number;
+  mean_disruption_days: number;
+  percentiles: {
+    p50: number;
+    p90: number;
+    p99: number;
+  };
+  histogram_data: HistogramBin[];
+}
+
+export interface ConsoleChokepoint {
+  id: string;
+  name: string;
+  current_stress: number;
+  trend: 'increasing' | 'stable' | 'decreasing';
+}
+
+export interface ChokepointsResponse {
+  chokepoints: ConsoleChokepoint[];
+}
+
+export interface ChokepointDetails {
+  id: string;
+  centrality_score: number;
+  flow_capacity_variance: number;
+  historical_stress_coefficient: number;
+  vulnerability_index: number;
+}
+
+export interface ConsoleHeadline {
+  id: string;
+  title: string;
+  source: string;
+  timestamp: string;
+  related_chokepoints: string[];
+  severity?: string;
+  sentiment?: number;
+}
+
+export interface HeadlinesResponse {
+  headlines: ConsoleHeadline[];
+}
+
+export interface ConsoleSignal {
+  id: string;
+  type: string;
+  severity: string;
+  description: string;
+  precision_score: number;
+  timestamp?: string;
+}
+
+export interface SignalsResponse {
+  signals: ConsoleSignal[];
+}
+
+export interface DailyTrendPoint {
+  day: number;
+  date: string;
+  predicted_stress: number;
+  p50: number;
+  p90: number;
+}
+
+export interface ConsoleStressForecast {
+  current_score: number;
+  highest_30d_forecast: number;
+  peak_date: string;
+  disruption_probability: number;
+  daily_trend?: DailyTrendPoint[];
+}
+
+export interface BOMTraceNode {
+  part_id: string;
+  name: string;
+  supplier: string;
+  tier: number;
+  lead_time_days: number;
+  buffer_stock_days: number;
+  risk_status: string;
+}
+
+export interface ConsoleSupplyChain {
+  id: string;
+  name: string;
+  chokepoints: string[];
+  travel_time_days: number;
+  revised_arrival_date: string;
+  stress: number;
+  criticality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  disruption_probability: number;
+  origin?: string;
+  destination?: string;
+  bom_trace?: BOMTraceNode[];
+}
+
+export interface SupplyChainsResponse {
+  supply_chains: ConsoleSupplyChain[];
+}
+
+export interface ConsoleMitigation {
+  type: string;
+  recommendation: string;
+  cost_impact: string;
+  lead_time_reduction_days?: number;
+}
+
+export interface ConsoleAlert {
+  id: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  message: string;
+  related_chokepoint?: string;
+  confidence?: number;
+  mitigations: ConsoleMitigation[];
+}
+
+export interface ConsoleAlertsResponse {
+  alerts: ConsoleAlert[];
+}
+
+export interface StressTestSimulateReq {
+  target_type: 'PORT' | 'SUPPLIER' | 'ROUTE' | 'HUB';
+  target_id: string;
+}
+
+export interface StressTestSimulateRes {
+  simulation_id: string;
+  target_type: string;
+  target_id: string;
+  target_name?: string;
+  time_to_stock_out_days: number;
+  cascading_effects: string[];
+}
