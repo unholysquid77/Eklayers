@@ -328,3 +328,101 @@ class ApiEnvelope(BaseModel, Generic[T]):
     model_version: str = "1.0.0"
     confidence: float | None = None
     provenance: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Console Page Response Models
+# ---------------------------------------------------------------------------
+
+class ConsoleSummaryResponse(BaseModel):
+    chokepoints_count: int
+    signals_count: int
+    forecasts_count: int
+    supply_chains_count: int
+    max_stress: float
+    average_weighted_stress: float
+
+class MonteCarloSimulationResponse(BaseModel):
+    simulations: int
+    mean_disruption_days: float
+    percentiles: dict[str, float]
+    histogram_data: list[float]
+
+class ChokepointBasic(BaseModel):
+    id: str
+    name: str
+    current_stress: float
+    trend: str
+    country: str = ""
+
+class ChokepointListResponse(BaseModel):
+    chokepoints: list[ChokepointBasic]
+
+class ChokepointDetailResponse(BaseModel):
+    id: str
+    centrality_score: float
+    flow_capacity_variance: float
+    historical_stress_coefficient: float
+    vulnerability_index: float
+
+class HeadlineItem(BaseModel):
+    id: str
+    title: str
+    source: str
+    timestamp: datetime
+    related_chokepoints: list[str] = Field(default_factory=list)
+
+class HeadlineListResponse(BaseModel):
+    headlines: list[HeadlineItem]
+
+class SignalItem(BaseModel):
+    id: str
+    type: str
+    severity: str
+    description: str
+    precision_score: float
+
+class SignalListResponse(BaseModel):
+    signals: list[SignalItem]
+
+class StressForecastResponse(BaseModel):
+    current_score: float
+    highest_30d_forecast: float
+    peak_date: str
+    disruption_probability: float
+
+class SupplyChainEntry(BaseModel):
+    id: str
+    name: str
+    chokepoints: list[str]
+    travel_time_days: float
+    revised_arrival_date: str
+    stress: float
+    criticality: str
+    disruption_probability: float
+
+class SupplyChainListResponse(BaseModel):
+    supply_chains: list[SupplyChainEntry]
+
+class MitigationRec(BaseModel):
+    type: str
+    recommendation: str
+    cost_impact: str
+
+class AlertItem(BaseModel):
+    id: str
+    severity: str
+    message: str
+    mitigations: list[MitigationRec] = Field(default_factory=list)
+
+class AlertListResponse(BaseModel):
+    alerts: list[AlertItem]
+
+class ConsoleStressTestRequest(BaseModel):
+    target_type: str
+    target_id: str
+
+class ConsoleStressTestResponse(BaseModel):
+    simulation_id: str
+    time_to_stock_out_days: float
+    cascading_effects: list[str] = Field(default_factory=list)

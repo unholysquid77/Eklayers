@@ -30,6 +30,7 @@ SOURCES = (
     SourceDefinition("Lloyd's List", "freight_news", "P1", "supply_chain_sources.py", "maritime disruption corroboration", 0.78),
     SourceDefinition("ACLED", "unrest", "P1", "data/layers/acled.py", "civil unrest around facilities and routes", 0.85, True),
     SourceDefinition("OFAC/EU/UK sanctions", "trade_policy", "P1", "data/*sanctions_loader.py", "compliance and trade-control events", 0.95),
+    SourceDefinition("Google News", "freight_news", "P0", "data/layers/google_news.py", "supply chain news queries", 0.75),
 )
 
 
@@ -42,6 +43,12 @@ def normalize_signal(raw: Mapping[str, Any], source: SourceDefinition, ingested_
     observed = raw.get("observed_at") or raw.get("published_at")
     if not observed:
         observed = datetime.now(timezone.utc).isoformat()
+    else:
+        try:
+            from dateutil.parser import parse as parse_date
+            observed = parse_date(observed).astimezone(timezone.utc).isoformat()
+        except Exception:
+            pass
     body = str(raw.get("body") or raw.get("summary") or raw.get("title") or "")
     fingerprint = hashlib.sha256(f"{source.name}|{raw.get('source_url', '')}|{body}".encode()).hexdigest()
     return {

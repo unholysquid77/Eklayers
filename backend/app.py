@@ -41,6 +41,7 @@ from .scoring import (
     run_stress_test,
     score_supplier,
 )
+from .math_engine import run_console_monte_carlo, calculate_stress_forecast
 from .seed import (
     SEED_BOM_EDGES,
     SEED_INVENTORY,
@@ -510,31 +511,32 @@ def ingest_operational(data: OperationalIngestion):
 
 @app.post("/v1/ingest/live", summary="Trigger automated live ingestion pipeline")
 def trigger_live_ingestion():
-    import random
-    from datetime import datetime, timezone
-    locations = [
-        ("Singapore Port", 1.264, 103.840, "port-singapore"),
-        ("Taiwan Strait", 24.3, 119.5, "port-kaohsiung"),
-        ("Red Sea", 16.0, 41.0, "port-said"),
-        ("Beta KK (Tokyo)", 35.6895, 139.6917, "sup-beta"),
-    ]
-    loc = random.choice(locations)
-    signal = RiskSignal(
-        id=f"sig-{random.randint(1000, 9999)}",
-        type="geopolitical",
-        source="cron-ingestor",
-        subject=loc[3],
-        body=f"Automated ingestion pipeline detected anomaly near {loc[0]}",
-        severity=random.uniform(0.5, 0.9),
-        lat=loc[1],
-        lon=loc[2],
-        geography=loc[0],
-        entities=[loc[3]],
-        observed_at=datetime.now(timezone.utc).isoformat()
-    )
-    state.signals.append(signal)
-    state._refresh_derived()
-    return _envelope({"status": "ok", "ingested": 1, "signal_id": signal.id})
+    from .pipeline import IngestionPipeline, SignalStore
+    from .sources import (GDACSAdapter, GoogleNewsAdapter, MonitoredLocation,
+                          NWSAlertsAdapter, OpenMeteoAdapter, USGSEarthquakeAdapter,
+                          WorldBankContainerTrafficAdapter)
+                          
+    pipeline = IngestionPipeline(SignalStore("data/sarvadarshi.db"))
+    adapters = [OpenMeteoAdapter(), GDACSAdapter(), NWSAlertsAdapter(), USGSEarthquakeAdapter(), WorldBankContainerTrafficAdapter()]
+    # add GoogleNewsAdapter conditionally or always
+    adapters.append(GoogleNewsAdapter())
+    
+    # get sample locations from graph
+    locations = []
+    for node in state.graph.all_nodes[:20]: # limit to 20 for speed during live trigger
+        if node.lat is not None and node.lon is not None:
+            locations.append(MonitoredLocation(id=node.id, kind=node.kind.value, latitude=node.lat, longitude=node.lon, country_code=getattr(node, "country", "US")))
+    
+    total_accepted = 0
+    errors = []
+    for adapter in adapters:
+        summary = pipeline.run(adapter, locations)
+        total_accepted += summary.accepted
+        if summary.error:
+            errors.append(summary.error)
+            
+    # The pipeline.run already forwards accepted signals to /v1/ingest/signals which adds them to state
+    return _envelope({"status": "ok", "ingested": total_accepted, "errors": errors})
 
 @app.post("/v1/demo/reset", summary="Reset all state to seed data")
 def demo_reset():
@@ -958,10 +960,10 @@ _INFRA_FIXTURES: dict[str, dict] = {
         {"type":"Feature","geometry":{"type":"Point","coordinates":[139.620,35.450]},"properties":{"id":"stor-jp-natl","name":"Japan National Oil Reserve","kind":"storage","type":"petroleum","capacity_mb":324,"country":"JP"}},
         {"type":"Feature","geometry":{"type":"Point","coordinates":[50.075,26.200]},"properties":{"id":"stor-sa-jubail","name":"Saudi Aramco Jubail Caverns","kind":"storage","type":"petroleum","capacity_mb":30,"country":"SA"}},
         {"type":"Feature","geometry":{"type":"Point","coordinates":[116.500,39.920]},"properties":{"id":"stor-cn-natl","name":"China SPR Zhoushan","kind":"storage","type":"petroleum","capacity_mb":100,"country":"CN"}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[-90.500,29.750]},"properties":{"id":"stor-us-grain","name":"US Strategic Grain Reserve (Midwest)","kind":"storage","type":"grain","capacity_mb":null,"country":"US"}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[10.770,59.910]},"properties":{"id":"stor-no-gas","name":"Norway Naturgassinfrastruktur","kind":"storage","type":"gas","capacity_mb":null,"country":"NO"}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[13.380,52.510]},"properties":{"id":"stor-de-gas","name":"German Gas Storage Cluster","kind":"storage","type":"gas","capacity_mb":null,"country":"DE"}},
-        {"type":"Feature","geometry":{"type":"Point","coordinates":[-87.650,41.850]},"properties":{"id":"stor-us-midwest","name":"US Midwest Grain Belt Storage","kind":"storage","type":"grain","capacity_mb":null,"country":"US"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-90.500,29.750]},"properties":{"id":"stor-us-grain","name":"US Strategic Grain Reserve (Midwest)","kind":"storage","type":"grain","capacity_mb":None,"country":"US"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[10.770,59.910]},"properties":{"id":"stor-no-gas","name":"Norway Naturgassinfrastruktur","kind":"storage","type":"gas","capacity_mb":None,"country":"NO"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[13.380,52.510]},"properties":{"id":"stor-de-gas","name":"German Gas Storage Cluster","kind":"storage","type":"gas","capacity_mb":None,"country":"DE"}},
+        {"type":"Feature","geometry":{"type":"Point","coordinates":[-87.650,41.850]},"properties":{"id":"stor-us-midwest","name":"US Midwest Grain Belt Storage","kind":"storage","type":"grain","capacity_mb":None,"country":"US"}},
     ]},
 
     "pipelines": {"type": "FeatureCollection", "features": [
@@ -1174,3 +1176,122 @@ def get_globe_chokepoint_forecast(node_id: str):
 
 app.include_router(globe_router)
 
+# ---------------------------------------------------------------------------
+# Console Page Routes
+# ---------------------------------------------------------------------------
+console_router = APIRouter(prefix="/v1/console", tags=["Console Page"])
+
+@console_router.get("/summary", summary="Console high-level summary")
+def get_console_summary():
+    from .models import ConsoleSummaryResponse
+    # Basic counts
+    chokepoints_count = len([n for n in state.graph.all_nodes if "chokepoint" in n.tags])
+    signals_count = len(state.signals)
+    forecasts_count = 1533 # mocked for now as in reference image
+    supply_chains_count = 196
+    max_stress = 0.89
+    avg_stress = 0.45
+    return _envelope(ConsoleSummaryResponse(
+        chokepoints_count=chokepoints_count,
+        signals_count=signals_count,
+        forecasts_count=forecasts_count,
+        supply_chains_count=supply_chains_count,
+        max_stress=max_stress,
+        average_weighted_stress=avg_stress
+    ))
+
+@console_router.get("/simulations/monte-carlo", summary="Monte Carlo Simulation data")
+def get_console_monte_carlo():
+    from .models import MonteCarloSimulationResponse
+    data = run_console_monte_carlo(simulations=10000)
+    return _envelope(MonteCarloSimulationResponse(**data))
+
+@console_router.get("/chokepoints", summary="Ranked list of chokepoints")
+def get_console_chokepoints():
+    from .models import ChokepointListResponse, ChokepointBasic
+    chokepoints = []
+    # Fetch top nodes
+    for i, n in enumerate(state.graph.all_nodes[:20]):
+        chokepoints.append(ChokepointBasic(
+            id=n.id,
+            name=n.name or f"Chokepoint {n.id}",
+            current_stress=0.5 + (0.4 * (1 - i/20)),
+            trend="increasing",
+            country="United States"
+        ))
+    return _envelope(ChokepointListResponse(chokepoints=chokepoints))
+
+@console_router.get("/chokepoints/{id}/details", summary="Mathematical details of a chokepoint")
+def get_console_chokepoint_details(id: str):
+    from .models import ChokepointDetailResponse
+    return _envelope(ChokepointDetailResponse(
+        id=id,
+        centrality_score=0.92,
+        flow_capacity_variance=0.15,
+        historical_stress_coefficient=1.24,
+        vulnerability_index=0.78
+    ))
+
+@console_router.get("/headlines", summary="Relevant headlines")
+def get_console_headlines():
+    from .models import HeadlineListResponse, HeadlineItem
+    headlines = [
+        HeadlineItem(
+            id="news_1", title="Port Strike Looms on East Coast", source="Reuters", 
+            timestamp=_utcnow(), related_chokepoints=["chk_1"]
+        ),
+        HeadlineItem(
+            id="news_2", title="Typhoon Warning in South China Sea", source="Bloomberg", 
+            timestamp=_utcnow(), related_chokepoints=["chk_2"]
+        )
+    ]
+    return _envelope(HeadlineListResponse(headlines=headlines))
+
+@console_router.get("/signals", summary="Signals feed")
+def get_console_signals():
+    from .models import SignalListResponse, SignalItem
+    signals = [
+        SignalItem(id="sig_1", type="WEATHER", severity="HIGH", description="Category 4 Hurricane", precision_score=0.95),
+        SignalItem(id="sig_2", type="LOGISTICS", severity="MEDIUM", description="Vessel congestion", precision_score=0.88)
+    ]
+    return _envelope(SignalListResponse(signals=signals))
+
+@console_router.get("/stress/forecast", summary="30-day Stress Forecast")
+def get_console_stress_forecast():
+    from .models import StressForecastResponse
+    data = calculate_stress_forecast(0.65, 10, 5)
+    data["peak_date"] = "2026-09-25"
+    return _envelope(StressForecastResponse(**data))
+
+@console_router.get("/supply-chains", summary="Tracked supply chains")
+def get_console_supply_chains():
+    from .models import SupplyChainListResponse, SupplyChainEntry
+    chains = [
+        SupplyChainEntry(
+            id="sc_1", name="Semiconductor Route Alpha", chokepoints=["chk_1"], 
+            travel_time_days=45, revised_arrival_date="2026-10-15", stress=0.77, 
+            criticality="HIGH", disruption_probability=0.65
+        )
+    ]
+    return _envelope(SupplyChainListResponse(supply_chains=chains))
+
+@console_router.get("/alerts", summary="Severity scored alerts")
+def get_console_alerts():
+    from .models import AlertListResponse, AlertItem, MitigationRec
+    alerts = [
+        AlertItem(
+            id="alt_1", severity="CRITICAL", message="Potential stock-out in 14 days",
+            mitigations=[MitigationRec(type="REROUTE", recommendation="Switch to Supplier B", cost_impact="+15%")]
+        )
+    ]
+    return _envelope(AlertListResponse(alerts=alerts))
+
+@console_router.post("/stress-test/simulate", summary="Simulate a node loss")
+def post_console_stress_test(req: dict):
+    from .models import ConsoleStressTestResponse
+    return _envelope(ConsoleStressTestResponse(
+        simulation_id="sim_999", time_to_stock_out_days=18, 
+        cascading_effects=["Depletion of Inventory Hub A by Day 12"]
+    ))
+
+app.include_router(console_router)

@@ -431,3 +431,63 @@ def supplier_risk_values(
         "weights": {k: w.get(k, 0.0) for k in dim_values},
         "factor_ledger": factor_ledger,
     }
+
+
+# ---------------------------------------------------------------------------
+# Console Page Mathematics
+# ---------------------------------------------------------------------------
+
+def run_console_monte_carlo(simulations: int = 10000) -> dict:
+    """Generate Monte Carlo distribution data for the Console Page.
+    
+    In a real system, this would traverse the BOM graph using stochastic delays.
+    Here we simulate a log-normal distribution of disruption days.
+    """
+    mu = 2.5
+    sigma = 0.5
+    results = [random.lognormvariate(mu, sigma) for _ in range(simulations)]
+    
+    mean_days = sum(results) / simulations
+    p50 = percentile(results, 0.50)
+    p90 = percentile(results, 0.90)
+    p99 = percentile(results, 0.99)
+    
+    # Generate histogram data (e.g. 20 bins)
+    max_val = max(results)
+    bin_width = max_val / 20.0 if max_val > 0 else 1.0
+    bins = [0.0] * 20
+    for r in results:
+        b = min(19, int(r / bin_width))
+        bins[b] += 1
+        
+    # normalize histogram
+    bins_normalized = [b / simulations for b in bins]
+    
+    return {
+        "simulations": simulations,
+        "mean_disruption_days": round(mean_days, 1),
+        "percentiles": {
+            "p50": round(p50, 1),
+            "p90": round(p90, 1),
+            "p99": round(p99, 1),
+        },
+        "histogram_data": bins_normalized
+    }
+
+
+def calculate_stress_forecast(current_global_stress: float, active_signals_count: int, chokepoints_count: int) -> dict:
+    """Calculates the 30-day forecasted stress based on current signals and chokepoints."""
+    base_increase = (active_signals_count * 0.02) + (chokepoints_count * 0.005)
+    forecast = current_global_stress + base_increase
+    
+    # Introduce some noise and cap at 1.0
+    forecast = clamp(forecast * random.uniform(0.9, 1.1))
+    
+    # Disruption probability scales exponentially with stress forecast
+    prob = expit(logit(forecast) * 1.5)
+    
+    return {
+        "current_score": round(current_global_stress, 2),
+        "highest_30d_forecast": round(forecast, 2),
+        "disruption_probability": round(prob, 2),
+    }
