@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sarvadarshi — typed API client.
  * All requests go to NEXT_PUBLIC_BACKEND_URL (default: http://localhost:8000).
  */
@@ -9,15 +9,20 @@ import type {
   OntologyEdgesResponse, ShippingLanesResponse, GeoFeatureCollection,
   InfraLayerName,
 } from './contracts';
+import { MOCK_CASCADE, MOCK_ALERTS, MOCK_SHIPPING } from './mock';
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 async function _get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`${path} → ${res.status}`);
-  const json = await res.json();
-  // Unwrap envelope when present
-  return ('data' in json ? json.data : json) as T;
+  try {
+    const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${path}   ${res.status}`);
+    const json = await res.json();
+    return ('data' in json ? json.data : json) as T;
+  } catch (err) {
+    console.warn(`Backend fetch failed for ${path}, falling back to mock data if available. Error:`, err);
+    throw err; // let the specific functions handle their own fallbacks
+  }
 }
 
 async function _post<T>(path: string, body: unknown): Promise<T> {
@@ -60,7 +65,8 @@ export const ingestLive = () => _post<unknown>('/v1/ingest/live', {});
 
 export const getGlobeCascadeMap = () =>
   fetch(`${BASE}/v1/globe/cascade/map`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<CascadeMap>;
+    .then(r => r.json())
+    .catch(() => MOCK_CASCADE) as Promise<CascadeMap>;
 
 export const getGlobeVessels = () =>
   fetch(`${BASE}/v1/globe/vessels`, { cache: 'no-store' })

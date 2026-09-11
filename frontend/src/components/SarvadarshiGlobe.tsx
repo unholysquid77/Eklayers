@@ -286,13 +286,13 @@ export default function SarvadarshiGlobe({
       .then((gj) => {
         if (!sceneRef.current) return;
         const g = sceneRef.current.groups.borders as THREE.Group;
-        const mat = new THREE.LineBasicMaterial({ color: 0x334455, opacity: 0.5, transparent: true });
+        const mat = new THREE.LineBasicMaterial({ color: 0x88ccff, opacity: 0.8, transparent: true });
         for (const feat of (gj as { features: { geometry: { type: string; coordinates: unknown[] } }[] }).features) {
           const geom = feat.geometry;
           const rings = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
           for (const poly of rings as number[][][][]) {
             for (const ring of poly) {
-              const pts = ring.map(([lon, lat]: number[]) => latLonToVec3(lat, lon, R * 1.001));
+              const pts = ring.map(([lon, lat]: number[]) => latLonToVec3(lat, lon, R * 1.005));
               g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
             }
           }
