@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+﻿import { redirect } from 'next/navigation';
 
 export default function Home() {
-  redirect('/brain_mode.html');
+  redirect('/command');
 }
