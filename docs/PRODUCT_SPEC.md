@@ -1,10 +1,10 @@
-# SupplyChain Sentinel — product single source of truth
+# Sarvadarshi — product single source of truth
 
 ## 1. Purpose and scope
 
-SupplyChain Sentinel is a two-page decision-support product for the hackathon's PS #3 and PS #9. It gives a planner an early, evidence-backed view of a disruption, traces its exposure to parts, suppliers, inventory and orders, and recommends the next action. It separately maintains an explainable score for supplier relationship health.
+Sarvadarshi is a two-page decision-support product for the hackathon's PS #3 (disruption prediction) and PS #9 (continuous supplier-risk scoring). It gives a planner an early, evidence-backed view of a disruption, traces its exposure to parts, suppliers, inventory and orders, and recommends the next action. It separately maintains an explainable score for supplier relationship health.
 
-The demo must tell one coherent story: a weather, port, route, policy or supplier signal raises the probability of disruption; the graph identifies the affected SKU/order; the user can compare mitigations and see expected stock-out timing. It is not a generic OSINT platform, an ERP replacement, or an autonomous procurement system.
+The demo tells one coherent story: a weather, port, route, policy or supplier signal raises the probability of disruption; the graph identifies the affected SKU/order; the user can compare mitigations and see expected stock-out timing. It is not a generic OSINT platform, an ERP replacement, or an autonomous procurement system.
 
 ## 2. Users and success criteria
 
@@ -16,16 +16,22 @@ Success measures: top-five alerts have visible evidence; each high-severity aler
 
 | Page | Job | Primary visual | Required panels |
 |---|---|---|---|
-| `/command` | Discover and investigate external disruption risk | Paqshi globe with routes, ports, suppliers, hazard and congestion layers | layer controls, ranked alerts, evidence drawer, selected route/chokepoint card |
-| `/risk` | Decide what to do about supplier and product exposure | Dense operational dashboard | KPI strip, supplier-risk table, BOM/order exposure, forecast fan, mitigation comparator, concentration and stress-test panels |
+| `/command` | Discover and investigate external disruption risk | Globe with ports, hazard zones, and route overlays | Alert sidebar, alert detail popup, Zulu clock, live data button, demo reset |
+| `/risk` | Decide what to do about supplier and product exposure | Dense operational dashboard | Supplier list, risk score card (0-100), dimension bars, factor ledger, cascade exposure table, stress test buttons, concentration panel |
 
-Use the Paqshi globe as visual infrastructure, but retain only supply-chain layers: maritime routes/vessels, ports/chokepoints, logistics events, weather/hazards, trade/compliance events and supplier locations. Remove surveillance, cyber, cameras, military, navigation and unrelated market panels from the product navigation.
+The globe uses MapLibre GL with the `dark-matter` basemap and supply-chain layers (ports, hazard zones, routes). No surveillance, cyber, cameras, military, or unrelated market panels.
 
 ## 4. Core domain model
 
-The production graph must extend Paqshi's supply-chain ontology. Existing `TradeRoute`, `LogisticsHub`, `CriticalMaterial`, `LogisticsEvent`, `TradePolicy` and `LogisticsOrg` remain useful. Add tenant-scoped operational nodes: `Supplier`, `SupplierSite`, `Part`, `SKU`, `BOM`, `PurchaseOrder`, `CustomerOrder`, `InventoryPosition`, `Lane`, `Shipment`, `Carrier`, `RiskSignal`, `Alert`, and `Mitigation`.
+### Operational nodes
 
-Key relationships: `SUPPLIES`, `MAKES`, `CONSUMES`, `BOM_CONTAINS`, `FULFILLS`, `SHIPS_ON`, `TRAVERSES`, `USES_HUB`, `OPERATED_BY`, `AFFECTS`, `ALTERNATIVE_TO`, `HAS_INVENTORY`, and `DEPENDS_ON`. Every event has source provenance, geography, valid time, ingestion time, confidence and tenant boundary.
+`Supplier`, `Part`, `SKU`, `BOM`, `PurchaseOrder`, `CustomerOrder`, `InventoryPosition`, `Lane`, `Shipment`, `Carrier`, `RiskSignal`, `Alert`, `Mitigation`.
+
+### Key relationships
+
+`SUPPLIES`, `MAKES`, `CONSUMES`, `BOM_CONTAINS`, `FULFILLS`, `SHIPS_ON`, `TRAVERSES`, `USES_HUB`, `OPERATED_BY`, `AFFECTS`, `ALTERNATIVE_TO`, `HAS_INVENTORY`, `DEPENDS_ON`.
+
+Every event has source provenance, geography, valid time, ingestion time, confidence and tenant boundary.
 
 ## 5. Risk logic
 
@@ -45,8 +51,31 @@ Seed a small realistic tenant: 8 suppliers, 12 parts, 4 SKUs, 3 customer orders,
 
 Use deterministic fixtures for judging. Live feeds may enrich the globe but must never be required for a working demo.
 
+### Deterministic fixture data (`backend/fixtures.py`)
+
+| Category | Count | Description |
+|---|---|---|
+| Signals | 11 | 3 weather (Tropical Storm Bolaven, USGS earthquake, GDACS Philippines typhoon), 3 logistics (Singapore port congestion, Suez route alert, Belgium labour strike), 5 supply-chain news (semiconductor shortage, tariff escalation, customs delays, East Coast port strike, rare earth disruption) |
+| Locations | 10 | Major global ports with coordinates and hazard scores |
+| Nodes | 15 | 5 suppliers (acme-electronics, precision-metals, shenzhen-semi, logistics-gmbh, reliable-circuits), 6 parts, 3 SKUs, 1 customer |
+| Dependencies | 14 | Supply, assembly, manufacturing, and logistics relationships |
+
+Seed with `POST /v1/demo/reset`.
+
 ## 7. Stack and delivery boundary
 
-Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS 4, MapLibre GL, Framer Motion and Lucide. Backend: Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy, PostgreSQL + PostGIS, Redis/Celery (or RQ), NetworkX, NumPy/SciPy and scikit-learn. For a local hackathon demo, SQLite can replace Postgres and background tasks can run in-process.
+### Frontend
 
-The imported Paqshi Brain is intentionally a starting point, not the finished UX. Preserve attribution/licensing and do not migrate secrets. Build the narrowed routes and API contract beside it, then delete unused panels only after the focused view is proven.
+Next.js 16, React 19, TypeScript, Tailwind CSS 4, MapLibre GL, Framer Motion, Lucide. Client-side globe via `OsirisMap.tsx` with `next/dynamic`. State is local React hooks; no external state library.
+
+### Backend
+
+Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy, SQLite (for demo). Standard-library math engine (`math_engine.py`) with no external numerics. Live RSS/HTTP ingestion via `feedparser` and `httpx`. Deterministic fixtures via `fixtures.py`.
+
+### Key architectural decisions
+
+- SQLite replaces PostgreSQL for hackathon demo (zero config)
+- RSS-first news ingestion with Google News fallback (no API keys needed for demo)
+- Live fetch + fixture fallback for all external sources
+- No Redis/Celery — background tasks run in-process
+- No Tanstack Query, Zod, or Recharts — kept to vanilla React + Tailwind

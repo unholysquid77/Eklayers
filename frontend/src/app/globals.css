@@ -2,13 +2,12 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   OSIRIS — Global Intelligence Platform Design System
-   Egyptian Mythology × Dark Ops × Glassmorphism
+   Sarvadarshi — Design System
+   Dark Intelligence × Glassmorphism
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* PAQSHI theme — muted blue on black (the "--gold" tokens now carry Paqshi
-     blue; every accent references these so the whole app re-skins from here). */
+  /* Sarvadarshi theme — muted blue on black */
   --gold-rgb: 88, 166, 255;
   --cyan-rgb: 0, 229, 255;
   /* ── Core Palette ── */
@@ -228,15 +227,15 @@ html:has(.docs-root) body {
   border-radius: 10px;
 }
 
-/* ── Osiris Gold Glow ── */
-.osiris-glow {
+/* ── Gold Glow ── */
+.sarvadarshi-glow {
   box-shadow:
     0 0 20px rgba(var(--gold-rgb), 0.12),
     0 0 60px rgba(var(--gold-rgb), 0.06),
     0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
-.osiris-glow-cyan {
+.sarvadarshi-glow-cyan {
   box-shadow:
     0 0 20px rgba(var(--cyan-rgb), 0.1),
     0 0 60px rgba(var(--cyan-rgb), 0.05);
@@ -270,17 +269,17 @@ html:has(.docs-root) body {
 /* ═══════════════════════════════════════════════════════════════
    ANIMATIONS
    ═══════════════════════════════════════════════════════════════ */
-@keyframes osiris-pulse {
+@keyframes sarvadarshi-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-@keyframes osiris-scan {
+@keyframes sarvadarshi-scan {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
 }
 
-@keyframes osiris-rotate {
+@keyframes sarvadarshi-rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
@@ -300,7 +299,7 @@ html:has(.docs-root) body {
   50% { opacity: 0.6; }
 }
 
-.animate-osiris-pulse { animation: osiris-pulse 2s ease-in-out infinite; }
+.animate-sarvadarshi-pulse { animation: sarvadarshi-pulse 2s ease-in-out infinite; }
 .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
 .animate-data-pulse { animation: data-pulse 2s ease-in-out infinite; }
 .animate-threat-flash { animation: threat-flash 1.5s ease-in-out infinite; }

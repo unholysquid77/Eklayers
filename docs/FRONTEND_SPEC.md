@@ -2,30 +2,86 @@
 
 ## Imported implementation
 
-`frontend/` is a direct import of `E:\empire\Paqshi\brain`, excluding `.env`, `node_modules` and build output. Its globe is implemented by `src/components/OsirisMap.tsx` using MapLibre GL and the `public/dark-matter-style.json` basemap. `src/app/page.tsx` is intentionally preserved so the copied app can be launched immediately with `npm ci; npm run dev`.
+`frontend/` is a direct import of `E:\empire\Paqshi\brain`, excluding `.env`, `node_modules` and build output. Its globe is implemented by `src/components/OsirisMap.tsx` using MapLibre GL and the `public/dark-matter-style.json` basemap.
 
-This preservation is deliberate: it gives the team a verified visual baseline. Do not present the inherited broad intelligence controls as the hackathon application.
+This preservation is deliberate: it gives the team a verified visual baseline. The inherited broad intelligence controls are not the hackathon application.
 
 ## Target routes
 
-Create `/command` and `/risk`; make `/` redirect to `/command`. Retain the existing dark, compact, mono-led visual language, but change the product name and vocabulary to SupplyChain Sentinel.
+| Route | Purpose |
+|---|---|
+| `/` | Redirects to `/command` |
+| `/command` | Globe + disruption alerts sidebar |
+| `/risk` | Supplier risk dashboard + cascade analysis |
 
-`/command` owns the map. Default visible layers are shipping lanes, ports/chokepoints, selected supplier sites, live disruption/hazard signals, official advisories and active shipments. The left rail filters these layers by supplier, region, severity and signal type. The right rail contains the top alert queue and selected-alert evidence. Clicking a pin or route opens its disruption probability, p50/p80/p95 delay, affected parts/orders, confidence, sources and “view on risk dashboard” action.
+## Implemented files
 
-`/risk` owns decisions. Its first row shows at-risk orders, suppliers requiring review, expected stock-outs and precision/calibration. Below it, show a sortable supplier table with risk movement and factor chips; an exposure table for SKUs/orders; a forecast fan chart; a dependency/concentration panel; and a mitigation comparator. A stress-test drawer selects a supplier, port or lane and returns p50/p95 duration to first stock-out, SKU/order probabilities, assumptions, trial count and seed.
+| File | Purpose |
+|---|---|
+| `src/app/page.tsx` | Redirect to `/command` |
+| `src/app/layout.tsx` | Root layout, metadata, dark theme |
+| `src/app/globals.css` | Design system (CSS variables, glassmorphism, dark theme) |
+| `src/app/command/page.tsx` | Globe + alert sidebar + alert detail popup + Zulu clock |
+| `src/app/risk/page.tsx` | Supplier list + risk scoring + dimension bars + factor ledger + cascade table + stress tests + concentration |
+| `src/lib/api.ts` | Typed API client for all backend endpoints |
+| `src/lib/contracts.ts` | TypeScript interfaces matching backend Pydantic models |
+| `src/components/OsirisMap.tsx` | MapLibre GL globe component (retained from Paqshi) |
 
 ## Component plan
 
-Reuse `OsirisMap` only through a narrow `SupplyChainMap` adapter that passes supply-chain GeoJSON and removes unrelated layer inputs. Create `AlertQueue`, `EvidenceLedger`, `ChokepointDetail`, `SupplierRiskTable`, `RiskFactorBreakdown`, `ExposureTable`, `LeadTimeFan`, `ConcentrationMatrix`, `MitigationComparator` and `StressTestDrawer`. Types belong in `src/lib/contracts.ts`; a single API client in `src/lib/api.ts`; fixture responses in `src/lib/demo-data.ts`. Avoid scoring calculations in components.
+### `/command` page
+
+- Globe (MapLibre GL via `OsirisMap`) with port markers and hazard zones
+- Alert sidebar: ranked alert cards with severity color, type icon, posterior, confidence
+- Alert detail popup: evidence factors, log-likelihood contributions, affected nodes
+- Zulu clock (HH:MM:SSZ format)
+- "Load Live Data" button triggers `POST /v1/ingest/live`
+- "Reset Demo" button triggers `POST /v1/demo/reset`
+
+### `/risk` page
+
+- Supplier list with risk scores (0-100)
+- Risk score card with gauge visualization
+- Dimension bars (delivery, quality, financial, capacity, compliance)
+- Factor ledger table
+- Cascade exposure table (upstream nodes, probability, impact, stock-out days)
+- Stress test buttons (port disruption, supplier failure, route closure)
+- Concentration risk panel
+- Summary stats strip
+
+### Shared
+
+- Types in `src/lib/contracts.ts`
+- API client in `src/lib/api.ts`
+- No scoring calculations in components — all from backend
 
 ## Libraries
 
-Keep Next.js 16 / React 19 / TypeScript / Tailwind 4 / MapLibre GL / Framer Motion / Lucide from Paqshi. Add `@tanstack/react-query` for server state and cache invalidation, `zod` for browser-side API validation, and `recharts` or `visx` for fan and composition charts. Keep MapLibre's globe projection and client-load the map with `next/dynamic` because it uses browser WebGL.
+Next.js 16 / React 19 / TypeScript / Tailwind 4 / MapLibre GL / Framer Motion / Lucide. No external state library (local React hooks). No Tanstack Query, Zod, or Recharts.
 
 ## Interaction and states
 
-Every number displays its as-of time and confidence where consequential. Use red/orange/amber severity with a neutral baseline; never imply certainty from color alone. The forecast card must expose prior, posterior, stress, top log-likelihood contributions, p50/p80/p95 lead-time distribution, Monte Carlo trial count and seed—not merely a single risk score. Support loading skeletons, an empty state with “load demo scenario,” disconnected external feed state and an explicit last-known-data label. Tooltips expose the factor/evidence ledger. Keyboard focus, labels and color-independent severity icons are mandatory.
+- Every number displays its as-of time and confidence where consequential
+- Red/orange/amber severity with neutral baseline; never imply certainty from color alone
+- Forecast card exposes prior, posterior, stress, top log-likelihood contributions, p50/p80/p95 lead-time distribution, Monte Carlo trial count and seed
+- Loading skeletons, empty state with "load demo scenario", disconnected external feed state
+- Tooltips expose factor/evidence ledger
+- Keyboard focus, labels and color-independent severity icons
 
-## Delivery order
+## Design system
 
-First prove the existing copied globe starts. Then add typed fixture-backed `/command`, build `/risk` from the same fixtures, connect the selected backend endpoints, and finally trim inherited Paqshi controls. Capture a seeded demo video or screenshots only after the end-to-end scenario works offline.
+The `globals.css` design system provides:
+
+- CSS custom properties for colors, glass effects, shadows
+- `.glass` and `.glass-heavy` classes for glassmorphism panels
+- `.sarvadarshi-glow` and `.sarvadarshi-glow-cyan` for accent effects
+- `.sentinal-glow` and `.sentinal-glow-cyan` for glow effects
+- `.sarvadarshi-pulse`, `.sarvadarshi-scan`, `.sarvadarshi-rotate` animations
+- Severity classes: `.severity-critical`, `.severity-high`, `.severity-medium`, `.severity-low`, `.severity-info`
+- Status classes: `.status-good`, `.status-caution`, `.status-warn`, `.status-danger`
+- Gauge classes: `.gauge-fill` (animated fill)
+- Factor classes: `.factor-positive`, `.factor-negative`, `.factor-neutral`
+- Alert classes: `.alert-card`, `.alert-card-selected`
+- Button classes: `.btn-primary`, `.btn-danger`
+- Scrollbar: `.custom-scrollbar`
+- Chart classes: `.fan-gradient`, `.chart-container`

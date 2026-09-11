@@ -11,3 +11,6 @@ __pycache__/
 data/raw/
 data/processed/
 .venv
+
+# Reference code (not part of Sarvadarshi)
+Paqshi_references/

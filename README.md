@@ -1,4 +1,4 @@
-# SupplyChain Sentinel
+# Sarvadarshi
 
 Hackathon implementation scaffold for PS #3 (disruption prediction) and PS #9 (continuous supplier-risk scoring).
 
@@ -18,3 +18,5 @@ Use the specs before changing the imported app:
 - [I/O and mathematical-engine contract](docs/IO_CONTRACT.md)
 
 `backend/math_engine.py` is a standard-library, executable reference engine for per-node stress and category priors, Bayesian posterior updates, Kalman lead-time forecasts, Monte Carlo exposure/stress tests and false-alarm control. `backend/ingestion.py` records the selected Paqshi weather, advisory, freight, hazard, trade-policy and trade-baseline sources and normalizes them into the I/O contract. Run its offline scenario with `python -c "from backend.demo import run_demo; print(run_demo())"`. Do not copy Paqshi credentials or its database files into this repository.
+
+The first runnable ingestion slice is `backend/run_ingestion.py`: Open-Meteo, GDACS, NWS, USGS, World Bank container traffic and all twelve Paqshi curated freight-publisher queries. It deduplicates and persists raw canonical signals to SQLite. Example: `python -m backend.run_ingestion --port port-singapore 1.264 103.840 SG --no-news`.
