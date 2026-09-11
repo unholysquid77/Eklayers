@@ -38,4 +38,4 @@ setTimeout(() => {
   setInterval(runIngest, INTERVAL_MS);
 }, 5000); // give backend 5s to start
 
-console.log(`Ingestion cron started. Will hit ${BACKEND_URL}/v1/ingest/live every 15 minutes.`);
+console.log(`Ingestion cron started. Will hit ${DEFAULT_URL}/v1/ingest/live every 15 minutes.`);
