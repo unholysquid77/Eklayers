@@ -227,19 +227,19 @@ export default function ConsolePage() {
           </div>
 
           <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-cyan)] transition shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:scale-110" />
+            <div className="absolute top-0 right-0 w-16 h-16 bg-[#00ff88]/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:scale-110" />
             <div className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1">Active Signals</div>
-            <div className="text-2xl font-bold font-mono text-blue-400">{summary?.signals_count ?? 89}</div>
-            <div className="text-[10px] text-blue-300 mt-1 flex items-center gap-1">
+            <div className="text-2xl font-bold font-mono text-[#44ffa2]">{summary?.signals_count ?? 89}</div>
+            <div className="text-[10px] text-[#87a894] mt-1 flex items-center gap-1">
               <span>⚡</span> Real-time Multimodal Inputs
             </div>
           </div>
 
           <div className="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--border-cyan)] transition shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:scale-110" />
+            <div className="absolute top-0 right-0 w-16 h-16 bg-[#00ff88]/5 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:scale-110" />
             <div className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1">Active Forecasts</div>
-            <div className="text-2xl font-bold font-mono text-purple-400">{summary?.forecasts_count ?? 42}</div>
-            <div className="text-[10px] text-purple-300 mt-1 flex items-center gap-1">
+            <div className="text-2xl font-bold font-mono text-[#34d399]">{summary?.forecasts_count ?? 42}</div>
+            <div className="text-[10px] text-[#87a894] mt-1 flex items-center gap-1">
               <span>📈</span> 30-Day Kalman Trajectories
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function ConsolePage() {
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-primary)] mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-[var(--cyan-primary)] font-mono">1. MONTE CARLO SIMULATIONS</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950/60 text-cyan-400 border border-cyan-800">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950/60 text-[#00ff88] border border-cyan-800">
                     N={monteCarlo?.simulations.toLocaleString() ?? '10,000'}
                   </span>
                 </div>
@@ -303,7 +303,7 @@ export default function ConsolePage() {
               <div className="grid grid-cols-4 gap-2 mb-4">
                 <div className="p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] text-center">
                   <div className="text-[10px] font-mono text-[var(--text-muted)]">MEAN DELAY</div>
-                  <div className="text-sm font-bold font-mono text-cyan-300">{monteCarlo?.mean_disruption_days ?? 12.4}d</div>
+                  <div className="text-sm font-bold font-mono text-[#44ffa2]">{monteCarlo?.mean_disruption_days ?? 12.4}d</div>
                 </div>
                 <div className="p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] text-center">
                   <div className="text-[10px] font-mono text-[var(--text-muted)]">P50 (MEDIAN)</div>
@@ -357,7 +357,7 @@ export default function ConsolePage() {
                       >
                         {/* Hover Tooltip */}
                         <div className="absolute -top-12 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center bg-[var(--bg-tertiary)] border border-[var(--border-cyan)] text-[9px] font-mono px-2 py-1 rounded shadow-lg z-20 whitespace-nowrap pointer-events-none">
-                          <span className="text-cyan-300 font-bold">{bin.days} Days Delay</span>
+                          <span className="text-[#44ffa2] font-bold">{bin.days} Days Delay</span>
                           <span className="text-white">{(bin.probability * 100).toFixed(1)}% Prob ({bin.count} sims)</span>
                         </div>
 
@@ -395,7 +395,7 @@ export default function ConsolePage() {
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-[var(--border-primary)] mb-3">
                 <span className="text-sm font-bold text-[var(--cyan-primary)] font-mono">5. 30-DAY FORECAST</span>
-                <span className="text-[10px] font-mono text-purple-400 bg-purple-950/50 px-1.5 py-0.5 rounded border border-purple-800">
+                <span className="text-[10px] font-mono text-[#34d399] bg-purple-950/50 px-1.5 py-0.5 rounded border border-[#143a22]">
                   BAYESIAN KALMAN
                 </span>
               </div>
@@ -405,7 +405,7 @@ export default function ConsolePage() {
                 <div className="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)]">
                   <div className="flex justify-between text-[11px] font-mono mb-1">
                     <span className="text-[var(--text-muted)]">GLOBAL CURRENT STRESS</span>
-                    <span className="font-bold font-mono text-cyan-300">{((forecast?.current_score ?? 0.65) * 100).toFixed(0)}%</span>
+                    <span className="font-bold font-mono text-[#44ffa2]">{((forecast?.current_score ?? 0.65) * 100).toFixed(0)}%</span>
                   </div>
                   <div className="h-2 bg-[var(--bg-void)] rounded-full overflow-hidden">
                     <div
@@ -435,7 +435,7 @@ export default function ConsolePage() {
                 <div className="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)]">
                   <div className="flex justify-between text-[11px] font-mono mb-1">
                     <span className="text-[var(--text-muted)]">DISRUPTION PROBABILITY</span>
-                    <span className="font-bold font-mono text-purple-400">{((forecast?.disruption_probability ?? 0.72) * 100).toFixed(0)}%</span>
+                    <span className="font-bold font-mono text-[#34d399]">{((forecast?.disruption_probability ?? 0.72) * 100).toFixed(0)}%</span>
                   </div>
                   <div className="h-2 bg-[var(--bg-void)] rounded-full overflow-hidden">
                     <div
@@ -537,7 +537,7 @@ export default function ConsolePage() {
                 {headlines.map((h) => (
                   <div key={h.id} className="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)] hover:border-[var(--border-primary)] transition">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-950 text-blue-400 border border-blue-800">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-950 text-[#44ffa2] border border-[#143a22]">
                         {h.source}
                       </span>
                       <span className="text-[10px] font-mono text-[var(--text-muted)]">
@@ -592,7 +592,7 @@ export default function ConsolePage() {
                         <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${severityCls(s.severity)}`}>
                           {s.type}
                         </span>
-                        <span className="text-[10px] font-mono text-cyan-300">
+                        <span className="text-[10px] font-mono text-[#44ffa2]">
                           {(s.precision_score * 100).toFixed(0)}% PRECISION
                         </span>
                       </div>
@@ -655,7 +655,7 @@ export default function ConsolePage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] font-mono text-cyan-400">
+                      <span className="text-[10px] font-mono text-[#00ff88]">
                         {((a.confidence ?? 0.9) * 100).toFixed(0)}% Conf
                       </span>
                     </div>
@@ -687,7 +687,7 @@ export default function ConsolePage() {
                               className={`px-2 py-1 text-[10px] font-mono rounded shrink-0 transition ${
                                 isApplied
                                   ? 'bg-emerald-900 text-emerald-300 border border-emerald-600'
-                                  : 'bg-[var(--bg-secondary)] hover:bg-[var(--cyan-dim)] text-cyan-300 border border-[var(--border-cyan)]'
+                                  : 'bg-[var(--bg-secondary)] hover:bg-[var(--cyan-dim)] text-[#44ffa2] border border-[var(--border-cyan)]'
                               }`}
                             >
                               {isApplied ? '✓ ACTIVATED' : 'APPLY'}
@@ -758,7 +758,7 @@ export default function ConsolePage() {
                         </div>
                         <div>
                           <div className="text-[10px] text-[var(--text-muted)]">DISRUPT PROB</div>
-                          <div className="text-purple-400 font-bold">{(sc.disruption_probability * 100).toFixed(0)}%</div>
+                          <div className="text-[#34d399] font-bold">{(sc.disruption_probability * 100).toFixed(0)}%</div>
                         </div>
                         <div>
                           <div className="text-[10px] text-[var(--text-muted)]">STRESS</div>
@@ -807,11 +807,11 @@ export default function ConsolePage() {
                             <tbody className="divide-y divide-[var(--border-secondary)]">
                               {sc.bom_trace.map((b) => (
                                 <tr key={b.part_id} className="hover:bg-[var(--bg-tertiary)] transition">
-                                  <td className="py-1.5 font-bold text-cyan-300">{b.part_id}</td>
+                                  <td className="py-1.5 font-bold text-[#44ffa2]">{b.part_id}</td>
                                   <td className="py-1.5 text-white">{b.name}</td>
                                   <td className="py-1.5 text-[var(--text-secondary)]">{b.supplier}</td>
                                   <td className="py-1.5">
-                                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-blue-950 text-blue-300 border border-blue-800">
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-blue-950 text-[#87a894] border border-[#143a22]">
                                       Tier {b.tier}
                                     </span>
                                   </td>
@@ -992,7 +992,7 @@ export default function ConsolePage() {
             <div className="grid grid-cols-2 gap-3 font-mono">
               <div className="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)]">
                 <div className="text-[10px] text-[var(--text-muted)] uppercase">Node Centrality Score</div>
-                <div className="text-xl font-bold text-cyan-300 mt-1">
+                <div className="text-xl font-bold text-[#44ffa2] mt-1">
                   {(selectedCpDetails.centrality_score * 100).toFixed(0)}%
                 </div>
                 <div className="text-[9px] text-[var(--text-muted)] mt-0.5">Betweenness & flow centrality</div>
@@ -1008,7 +1008,7 @@ export default function ConsolePage() {
 
               <div className="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-secondary)]">
                 <div className="text-[10px] text-[var(--text-muted)] uppercase">Historical Stress Coeff</div>
-                <div className="text-xl font-bold text-purple-300 mt-1">
+                <div className="text-xl font-bold text-[#87a894] mt-1">
                   {selectedCpDetails.historical_stress_coefficient.toFixed(2)}x
                 </div>
                 <div className="text-[9px] text-[var(--text-muted)] mt-0.5">Long-term disruption sensitivity</div>

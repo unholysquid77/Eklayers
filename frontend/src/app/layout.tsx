@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import ErrorBoundary from '@/components/ErrorBoundary';
+import TacticalBackground from '@/components/TacticalBackground';
 import "./globals.css";
 
 const SITE_URL = "https://sarvadarshi.demo";
@@ -8,7 +9,7 @@ const SITE_TITLE = "Sarvadarshi — Disruption Intelligence";
 const SITE_DESCRIPTION = "Sarvadarshi — real-time supply chain disruption prediction, supplier risk scoring, and cascade analysis on a global intelligence platform.";
 
 export const viewport: Viewport = {
-  themeColor: "#58a6ff",
+  themeColor: "#00ff88",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -71,10 +72,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="antialiased" suppressHydrationWarning>
-        <ErrorBoundary name="Sarvadarshi">
-          {children}
-        </ErrorBoundary>
+      <body className="antialiased bg-[#040806] text-[#e6f7ec]" suppressHydrationWarning>
+        <TacticalBackground />
+        <div className="relative z-10 min-h-screen">
+          <ErrorBoundary name="Sarvadarshi">
+            {children}
+          </ErrorBoundary>
+        </div>
       </body>
     </html>
   );

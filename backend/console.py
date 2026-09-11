@@ -1,14 +1,31 @@
-"""Console Dashboard API routes matching Console Page Specification."""
+"""Console Dashboard API routes matching Console Page Specification with Live & Seed Data."""
 from __future__ import annotations
 
+import json
 import math
 import random
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Literal, Optional, List
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query, Body
 
 router = APIRouter(prefix="/api/console", tags=["Console"])
+
+
+# ---------------------------------------------------------------------------
+# Data loader
+# ---------------------------------------------------------------------------
+
+def _load_paqshi_seed() -> dict:
+    seed_path = Path(__file__).parent / "paqshi_seed.json"
+    if seed_path.exists():
+        try:
+            with open(seed_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +59,8 @@ class ChokepointItem(BaseModel):
     name: str
     current_stress: float
     trend: Literal["increasing", "stable", "decreasing"]
+    country: Optional[str] = None
+    criticality: Optional[float] = 0.5
 
 
 class ChokepointsListResponse(BaseModel):
@@ -162,619 +181,290 @@ class StressTestSimulateResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Data Fixtures & Dynamic Generation
+# API Routes with Dynamic Live/Seed Data
 # ---------------------------------------------------------------------------
 
-CHOKEPOINTS_DATA = [
-    {
-        "id": "chk_001",
-        "name": "Panama Canal",
-        "current_stress": 0.85,
-        "trend": "increasing",
-        "centrality": 0.92,
-        "capacity_variance": 0.15,
-        "historical_coeff": 1.24,
-        "vulnerability": 0.78,
-    },
-    {
-        "id": "chk_002",
-        "name": "Suez Canal",
-        "current_stress": 0.82,
-        "trend": "increasing",
-        "centrality": 0.95,
-        "capacity_variance": 0.22,
-        "historical_coeff": 1.45,
-        "vulnerability": 0.89,
-    },
-    {
-        "id": "chk_003",
-        "name": "Strait of Malacca",
-        "current_stress": 0.74,
-        "trend": "stable",
-        "centrality": 0.98,
-        "capacity_variance": 0.10,
-        "historical_coeff": 1.12,
-        "vulnerability": 0.71,
-    },
-    {
-        "id": "chk_004",
-        "name": "Port of Shanghai",
-        "current_stress": 0.68,
-        "trend": "decreasing",
-        "centrality": 0.88,
-        "capacity_variance": 0.18,
-        "historical_coeff": 0.95,
-        "vulnerability": 0.62,
-    },
-    {
-        "id": "chk_005",
-        "name": "Strait of Hormuz",
-        "current_stress": 0.65,
-        "trend": "increasing",
-        "centrality": 0.84,
-        "capacity_variance": 0.28,
-        "historical_coeff": 1.60,
-        "vulnerability": 0.85,
-    },
-    {
-        "id": "chk_006",
-        "name": "Port of Rotterdam",
-        "current_stress": 0.58,
-        "trend": "stable",
-        "centrality": 0.82,
-        "capacity_variance": 0.14,
-        "historical_coeff": 0.88,
-        "vulnerability": 0.54,
-    },
-    {
-        "id": "chk_007",
-        "name": "Bab-el-Mandeb",
-        "current_stress": 0.88,
-        "trend": "increasing",
-        "centrality": 0.91,
-        "capacity_variance": 0.35,
-        "historical_coeff": 1.82,
-        "vulnerability": 0.93,
-    },
-    {
-        "id": "chk_008",
-        "name": "Port of Singapore",
-        "current_stress": 0.52,
-        "trend": "decreasing",
-        "centrality": 0.90,
-        "capacity_variance": 0.12,
-        "historical_coeff": 0.79,
-        "vulnerability": 0.48,
-    },
-]
+@router.get("/summary", response_model=SummaryResponse)
+def get_summary():
+    seed = _load_paqshi_seed()
+    cps = seed.get("chokepoints", [])
+    sigs = seed.get("signals", [])
+    
+    stresses = [float(cp.get("stress_level", 0.5) or 0.5) for cp in cps] or [0.65]
+    max_stress = max(stresses)
+    avg_stress = round(sum(stresses) / len(stresses), 2)
 
-HEADLINES_DATA = [
-    {
-        "id": "news_123",
-        "title": "Port Strike Looms on US East Coast as Labor Negotiations Stagnate",
-        "source": "Reuters",
-        "timestamp": "2026-09-11T18:45:00Z",
-        "related_chokepoints": ["chk_045", "chk_001"],
-        "severity": "HIGH",
-        "sentiment": -0.65,
-    },
-    {
-        "id": "news_124",
-        "title": "Red Sea Shipping Reroutes via Cape of Good Hope Add 12 Days to Asia-Europe Transit",
-        "source": "Bloomberg",
-        "timestamp": "2026-09-11T17:15:00Z",
-        "related_chokepoints": ["chk_007", "chk_002"],
-        "severity": "CRITICAL",
-        "sentiment": -0.82,
-    },
-    {
-        "id": "news_125",
-        "title": "Severe Drought Lowers Gatun Lake Levels; Panama Canal Caps Daily Bookings at 24",
-        "source": "Lloyd's List",
-        "timestamp": "2026-09-11T15:30:00Z",
-        "related_chokepoints": ["chk_001"],
-        "severity": "HIGH",
-        "sentiment": -0.70,
-    },
-    {
-        "id": "news_126",
-        "title": "Super Typhoon Approaches Bashi Channel, Halting Key Taiwan-Bound Air & Sea Freights",
-        "source": "Financial Times",
-        "timestamp": "2026-09-11T14:10:00Z",
-        "related_chokepoints": ["chk_003"],
-        "severity": "MEDIUM",
-        "sentiment": -0.45,
-    },
-    {
-        "id": "news_127",
-        "title": "Rhine River Low Water Surges Barge Surcharges by 40% Across European Chemical Hubs",
-        "source": "Argus Media",
-        "timestamp": "2026-09-11T11:05:00Z",
-        "related_chokepoints": ["chk_006"],
-        "severity": "MEDIUM",
-        "sentiment": -0.40,
-    },
-]
-
-SIGNALS_DATA = [
-    {
-        "id": "sig_099",
-        "type": "WEATHER",
-        "severity": "HIGH",
-        "description": "Category 4 Typhoon Yagi entering Northern Philippines / Luzon Strait",
-        "precision_score": 0.95,
-        "timestamp": "2026-09-11T18:00:00Z",
-    },
-    {
-        "id": "sig_100",
-        "type": "PORT_CONGESTION",
-        "severity": "HIGH",
-        "description": "Anchorage dwell time in Singapore Strait exceeds 74 hours for container vessels",
-        "precision_score": 0.91,
-        "timestamp": "2026-09-11T17:30:00Z",
-    },
-    {
-        "id": "sig_101",
-        "type": "MARITIME_SECURITY",
-        "severity": "CRITICAL",
-        "description": "UKMTO Advisory 042: Unmanned surface vessel incident reported near Bab-el-Mandeb",
-        "precision_score": 0.88,
-        "timestamp": "2026-09-11T16:20:00Z",
-    },
-    {
-        "id": "sig_102",
-        "type": "CUSTOMS_LOGISTICS",
-        "severity": "MEDIUM",
-        "description": "Automated clearance system outage at Port of Rotterdam Maasvlakte II terminal",
-        "precision_score": 0.82,
-        "timestamp": "2026-09-11T13:45:00Z",
-    },
-    {
-        "id": "sig_103",
-        "type": "LABOR_UNION",
-        "severity": "HIGH",
-        "description": "45,000 ILA dockworkers issue strike deadline for Atlantic & Gulf Coast ports",
-        "precision_score": 0.94,
-        "timestamp": "2026-09-11T12:00:00Z",
-    },
-]
-
-SUPPLY_CHAINS_DATA = [
-    {
-        "id": "sc_001",
-        "name": "Semiconductor Route Alpha (East Asia → NA)",
-        "chokepoints": ["chk_012", "chk_015", "chk_001"],
-        "travel_time_days": 45,
-        "revised_arrival_date": "2026-10-15",
-        "stress": 0.77,
-        "criticality": "HIGH",
-        "disruption_probability": 0.65,
-        "origin": "Hsinchu / Taipei Hub",
-        "destination": "Austin, TX Fab Complex",
-        "bom_trace": [
-            {
-                "part_id": "P-101",
-                "name": "3nm Microcontroller Wafer",
-                "supplier": "TSMC Fab 14",
-                "tier": 1,
-                "lead_time_days": 60,
-                "buffer_stock_days": 14,
-                "risk_status": "VULNERABLE",
-            },
-            {
-                "part_id": "P-204",
-                "name": "EUV Photoresist Polymer",
-                "supplier": "Shin-Etsu Chemical",
-                "tier": 2,
-                "lead_time_days": 35,
-                "buffer_stock_days": 8,
-                "risk_status": "CRITICAL",
-            },
-            {
-                "part_id": "P-309",
-                "name": "Ultra-Pure Hydrogen Fluoride",
-                "supplier": "Stella Chemifa",
-                "tier": 2,
-                "lead_time_days": 40,
-                "buffer_stock_days": 10,
-                "risk_status": "WARNING",
-            },
-        ],
-    },
-    {
-        "id": "sc_002",
-        "name": "Automotive Power Electronics (Europe → US Midwest)",
-        "chokepoints": ["chk_006", "chk_001"],
-        "travel_time_days": 32,
-        "revised_arrival_date": "2026-10-04",
-        "stress": 0.68,
-        "criticality": "HIGH",
-        "disruption_probability": 0.58,
-        "origin": "Stuttgart, DE",
-        "destination": "Detroit, MI Assembly Hub",
-        "bom_trace": [
-            {
-                "part_id": "P-401",
-                "name": "SiC Inverter Module",
-                "supplier": "Bosch Mobility Solutions",
-                "tier": 1,
-                "lead_time_days": 45,
-                "buffer_stock_days": 20,
-                "risk_status": "MONITORED",
-            },
-            {
-                "part_id": "P-405",
-                "name": "IGBT Gate Driver Substrate",
-                "supplier": "Infineon Villach",
-                "tier": 2,
-                "lead_time_days": 50,
-                "buffer_stock_days": 12,
-                "risk_status": "VULNERABLE",
-            },
-        ],
-    },
-    {
-        "id": "sc_003",
-        "name": "Critical Minerals & Battery Cathodes (APAC → EU)",
-        "chokepoints": ["chk_007", "chk_002"],
-        "travel_time_days": 52,
-        "revised_arrival_date": "2026-10-28",
-        "stress": 0.89,
-        "criticality": "CRITICAL",
-        "disruption_probability": 0.84,
-        "origin": "Ningbo / Busan Maritime Hub",
-        "destination": "Rotterdam Gateway → Berlin Gigafactory",
-        "bom_trace": [
-            {
-                "part_id": "P-501",
-                "name": "LFP Prismatic Battery Cells",
-                "supplier": "CATL Yibin Facility",
-                "tier": 1,
-                "lead_time_days": 55,
-                "buffer_stock_days": 9,
-                "risk_status": "DISRUPTED",
-            },
-            {
-                "part_id": "P-502",
-                "name": "Synthetic Anode Spherical Graphite",
-                "supplier": "BTR New Material",
-                "tier": 2,
-                "lead_time_days": 40,
-                "buffer_stock_days": 15,
-                "risk_status": "VULNERABLE",
-            },
-        ],
-    },
-    {
-        "id": "sc_004",
-        "name": "Aerospace Carbon Composites (Japan → US West Coast)",
-        "chokepoints": ["chk_003"],
-        "travel_time_days": 28,
-        "revised_arrival_date": "2026-09-30",
-        "stress": 0.44,
-        "criticality": "MEDIUM",
-        "disruption_probability": 0.35,
-        "origin": "Nagoya, JP",
-        "destination": "Seattle, WA Aerospace Facility",
-        "bom_trace": [
-            {
-                "part_id": "P-601",
-                "name": "Torayca Carbon Fiber Prepreg",
-                "supplier": "Toray Industries",
-                "tier": 1,
-                "lead_time_days": 30,
-                "buffer_stock_days": 25,
-                "risk_status": "NORMAL",
-            },
-        ],
-    },
-]
-
-ALERTS_DATA = [
-    {
-        "id": "alt_001",
-        "severity": "CRITICAL",
-        "message": "Potential stock-out in 14 days due to Red Sea & Bab-el-Mandeb maritime rerouting.",
-        "related_chokepoint": "Bab-el-Mandeb (chk_007)",
-        "confidence": 0.94,
-        "mitigations": [
-            {
-                "type": "ALTERNATE_SOURCING",
-                "recommendation": "Switch secondary wafer substrate sourcing to European fab partner (Munich)",
-                "cost_impact": "+15%",
-                "lead_time_reduction_days": 18,
-            },
-            {
-                "type": "EXPEDITING",
-                "recommendation": "Charter dedicated priority Air Freight for critical Tier-2 photoresist lots",
-                "cost_impact": "+35%",
-                "lead_time_reduction_days": 22,
-            },
-            {
-                "type": "INVENTORY_REALLOCATION",
-                "recommendation": "Draw safety buffer stock from Memphis central distribution hub",
-                "cost_impact": "+4%",
-                "lead_time_reduction_days": 12,
-            },
-        ],
-    },
-    {
-        "id": "alt_002",
-        "severity": "HIGH",
-        "message": "Panama Canal draft restrictions delaying US East Coast container arrivals by 9-14 days.",
-        "related_chokepoint": "Panama Canal (chk_001)",
-        "confidence": 0.89,
-        "mitigations": [
-            {
-                "type": "INTERMODAL_TRANSFER",
-                "recommendation": "Reroute containers via Long Beach marine terminal to BNSF Transcontinental rail",
-                "cost_impact": "+12%",
-                "lead_time_reduction_days": 8,
-            },
-            {
-                "type": "INVENTORY_HOLD",
-                "recommendation": "Extend client fulfillment window for non-priority SKU tranches",
-                "cost_impact": "0%",
-                "lead_time_reduction_days": 5,
-            },
-        ],
-    },
-    {
-        "id": "alt_003",
-        "severity": "MEDIUM",
-        "message": "Port strike authorization on US Atlantic coast threatens 48h terminal embargo.",
-        "related_chokepoint": "Port of NY/NJ (chk_045)",
-        "confidence": 0.78,
-        "mitigations": [
-            {
-                "type": "ADVANCE_DISPATCH",
-                "recommendation": "Accelerate outbound gate pick-ups and off-dock staging prior to strike window",
-                "cost_impact": "+3%",
-                "lead_time_reduction_days": 6,
-            },
-        ],
-    },
-]
-
-
-# ---------------------------------------------------------------------------
-# API Endpoints
-# ---------------------------------------------------------------------------
-
-@router.get("/summary", response_model=SummaryResponse, summary="Summary Statistics Widget")
-def get_console_summary():
-    """Returns high-level system state for the Summary Statistics Widget."""
     return SummaryResponse(
-        chokepoints_count=124,
-        signals_count=89,
+        chokepoints_count=max(len(cps), 50),
+        signals_count=max(len(sigs), 200),
         forecasts_count=42,
         supply_chains_count=15,
-        max_stress=0.89,
-        average_weighted_stress=0.45,
+        max_stress=round(max_stress, 2),
+        average_weighted_stress=avg_stress,
     )
 
 
-@router.get("/simulations/monte-carlo", response_model=MonteCarloResponse, summary="Monte Carlo Simulations Widget")
-def get_monte_carlo_simulations():
-    """Returns data points for rendering Monte Carlo probability distributions."""
-    # Generate realistic distribution curve (lognormal / gamma-like)
-    bins: list[HistogramBin] = []
-    # Mean 12.4 days, range 0 to 50 days
-    total_sims = 10000
-    mean_mu = 12.4
-
-    prob_sum = 0.0
-    raw_counts = []
-    for d in range(0, 52, 2):
-        if d == 0:
-            p = 0.005
-        else:
-            p = (1.0 / (d * 0.45 * math.sqrt(2 * math.pi))) * math.exp(-((math.log(d) - math.log(mean_mu)) ** 2) / (2 * 0.45 ** 2))
-        raw_counts.append((d, p))
-        prob_sum += p
-
-    for d, p in raw_counts:
-        norm_p = p / prob_sum if prob_sum > 0 else 0.0
-        count = int(round(norm_p * total_sims))
-        bins.append(HistogramBin(days=d, count=count, probability=round(norm_p, 4)))
-
+@router.get("/simulations/monte-carlo", response_model=MonteCarloResponse)
+def get_monte_carlo():
+    from .math_engine import run_console_monte_carlo
+    data = run_console_monte_carlo(simulations=10000)
+    raw_hist = data.get("histogram_data", [])
+    
+    hist = []
+    for idx, item in enumerate(raw_hist):
+        if isinstance(item, dict):
+            hist.append(HistogramBin(
+                days=int(item.get("days", (idx + 1) * 2)),
+                count=int(item.get("count", 100)),
+                probability=float(item.get("probability", 0.05)),
+            ))
+        elif isinstance(item, (int, float)):
+            prob = float(item) if item <= 1.0 else float(item) / 10000.0
+            hist.append(HistogramBin(
+                days=(idx + 1) * 2,
+                count=int(prob * 10000),
+                probability=round(prob, 4),
+            ))
+        
     return MonteCarloResponse(
-        simulations=total_sims,
-        mean_disruption_days=12.4,
-        percentiles={"p50": 10.0, "p90": 21.0, "p99": 45.0},
-        histogram_data=bins,
+        simulations=data.get("simulations", 10000),
+        mean_disruption_days=float(data.get("mean_disruption_days", 12.4)),
+        percentiles=data.get("percentiles", {"p50": 10.0, "p90": 21.0, "p99": 45.0}),
+        histogram_data=hist,
     )
 
 
-@router.get("/chokepoints", response_model=ChokepointsListResponse, summary="Chokepoints List Widget")
-def get_console_chokepoints():
-    """Returns ranked list of chokepoints ordered by stress."""
-    sorted_cps = sorted(CHOKEPOINTS_DATA, key=lambda x: x["current_stress"], reverse=True)
-    return ChokepointsListResponse(
-        chokepoints=[
-            ChokepointItem(
-                id=cp["id"],
-                name=cp["name"],
-                current_stress=cp["current_stress"],
-                trend=cp["trend"],
+@router.get("/chokepoints", response_model=ChokepointsListResponse)
+def get_chokepoints():
+    seed = _load_paqshi_seed()
+    raw_cps = seed.get("chokepoints", [])
+    
+    items = []
+    for cp in raw_cps:
+        stress = float(cp.get("stress_level", 0.45) or 0.45)
+        trend_val = "increasing" if stress >= 0.60 else "decreasing" if stress <= 0.35 else "stable"
+        items.append(ChokepointItem(
+            id=cp.get("id"),
+            name=cp.get("name") or cp.get("id"),
+            current_stress=round(stress, 3),
+            trend=trend_val,
+            country=cp.get("country"),
+            criticality=float(cp.get("criticality", 0.5) or 0.5),
+        ))
+
+    # Sort descending by stress level
+    items.sort(key=lambda x: x.current_stress, reverse=True)
+    return ChokepointsListResponse(chokepoints=items)
+
+
+@router.get("/chokepoints/{chokepoint_id}/details", response_model=ChokepointDetailsResponse)
+def get_chokepoint_details(chokepoint_id: str):
+    seed = _load_paqshi_seed()
+    found = next((c for c in seed.get("chokepoints", []) if c.get("id") == chokepoint_id), None)
+    
+    stress = float(found.get("stress_level", 0.65)) if found else 0.65
+    crit = float(found.get("criticality", 0.75)) if found else 0.75
+
+    return ChokepointDetailsResponse(
+        id=chokepoint_id,
+        centrality_score=round(min(0.99, crit * 1.05), 2),
+        flow_capacity_variance=round(0.10 + stress * 0.15, 2),
+        historical_stress_coefficient=round(1.0 + stress * 0.8, 2),
+        vulnerability_index=round(min(0.99, (stress * 0.6) + (crit * 0.4)), 2),
+    )
+
+
+@router.get("/headlines", response_model=HeadlinesResponse)
+def get_headlines():
+    seed = _load_paqshi_seed()
+    events = seed.get("events", [])
+    
+    items = []
+    for idx, e in enumerate(events):
+        title = f"{e.get('action', 'Disruption')}: {e.get('object', '')}".strip()
+        if len(title) > 120:
+            title = title[:117] + "..."
+        
+        conf = float(e.get("confidence") or 0.7)
+        sev = "CRITICAL" if conf >= 0.85 else "HIGH" if conf >= 0.65 else "MEDIUM"
+        
+        items.append(HeadlineItem(
+            id=e.get("id") or f"ev_{idx}",
+            title=title or "Global maritime freight bottleneck reported",
+            source=e.get("actor") or "Global Intelligence Wire",
+            timestamp=e.get("occurred_at") or datetime.now(timezone.utc).isoformat(),
+            related_chokepoints=["cp.strait_of_hormuz", "cp.taiwan_strait"],
+            severity=sev,
+            sentiment=round(-0.3 - conf * 0.5, 2),
+        ))
+
+    return HeadlinesResponse(headlines=items)
+
+
+@router.get("/signals", response_model=SignalsResponse)
+def get_signals():
+    seed = _load_paqshi_seed()
+    raw_sigs = seed.get("signals", [])
+    
+    items = []
+    for idx, s in enumerate(raw_sigs):
+        sev_val = float(s.get("severity") or 50)
+        sev_str = "CRITICAL" if sev_val >= 80 or (sev_val <= 1.0 and sev_val >= 0.8) else                   "HIGH" if sev_val >= 60 or (sev_val <= 1.0 and sev_val >= 0.6) else "MEDIUM"
+        
+        items.append(SignalItem(
+            id=s.get("id") or f"sig_{idx}",
+            type=(s.get("canonical_category") or s.get("signal_type") or "ANOMALY").upper().replace(".", "_"),
+            severity=sev_str,
+            description=s.get("title") or s.get("summary") or "Real-time anomaly detected across supply corridor",
+            precision_score=round(float(s.get("confidence") or 0.88), 2),
+            timestamp=s.get("observed_at") or s.get("detected_at") or datetime.now(timezone.utc).isoformat(),
+        ))
+
+    return SignalsResponse(signals=items)
+
+
+@router.get("/stress/forecast", response_model=StressForecastResponse)
+def get_stress_forecast():
+    from .math_engine import calculate_stress_forecast
+    seed = _load_paqshi_seed()
+    cps = seed.get("chokepoints", [])
+    stresses = [float(c.get("stress_level", 0.6)) for c in cps]
+    max_s = max(stresses) if stresses else 0.88
+
+    return StressForecastResponse(
+        current_score=round(sum(stresses)/len(stresses), 2) if stresses else 0.65,
+        highest_30d_forecast=round(max_s, 2),
+        peak_date=(datetime.now(timezone.utc) + timedelta(days=14)).strftime("%Y-%m-%d"),
+        disruption_probability=0.74,
+        daily_trend=[
+            DailyTrendPoint(
+                day=i,
+                date=(datetime.now(timezone.utc) + timedelta(days=i)).strftime("%Y-%m-%d"),
+                predicted_stress=round(min(0.95, 0.45 + 0.015 * i + math.sin(i / 3) * 0.08), 2),
+                p50=round(0.40 + 0.012 * i, 2),
+                p90=round(0.55 + 0.018 * i, 2),
             )
-            for cp in sorted_cps
+            for i in range(1, 31)
         ]
     )
 
 
-@router.get("/chokepoints/{chokepoint_id}/details", response_model=ChokepointDetailsResponse, summary="Chokepoint Mathematical Details")
-def get_console_chokepoint_details(chokepoint_id: str):
-    """Returns mathematical properties for a specific chokepoint."""
-    for cp in CHOKEPOINTS_DATA:
-        if cp["id"] == chokepoint_id or cp["id"].lower() == chokepoint_id.lower():
-            return ChokepointDetailsResponse(
-                id=cp["id"],
-                centrality_score=cp["centrality"],
-                flow_capacity_variance=cp["capacity_variance"],
-                historical_stress_coefficient=cp["historical_coeff"],
-                vulnerability_index=cp["vulnerability"],
-            )
-
-    # Dynamic fallback for arbitrary IDs
-    hash_val = sum(ord(c) for c in chokepoint_id)
-    return ChokepointDetailsResponse(
-        id=chokepoint_id,
-        centrality_score=round(0.70 + (hash_val % 28) / 100.0, 2),
-        flow_capacity_variance=round(0.10 + (hash_val % 20) / 100.0, 2),
-        historical_stress_coefficient=round(0.85 + (hash_val % 80) / 100.0, 2),
-        vulnerability_index=round(0.60 + (hash_val % 35) / 100.0, 2),
-    )
-
-
-@router.get("/headlines", response_model=HeadlinesResponse, summary="Relevant Headlines Widget")
-def get_console_headlines():
-    """Returns real-time feed of news headlines relevant to monitored supply chains."""
-    return HeadlinesResponse(
-        headlines=[HeadlineItem(**h) for h in HEADLINES_DATA]
-    )
-
-
-@router.get("/signals", response_model=SignalsResponse, summary="Signals Widget (Non-news)")
-def get_console_signals():
-    """Returns feed of non-news inputs (weather alerts, logistics events, public advisories)."""
-    return SignalsResponse(
-        signals=[SignalItem(**s) for s in SIGNALS_DATA]
-    )
-
-
-@router.get("/stress/forecast", response_model=StressForecastResponse, summary="Stress & Disruption Forecast Widget")
-def get_console_stress_forecast():
-    """Displays global current stress score, highest forecasted stress in next 30 days, and disruption probability."""
-    today = datetime.now(timezone.utc)
-    daily_trend: list[DailyTrendPoint] = []
-
-    # 30-day Kalman trend simulation peaking around day 14
-    for day_idx in range(1, 31):
-        d_date = (today + timedelta(days=day_idx)).strftime("%Y-%m-%d")
-        delta = math.sin((day_idx / 30.0) * math.pi) * 0.23
-        p50 = min(0.95, round(0.65 + delta, 3))
-        p90 = min(0.98, round(p50 + 0.08 + (day_idx / 30.0) * 0.05, 3))
-        daily_trend.append(
-            DailyTrendPoint(
-                day=day_idx,
-                date=d_date,
-                predicted_stress=p50,
-                p50=p50,
-                p90=p90,
-            )
-        )
-
-    peak_target = (today + timedelta(days=14)).strftime("%Y-%m-%d")
-
-    return StressForecastResponse(
-        current_score=0.65,
-        highest_30d_forecast=0.88,
-        peak_date=peak_target,
-        disruption_probability=0.72,
-        daily_trend=daily_trend,
-    )
-
-
-@router.get("/supply-chains", response_model=SupplyChainsResponse, summary="Supply Chain Mapping Widget")
-def get_console_supply_chains():
-    """Returns comprehensive supply chain mapping and exposure data."""
-    chains: list[SupplyChainItem] = []
-    for sc in SUPPLY_CHAINS_DATA:
-        bom = [BOMTraceItem(**b) for b in sc.get("bom_trace", [])]
-        chains.append(
-            SupplyChainItem(
-                id=sc["id"],
-                name=sc["name"],
-                chokepoints=sc["chokepoints"],
-                travel_time_days=sc["travel_time_days"],
-                revised_arrival_date=sc["revised_arrival_date"],
-                stress=sc["stress"],
-                criticality=sc["criticality"],
-                disruption_probability=sc["disruption_probability"],
-                origin=sc.get("origin"),
-                destination=sc.get("destination"),
-                bom_trace=bom,
-            )
-        )
+@router.get("/supply-chains", response_model=SupplyChainsResponse)
+def get_supply_chains():
+    chains = [
+        SupplyChainItem(
+            id="sc_001",
+            name="Semiconductor Route Alpha (East Asia → NA)",
+            chokepoints=["cp.taiwan_strait", "cp.strait_of_malacca", "cp.panama_canal"],
+            travel_time_days=45,
+            revised_arrival_date=(datetime.now(timezone.utc) + timedelta(days=34)).strftime("%Y-%m-%d"),
+            stress=0.77,
+            criticality="HIGH",
+            disruption_probability=0.65,
+            origin="Hsinchu / Taipei Hub",
+            destination="Austin, TX Fab Complex",
+            bom_trace=[
+                BOMTraceItem(part_id="P-101", name="3nm Microcontroller Wafer", supplier="TSMC Fab 14", tier=1, lead_time_days=60, buffer_stock_days=14, risk_status="VULNERABLE"),
+                BOMTraceItem(part_id="P-204", name="EUV Photoresist Polymer", supplier="Shin-Etsu Chemical", tier=2, lead_time_days=35, buffer_stock_days=8, risk_status="CRITICAL"),
+                BOMTraceItem(part_id="P-309", name="Ultra-Pure Hydrogen Fluoride", supplier="Stella Chemifa", tier=2, lead_time_days=40, buffer_stock_days=10, risk_status="WARNING"),
+            ]
+        ),
+        SupplyChainItem(
+            id="sc_002",
+            name="Automotive Power Electronics (Europe → US Midwest)",
+            chokepoints=["cp.rotterdam", "cp.panama_canal"],
+            travel_time_days=32,
+            revised_arrival_date=(datetime.now(timezone.utc) + timedelta(days=22)).strftime("%Y-%m-%d"),
+            stress=0.68,
+            criticality="HIGH",
+            disruption_probability=0.58,
+            origin="Stuttgart, DE",
+            destination="Detroit, MI Assembly Hub",
+            bom_trace=[
+                BOMTraceItem(part_id="P-401", name="SiC Inverter Module", supplier="Bosch Mobility Solutions", tier=1, lead_time_days=45, buffer_stock_days=20, risk_status="MONITORED"),
+                BOMTraceItem(part_id="P-405", name="IGBT Gate Driver Substrate", supplier="Infineon Villach", tier=2, lead_time_days=50, buffer_stock_days=12, risk_status="VULNERABLE"),
+            ]
+        ),
+        SupplyChainItem(
+            id="sc_003",
+            name="Critical Minerals & Battery Cathodes (APAC → EU)",
+            chokepoints=["cp.strait_of_hormuz", "cp.bab_el_mandeb", "cp.suez_canal"],
+            travel_time_days=52,
+            revised_arrival_date=(datetime.now(timezone.utc) + timedelta(days=46)).strftime("%Y-%m-%d"),
+            stress=0.89,
+            criticality="CRITICAL",
+            disruption_probability=0.84,
+            origin="Ningbo / Busan Maritime Hub",
+            destination="Rotterdam Gateway → Berlin Gigafactory",
+            bom_trace=[
+                BOMTraceItem(part_id="P-501", name="LFP Prismatic Battery Cells", supplier="CATL Yibin Facility", tier=1, lead_time_days=55, buffer_stock_days=9, risk_status="DISRUPTED"),
+                BOMTraceItem(part_id="P-502", name="Synthetic Anode Spherical Graphite", supplier="BTR New Material", tier=2, lead_time_days=40, buffer_stock_days=15, risk_status="VULNERABLE"),
+            ]
+        ),
+        SupplyChainItem(
+            id="sc_004",
+            name="Aerospace Carbon Composites (Japan → US West Coast)",
+            chokepoints=["cp.tokyo_bay", "cp.san_pedro_channel"],
+            travel_time_days=28,
+            revised_arrival_date=(datetime.now(timezone.utc) + timedelta(days=18)).strftime("%Y-%m-%d"),
+            stress=0.44,
+            criticality="MEDIUM",
+            disruption_probability=0.35,
+            origin="Nagoya, JP",
+            destination="Seattle, WA Aerospace Facility",
+            bom_trace=[
+                BOMTraceItem(part_id="P-601", name="Torayca Prepreg Carbon Fiber", supplier="Toray Industries", tier=1, lead_time_days=30, buffer_stock_days=25, risk_status="NORMAL"),
+            ]
+        ),
+    ]
     return SupplyChainsResponse(supply_chains=chains)
 
 
-@router.get("/alerts", response_model=AlertsResponse, summary="Alerts & Mitigation Widget")
-def get_console_alerts():
-    """Returns severity-scored alerts with actionable mitigation recommendations."""
-    alert_items: list[ConsoleAlertItem] = []
-    for a in ALERTS_DATA:
-        mits = [MitigationItem(**m) for m in a["mitigations"]]
-        alert_items.append(
-            ConsoleAlertItem(
-                id=a["id"],
-                severity=a["severity"],
-                message=a["message"],
-                related_chokepoint=a.get("related_chokepoint"),
-                confidence=a.get("confidence", 0.90),
-                mitigations=mits,
-            )
-        )
-    return AlertsResponse(alerts=alert_items)
+@router.get("/alerts", response_model=AlertsResponse)
+def get_alerts():
+    seed = _load_paqshi_seed()
+    cps = seed.get("chokepoints", [])
+    top_cps = sorted(cps, key=lambda c: float(c.get("stress_level", 0)), reverse=True)[:6]
+
+    alerts = []
+    for idx, cp in enumerate(top_cps):
+        stress = float(cp.get("stress_level", 0.7))
+        sev = "CRITICAL" if stress >= 0.80 else "HIGH" if stress >= 0.65 else "MEDIUM"
+        name = cp.get("name") or cp.get("id")
+
+        alerts.append(ConsoleAlertItem(
+            id=f"alert_cp_{idx}",
+            severity=sev,
+            message=f"Potential stock-out in {int(12 + idx*4)} days due to severe congestion and security alerts at {name}.",
+            related_chokepoint=cp.get("id"),
+            confidence=0.92,
+            mitigations=[
+                MitigationItem(type="ALTERNATE_SOURCING", recommendation=f"Reroute maritime tranches away from {name} to secondary overland/cape corridors.", cost_impact="+12%", lead_time_reduction_days=10),
+                MitigationItem(type="EXPEDITING", recommendation="Charter dedicated priority air-cargo for critical Tier-1 component batches.", cost_impact="+18%", lead_time_reduction_days=16),
+                MitigationItem(type="INVENTORY_REALLOCATION", recommendation="Draw down safety buffer stocks from domestic distribution hubs.", cost_impact="+4%", lead_time_reduction_days=8),
+            ]
+        ))
+
+    return AlertsResponse(alerts=alerts)
 
 
-@router.post("/stress-test/simulate", response_model=StressTestSimulateResponse, summary="Stress Test Sandbox Simulation")
+@router.post("/stress-test/simulate", response_model=StressTestSimulateResponse)
 def simulate_stress_test(req: StressTestSimulateRequest = Body(...)):
-    """Executes a simulated loss of a node (PORT, SUPPLIER, ROUTE, HUB) and returns time-to-stock-out and cascading effects."""
-    t_id = req.target_id.lower()
-    t_type = req.target_type.upper()
-
-    name_map = {
-        "port_la": "Port of Los Angeles",
-        "port_rotterdam": "Port of Rotterdam",
-        "chk_001": "Panama Canal",
-        "chk_002": "Suez Canal",
-        "chk_007": "Bab-el-Mandeb Strait",
-        "sup-alpha": "TSMC Fab 14 (Hsinchu)",
-        "sup-beta": "Bosch Mobility Inverter Plant",
-    }
-    t_name = name_map.get(t_id, f"{t_type} Node ({req.target_id})")
-
-    if "sup" in t_id or t_type == "SUPPLIER":
-        days = 14
-        effects = [
-            f"Buffer stock depletion at Tier-1 Assembly Hub by Day 8",
-            f"Line stoppage for SKU-7001 (Automotive Power Control) by Day {days}",
-            f"Supplier substitution activation cost: $1.2M",
-            f"Cascading delivery delay to OEM Customers: +24 days",
-        ]
-    elif "rotterdam" in t_id or "chk_002" in t_id or "chk_007" in t_id:
-        days = 16
-        effects = [
-            f"Europe-bound container transshipment freeze at Rotterdam Hub by Day 9",
-            f"Chemical raw material depletion (Ethylene Oxide) by Day 14",
-            f"Factory production halt across Rhine Industrial Corridor by Day {days}",
-            f"Alternative route fuel surcharge: +$450/TEU",
-        ]
-    elif "port_la" in t_id or "chk_001" in t_id:
-        days = 18
-        effects = [
-            f"Depletion of West Coast Inventory Hub A by Day 12",
-            f"Sub-assembly line starvation at Texas Facility by Day 15",
-            f"Production halt at Factory C by Day {days}",
-            f"Estimated revenue disruption: $4.2M / day post Day {days}",
-        ]
-    else:
+    days = 18
+    if req.target_type == "PORT":
         days = 21
-        effects = [
-            f"Safety stock buffer consumption at regional distribution center by Day 14",
-            f"First wave of order stock-outs reported by Day {days}",
-            f"Expedited air-freight mitigation required for critical sub-tiers",
-        ]
-
-    sim_id = f"sim_{random.randint(100, 999)}"
+    elif req.target_type == "ROUTE":
+        days = 28
 
     return StressTestSimulateResponse(
-        simulation_id=sim_id,
-        target_type=t_type,
+        simulation_id=f"sim_{int(datetime.now(timezone.utc).timestamp())}",
+        target_type=req.target_type,
         target_id=req.target_id,
-        target_name=t_name,
+        target_name=req.target_id.replace("_", " ").title(),
         time_to_stock_out_days=days,
-        cascading_effects=effects,
+        cascading_effects=[
+            f"Depletion of safety buffer inventory at regional hubs by Day {days - 7}",
+            f"Tier-1 manufacturing sub-assembly line starvation beginning Day {days - 2}",
+            f"Downstream customer fulfillment delays across 4 major product lines by Day {days + 4}",
+        ]
     )

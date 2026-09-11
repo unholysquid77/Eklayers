@@ -56,13 +56,13 @@ import {
   getChokepointForecast,
   researchChokepoint,
 } from '@/lib/api';
-import { MOCK_ALERTS } from '@/lib/mock';
+import { MOCK_ALERTS, MOCK_CASCADE, MOCK_SHIPPING } from '@/lib/mock';
 
 const SarvadarshiGlobe = dynamic(() => import('@/components/SarvadarshiGlobe'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-sm hud-text text-cyan-400 bg-[#030712]">
-      <Activity className="w-8 h-8 animate-spin text-cyan-400" />
+    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-sm hud-text text-[#00ff88] bg-[#040806]">
+      <Activity className="w-8 h-8 animate-spin text-[#00ff88]" />
       <span>INITIALISING 3D TACTICAL GLOBE SENSORS…</span>
     </div>
   ),
@@ -130,8 +130,8 @@ function ZuluClock() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="flex items-center gap-2 px-3 py-1 bg-slate-900/80 border border-slate-700/60 rounded text-xs hud-text text-cyan-400 tabular-nums">
-      <Clock className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+    <div className="flex items-center gap-2 px-3 py-1 bg-[#040806]/80 border border-[#1c482c]/60 rounded text-xs hud-text text-[#00ff88] tabular-nums">
+      <Clock className="w-3.5 h-3.5 text-[#00ff88] animate-pulse" />
       <span>{t || 'SYNCING ZULU TIME…'}</span>
     </div>
   );
@@ -144,7 +144,7 @@ export default function CommandPage() {
   const [exposureList, setExposureList] = useState<Exposure[]>([]);
   const [mitigations, setMitigations] = useState<MitigationOption[]>([]);
   const [forecast, setForecast] = useState<ChokepointForecast | null>(null);
-  const [cascadeData, setCascadeData] = useState<CascadeMap | null>(null);
+  const [cascadeData, setCascadeData] = useState<CascadeMap | null>(MOCK_CASCADE);
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [earthquakes, setEarthquakes] = useState<GeoFeatureCollection | null>(null);
@@ -174,16 +174,20 @@ export default function CommandPage() {
     try {
       const [al, cd, sl, oe, infra] = await Promise.allSettled([
         getAlerts().catch(() => MOCK_ALERTS),
-        getGlobeCascadeMap(),
-        getGlobeShippingLanes(),
-        getGlobeOntologyEdges(),
-        getAllInfraLayers(INFRA_LAYER_NAMES),
+        getGlobeCascadeMap().catch(() => MOCK_CASCADE),
+        getGlobeShippingLanes().catch(() => MOCK_SHIPPING),
+        getGlobeOntologyEdges().catch(() => ({ arcs: [] })),
+        getAllInfraLayers(INFRA_LAYER_NAMES).catch(() => ({})),
       ]);
       if (al.status === 'fulfilled') setAlerts(al.value && al.value.length ? al.value : MOCK_ALERTS);
-      if (cd.status === 'fulfilled') setCascadeData(cd.value);
-      if (sl.status === 'fulfilled') setShippingLanes(sl.value as { type: string; features: ShippingLane[] });
-      if (oe.status === 'fulfilled') setBomArcs(oe.value.arcs);
-      if (infra.status === 'fulfilled') setInfraLayers(infra.value);
+      if (cd.status === 'fulfilled' && cd.value && cd.value.chokepoints && cd.value.chokepoints.length > 0) {
+        setCascadeData(cd.value);
+      } else {
+        setCascadeData(MOCK_CASCADE);
+      }
+      if (sl.status === 'fulfilled' && sl.value) setShippingLanes(sl.value as { type: string; features: ShippingLane[] });
+      if (oe.status === 'fulfilled' && oe.value && oe.value.arcs) setBomArcs(oe.value.arcs);
+      if (infra.status === 'fulfilled' && infra.value) setInfraLayers(infra.value);
     } finally {
       setLoading(false);
     }
@@ -325,9 +329,9 @@ export default function CommandPage() {
   }, [cascadeData, bomArcs, vessels, flights, earthquakes, shippingLanes, infraLayers]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#030712] text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-[#040806] text-slate-100 overflow-hidden font-sans">
       {/* ── Top Tactical Navigation Bar ── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#0a0f1d] shrink-0 z-20">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-[#143a22] bg-[#0a0f1d] shrink-0 z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
@@ -335,9 +339,9 @@ export default function CommandPage() {
           </div>
           <span className="text-slate-600">|</span>
           <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-cyan-400" />
-            <span className="hud-text text-xs text-cyan-300 font-semibold">DISRUPTION COMMAND</span>
-            <span className="hidden md:inline text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+            <Radio className="w-4 h-4 text-[#00ff88]" />
+            <span className="hud-text text-xs text-[#44ffa2] font-semibold">DISRUPTION COMMAND</span>
+            <span className="hidden md:inline text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-[#00ff88] border border-cyan-800">
               PS #3 PREDICTION & EXP-MAP
             </span>
           </div>
@@ -346,9 +350,9 @@ export default function CommandPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setResearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1 bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/80 rounded text-xs font-mono text-cyan-300 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+            className="flex items-center gap-2 px-3 py-1 bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/80 rounded text-xs font-mono text-[#44ffa2] transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
           >
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-[#00ff88] animate-pulse" />
             <span>AUTONOMOUS CHOKEPOINT RESEARCH</span>
           </button>
 
@@ -357,19 +361,19 @@ export default function CommandPage() {
           <div className="flex items-center gap-2">
             <a
               href="/command"
-              className="px-2.5 py-1 text-xs font-mono rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/80 font-semibold shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+              className="px-2.5 py-1 text-xs font-mono rounded bg-cyan-950/80 text-[#44ffa2] border border-cyan-700/80 font-semibold shadow-[0_0_10px_rgba(6,182,212,0.2)]"
             >
               🌐 GLOBE
             </a>
             <a
               href="/console"
-              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-cyan-300 hover:bg-slate-800/60 transition border border-transparent hover:border-slate-700"
+              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-[#44ffa2] hover:bg-[#0a1710]/60 transition border border-transparent hover:border-[#1c482c]"
             >
               📊 CONSOLE
             </a>
             <a
               href="/risk"
-              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800/60 transition border border-transparent hover:border-slate-700"
+              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-amber-300 hover:bg-[#0a1710]/60 transition border border-transparent hover:border-[#1c482c]"
             >
               🛡️ RISK
             </a>
@@ -388,14 +392,14 @@ export default function CommandPage() {
       {/* ── Main Command Viewport ── */}
       <div className="flex flex-1 overflow-hidden relative">
         {/* ── Left Layer Toggles Sidebar (14+ Layers with dynamic counts) ── */}
-        <aside className="w-64 shrink-0 bg-[#080d1a]/95 border-r border-slate-800 p-3 flex flex-col justify-between overflow-y-auto styled-scrollbar">
+        <aside className="w-64 shrink-0 bg-[#060d09]/95 border-r border-[#143a22] p-3 flex flex-col justify-between overflow-y-auto styled-scrollbar">
           <div>
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#143a22]">
               <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-cyan-400" />
+                <Layers className="w-4 h-4 text-[#00ff88]" />
                 <span className="hud-text text-xs font-bold text-slate-300">TACTICAL LAYERS</span>
               </div>
-              <span className="text-[10px] text-cyan-400 font-mono">14 ACTIVE</span>
+              <span className="text-[10px] text-[#00ff88] font-mono">14 ACTIVE</span>
             </div>
 
             {LAYER_GROUPS.map((grp) => (
@@ -411,7 +415,7 @@ export default function CommandPage() {
                       <label
                         key={lyr.key}
                         className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer select-none transition-colors ${
-                          active ? 'bg-slate-800/60 border border-slate-700/40' : 'hover:bg-slate-800/30'
+                          active ? 'bg-[#0a1710]/60 border border-[#1c482c]/40' : 'hover:bg-[#0a1710]/30'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -425,7 +429,7 @@ export default function CommandPage() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           {count !== undefined && count > 0 && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#040806] border border-[#143a22] text-slate-400">
                               {count}
                             </span>
                           )}
@@ -444,10 +448,10 @@ export default function CommandPage() {
             ))}
           </div>
 
-          <div className="p-2.5 rounded bg-slate-900/90 border border-slate-800 text-[10px] space-y-1 mt-3">
+          <div className="p-2.5 rounded bg-[#040806]/90 border border-[#143a22] text-[10px] space-y-1 mt-3">
             <div className="flex justify-between text-slate-400 font-mono">
               <span>Sensor Fusion:</span>
-              <span className="text-cyan-400">GDACS + USGS + AIS</span>
+              <span className="text-[#00ff88]">GDACS + USGS + AIS</span>
             </div>
             <div className="flex justify-between text-slate-400 font-mono">
               <span>Inference Engine:</span>
@@ -459,9 +463,9 @@ export default function CommandPage() {
         {/* ── 3D Interactive Three.js Globe ── */}
         <main className="flex-1 relative bg-black">
           {loading && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#030712]/80 gap-3">
-              <Activity className="w-10 h-10 text-cyan-400 animate-spin" />
-              <span className="hud-text text-sm text-cyan-300 font-semibold">SYNCHRONIZING GLOBAL RISK SENSORS…</span>
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#040806]/80 gap-3">
+              <Activity className="w-10 h-10 text-[#00ff88] animate-spin" />
+              <span className="hud-text text-sm text-[#44ffa2] font-semibold">SYNCHRONIZING GLOBAL RISK SENSORS…</span>
             </div>
           )}
           <SarvadarshiGlobe
@@ -478,13 +482,13 @@ export default function CommandPage() {
         </main>
 
         {/* ── Right Disruption Alert Feed / Deep-Dive Drawer ── */}
-        <aside className="w-96 shrink-0 bg-[#090e1d]/95 border-l border-slate-800 flex flex-col overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between bg-[#0d1426]">
+        <aside className="w-96 shrink-0 bg-[#090e1d]/95 border-l border-[#143a22] flex flex-col overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-[#143a22] flex items-center justify-between bg-[#0d1426]">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-amber-400" />
               <span className="hud-text text-xs font-bold text-amber-400">LIVE DISRUPTION ALERTS</span>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hud-text">
+            <span className="text-[10px] px-2 py-0.5 rounded bg-[#0a1710] text-slate-300 hud-text">
               {alerts.length} ACTIVE
             </span>
           </div>
@@ -494,13 +498,13 @@ export default function CommandPage() {
             <div className="flex-1 overflow-y-auto styled-scrollbar p-4 space-y-4">
               <button
                 onClick={() => setSelectedAlert(null)}
-                className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1 mb-2 font-mono"
+                className="text-xs text-slate-400 hover:text-[#44ffa2] flex items-center gap-1 mb-2 font-mono"
               >
                 <X className="w-3.5 h-3.5" /> CLOSE INSPECTION
               </button>
 
               {/* Alert Header Badge */}
-              <div className="p-3 rounded-lg bg-slate-900 border border-slate-700/80 space-y-2">
+              <div className="p-3 rounded-lg bg-[#040806] border border-[#1c482c]/80 space-y-2">
                 <div className="flex items-center justify-between">
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
@@ -509,7 +513,7 @@ export default function CommandPage() {
                   >
                     {getSevMeta(selectedAlert.severity).label} SEVERITY
                   </span>
-                  <span className="text-[11px] font-mono text-cyan-400">
+                  <span className="text-[11px] font-mono text-[#00ff88]">
                     Confidence: {(selectedAlert.confidence * 100).toFixed(0)}%
                   </span>
                 </div>
@@ -523,12 +527,12 @@ export default function CommandPage() {
               </div>
 
               {/* Bayesian Probability Lift Bar */}
-              <div className="p-3 rounded bg-slate-900/90 border border-slate-800 space-y-1.5">
+              <div className="p-3 rounded bg-[#040806]/90 border border-[#143a22] space-y-1.5">
                 <div className="flex justify-between text-[11px] hud-text">
                   <span className="text-slate-400">PRIOR PROBABILITY</span>
                   <span className="text-amber-400 font-bold">BAYESIAN POSTERIOR</span>
                 </div>
-                <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden flex">
+                <div className="h-2.5 bg-[#0a1710] rounded-full overflow-hidden flex">
                   <div
                     className="h-full bg-slate-600 transition-all"
                     style={{ width: `${selectedAlert.prior * 100}%` }}
@@ -551,12 +555,12 @@ export default function CommandPage() {
               </div>
 
               {/* Detail Navigation Tabs */}
-              <div className="flex border-b border-slate-800 text-xs font-mono">
+              <div className="flex border-b border-[#143a22] text-xs font-mono">
                 <button
                   onClick={() => setActiveTab('exposure')}
                   className={`pb-2 px-2.5 flex items-center gap-1 border-b-2 transition-colors ${
                     activeTab === 'exposure'
-                      ? 'border-cyan-400 text-cyan-300 font-bold'
+                      ? 'border-cyan-400 text-[#44ffa2] font-bold'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -566,7 +570,7 @@ export default function CommandPage() {
                   onClick={() => setActiveTab('forecast')}
                   className={`pb-2 px-2.5 flex items-center gap-1 border-b-2 transition-colors ${
                     activeTab === 'forecast'
-                      ? 'border-cyan-400 text-cyan-300 font-bold'
+                      ? 'border-cyan-400 text-[#44ffa2] font-bold'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -576,7 +580,7 @@ export default function CommandPage() {
                   onClick={() => setActiveTab('mitigations')}
                   className={`pb-2 px-2.5 flex items-center gap-1 border-b-2 transition-colors ${
                     activeTab === 'mitigations'
-                      ? 'border-cyan-400 text-cyan-300 font-bold'
+                      ? 'border-cyan-400 text-[#44ffa2] font-bold'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -586,7 +590,7 @@ export default function CommandPage() {
                   onClick={() => setActiveTab('evidence')}
                   className={`pb-2 px-2.5 flex items-center gap-1 border-b-2 transition-colors ${
                     activeTab === 'evidence'
-                      ? 'border-cyan-400 text-cyan-300 font-bold'
+                      ? 'border-cyan-400 text-[#44ffa2] font-bold'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -601,18 +605,18 @@ export default function CommandPage() {
                     Traced downstream impact through Bill of Materials:
                   </div>
                   {exposureList.length === 0 ? (
-                    <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 text-center">
+                    <div className="p-3 bg-[#040806] rounded text-xs text-slate-500 text-center">
                       Calculating BOM cascade paths…
                     </div>
                   ) : (
                     exposureList.map((node) => (
                       <div
                         key={node.entity_id}
-                        className="p-2.5 rounded bg-slate-900/80 border border-slate-800 space-y-1"
+                        className="p-2.5 rounded bg-[#040806]/80 border border-[#143a22] space-y-1"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700 font-mono">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#0a1710] text-[#44ffa2] border border-[#1c482c] font-mono">
                               HOP {node.hop}
                             </span>
                             <span className="text-xs font-semibold text-slate-200">{node.entity_id}</span>
@@ -637,24 +641,24 @@ export default function CommandPage() {
               {/* Tab 2: Kalman Lead-Time Forecast Fan */}
               {activeTab === 'forecast' && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded bg-slate-900 border border-slate-800 space-y-2">
+                  <div className="p-3 rounded bg-[#040806] border border-[#143a22] space-y-2">
                     <div className="text-xs font-bold text-slate-200 hud-text">
                       KALMAN STATE-SPACE PREDICTION
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2 rounded bg-slate-800/80">
+                      <div className="p-2 rounded bg-[#0a1710]/80">
                         <div className="text-[10px] text-slate-400">P50 ARRIVAL</div>
-                        <div className="text-sm font-bold text-cyan-400 font-mono">
+                        <div className="text-sm font-bold text-[#00ff88] font-mono">
                           +{selectedAlert.p50_days ? selectedAlert.p50_days.toFixed(1) : '7.5'}d
                         </div>
                       </div>
-                      <div className="p-2 rounded bg-slate-800/80">
+                      <div className="p-2 rounded bg-[#0a1710]/80">
                         <div className="text-[10px] text-slate-400">P80 STRESS</div>
                         <div className="text-sm font-bold text-amber-400 font-mono">
                           +{selectedAlert.p80_days ? selectedAlert.p80_days.toFixed(1) : '14.2'}d
                         </div>
                       </div>
-                      <div className="p-2 rounded bg-slate-800/80">
+                      <div className="p-2 rounded bg-[#0a1710]/80">
                         <div className="text-[10px] text-slate-400">P95 TAIL</div>
                         <div className="text-sm font-bold text-red-400 font-mono">
                           +{selectedAlert.p95_days ? selectedAlert.p95_days.toFixed(1) : '21.0'}d
@@ -663,13 +667,13 @@ export default function CommandPage() {
                     </div>
                   </div>
                   {forecast && forecast.forecast && (
-                    <div className="p-3 rounded bg-slate-900 border border-slate-800 space-y-2">
+                    <div className="p-3 rounded bg-[#040806] border border-[#143a22] space-y-2">
                       <div className="text-[10px] text-slate-400 hud-text">14-DAY TRAJECTORY FAN</div>
                       <div className="space-y-1 text-[10px] font-mono">
                         {forecast.forecast.slice(0, 5).map((f) => (
-                          <div key={f.day} className="flex justify-between py-0.5 border-b border-slate-800/50">
+                          <div key={f.day} className="flex justify-between py-0.5 border-b border-[#143a22]/50">
                             <span className="text-slate-400">Day +{f.day}</span>
-                            <span className="text-cyan-300">P50: {f.p50.toFixed(2)}</span>
+                            <span className="text-[#44ffa2]">P50: {f.p50.toFixed(2)}</span>
                             <span className="text-amber-400">P80: {f.p80.toFixed(2)}</span>
                             <span className="text-red-400">P95: {f.p95.toFixed(2)}</span>
                           </div>
@@ -687,17 +691,17 @@ export default function CommandPage() {
                     Recommended operational mitigation actions ranked by cost vs delay:
                   </div>
                   {mitigations.length === 0 ? (
-                    <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 text-center">
+                    <div className="p-3 bg-[#040806] rounded text-xs text-slate-500 text-center">
                       Loading mitigation options…
                     </div>
                   ) : (
                     mitigations.map((opt, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 transition-colors space-y-1.5"
+                        className="p-3 rounded-lg bg-[#040806]/90 border border-[#143a22] hover:border-cyan-500/50 transition-colors space-y-1.5"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-cyan-300 uppercase">
+                          <span className="text-xs font-bold text-[#44ffa2] uppercase">
                             {opt.type || opt.option || 'Sourcing Alternative'}
                           </span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
@@ -707,7 +711,7 @@ export default function CommandPage() {
                         <p className="text-[11px] text-slate-300 leading-relaxed">{opt.description}</p>
                         <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-1">
                           <span>Cost Impact: {((opt.cost_impact || 0.15) * 100).toFixed(0)}% premium</span>
-                          <button className="text-cyan-400 hover:underline">Execute Action →</button>
+                          <button className="text-[#00ff88] hover:underline">Execute Action →</button>
                         </div>
                       </div>
                     ))
@@ -725,7 +729,7 @@ export default function CommandPage() {
                     selectedAlert.evidence_ledger.map((ev, i) => (
                       <div
                         key={i}
-                        className="p-2.5 rounded bg-slate-900/90 border border-slate-800 flex items-center justify-between"
+                        className="p-2.5 rounded bg-[#040806]/90 border border-[#143a22] flex items-center justify-between"
                       >
                         <div>
                           <div className="text-xs font-semibold text-slate-200">{ev.name}</div>
@@ -747,7 +751,7 @@ export default function CommandPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-3 bg-slate-900 rounded text-xs text-slate-500 text-center">
+                    <div className="p-3 bg-[#040806] rounded text-xs text-slate-500 text-center">
                       No LLR evidence items registered.
                     </div>
                   )}
@@ -763,7 +767,7 @@ export default function CommandPage() {
                   <div
                     key={a.id}
                     onClick={() => selectAlert(a)}
-                    className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-800/60 cursor-pointer transition-all space-y-2 group"
+                    className="p-3 rounded-lg bg-[#040806]/80 border border-[#143a22] hover:border-cyan-500/50 hover:bg-[#0a1710]/60 cursor-pointer transition-all space-y-2 group"
                   >
                     <div className="flex items-center justify-between">
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${meta.cls}`}>
@@ -774,12 +778,12 @@ export default function CommandPage() {
                       </span>
                     </div>
 
-                    <h4 className="text-xs font-semibold text-slate-100 group-hover:text-cyan-300 transition-colors leading-tight">
+                    <h4 className="text-xs font-semibold text-slate-100 group-hover:text-[#44ffa2] transition-colors leading-tight">
                       {a.title || `${a.alert_type.toUpperCase()} — ${a.subject_id}`}
                     </h4>
 
                     {/* Mini progress bar */}
-                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-[#0a1710] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${a.posterior * 100}%`, backgroundColor: meta.bar }}
@@ -788,7 +792,7 @@ export default function CommandPage() {
 
                     <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
                       <span>{a.subject_id}</span>
-                      <span className="text-cyan-400 flex items-center gap-0.5">
+                      <span className="text-[#00ff88] flex items-center gap-0.5">
                         Inspect <ChevronRight className="w-3 h-3" />
                       </span>
                     </div>
@@ -805,9 +809,9 @@ export default function CommandPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-3xl bg-[#090f1e] border border-cyan-500/60 rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.25)] flex flex-col max-h-[90vh] overflow-hidden">
             {/* Header */}
-            <div className="px-5 py-3.5 border-b border-slate-800 bg-[#0d162c] flex items-center justify-between">
+            <div className="px-5 py-3.5 border-b border-[#143a22] bg-[#0d162c] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
+                <Sparkles className="w-5 h-5 text-[#00ff88] animate-pulse" />
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 hud-text">AUTONOMOUS CHOKEPOINT RESEARCH ENGINE</h3>
                   <p className="text-[10px] text-slate-400 font-mono">
@@ -817,7 +821,7 @@ export default function CommandPage() {
               </div>
               <button
                 onClick={() => setResearchOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800"
+                className="text-slate-400 hover:text-white p-1 rounded hover:bg-[#0a1710]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -826,7 +830,7 @@ export default function CommandPage() {
             {/* Content Body */}
             <div className="p-5 overflow-y-auto styled-scrollbar space-y-4 flex-1">
               {/* Form Input Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-900/90 p-3.5 rounded-lg border border-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-[#040806]/90 p-3.5 rounded-lg border border-[#143a22]">
                 <div>
                   <label className="text-[10px] hud-text text-slate-400 block mb-1">TARGET CHOKEPOINT / TOPIC</label>
                   <input
@@ -834,7 +838,7 @@ export default function CommandPage() {
                     value={researchQuery}
                     onChange={(e) => setResearchQuery(e.target.value)}
                     placeholder="e.g. Malacca Strait, Bab-el-Mandeb, Panama Canal"
-                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-[#1c482c] rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -844,7 +848,7 @@ export default function CommandPage() {
                     value={researchCpId}
                     onChange={(e) => setResearchCpId(e.target.value)}
                     placeholder="e.g. cp-malacca, cp-suez, cp-panama"
-                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-[#1c482c] rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -854,14 +858,14 @@ export default function CommandPage() {
                     value={researchFocus}
                     onChange={(e) => setResearchFocus(e.target.value)}
                     placeholder="e.g. naval exercises, congestion, weather, piracy, strikes"
-                    className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-[#1c482c] rounded text-xs text-slate-100 font-mono focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
                 <div className="md:col-span-2 flex justify-end">
                   <button
                     onClick={handleExecuteResearch}
                     disabled={researchLoading || !researchQuery.trim()}
-                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 text-slate-950 font-bold rounded text-xs font-mono transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] disabled:text-slate-500"
+                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-[#0a1710] text-slate-950 font-bold rounded text-xs font-mono transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] disabled:text-slate-500"
                   >
                     <Search className={`w-4 h-4 ${researchLoading ? 'animate-spin' : ''}`} />
                     {researchLoading ? 'RUNNING RESEARCH PIPELINE…' : 'DEPLOY AUTONOMOUS RESEARCH AGENT'}
@@ -871,8 +875,8 @@ export default function CommandPage() {
 
               {/* Live Status Telemetry Log */}
               {researchStatusMsg && (
-                <div className="p-2.5 rounded bg-slate-950 border border-cyan-800/60 flex items-center gap-2 text-xs font-mono text-cyan-300">
-                  <Activity className="w-4 h-4 text-cyan-400 animate-spin shrink-0" />
+                <div className="p-2.5 rounded bg-slate-950 border border-cyan-800/60 flex items-center gap-2 text-xs font-mono text-[#44ffa2]">
+                  <Activity className="w-4 h-4 text-[#00ff88] animate-spin shrink-0" />
                   <span>{researchStatusMsg}</span>
                 </div>
               )}
@@ -881,7 +885,7 @@ export default function CommandPage() {
               {researchDossier && (
                 <div className="space-y-4 pt-2">
                   {/* Top Dossier Card */}
-                  <div className="p-4 rounded-lg bg-slate-900 border border-slate-700/80 space-y-3">
+                  <div className="p-4 rounded-lg bg-[#040806] border border-[#1c482c]/80 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs px-2 py-0.5 rounded font-mono font-bold uppercase bg-red-950/80 text-red-300 border border-red-800">
@@ -899,7 +903,7 @@ export default function CommandPage() {
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded border border-slate-800 font-sans">
+                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded border border-[#143a22] font-sans">
                       {researchDossier.summary}
                     </p>
                   </div>
@@ -907,13 +911,13 @@ export default function CommandPage() {
                   {/* Discovered Entities & Factors Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Key Risk Factors */}
-                    <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div className="p-3.5 rounded-lg bg-[#040806]/90 border border-[#143a22] space-y-2">
                       <div className="hud-text text-xs font-bold text-amber-400 flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" /> KEY RISK FACTORS (LLR)
                       </div>
                       <div className="space-y-1.5 text-[11px] font-mono">
                         {(researchDossier.key_factors || (researchDossier.discovered_facts?.map((f) => ({ factor: f, llr_contribution: 1.25 })) || [])).map((f, i) => (
-                          <div key={i} className="p-2 rounded bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                          <div key={i} className="p-2 rounded bg-slate-950/80 border border-[#143a22] flex justify-between items-center">
                             <span className="text-slate-300">{f.factor}</span>
                             <span className="text-red-400 font-bold">+{f.llr_contribution.toFixed(2)} LLR</span>
                           </div>
@@ -922,15 +926,15 @@ export default function CommandPage() {
                     </div>
 
                     {/* Discovered Entities */}
-                    <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
-                      <div className="hud-text text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                    <div className="p-3.5 rounded-lg bg-[#040806]/90 border border-[#143a22] space-y-2">
+                      <div className="hud-text text-xs font-bold text-[#00ff88] flex items-center gap-1.5">
                         <Share2 className="w-3.5 h-3.5" /> IDENTIFIED GRAPH ENTITIES
                       </div>
                       <div className="space-y-1.5 text-[11px] font-mono">
                         {(researchDossier.identified_entities || (researchDossier.affected_commodities?.map((c) => ({ name: c, type: 'COMMODITY' })) || [])).map((e, i) => (
-                          <div key={i} className="p-2 rounded bg-slate-950/80 border border-slate-800 flex justify-between items-center">
+                          <div key={i} className="p-2 rounded bg-slate-950/80 border border-[#143a22] flex justify-between items-center">
                             <span className="text-slate-200 font-semibold">{e.name}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0a1710] text-[#44ffa2] border border-[#1c482c]">
                               {e.type}
                             </span>
                           </div>
@@ -940,18 +944,18 @@ export default function CommandPage() {
                   </div>
 
                   {/* Graph Mutations Card */}
-                  <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+                  <div className="p-3.5 rounded-lg bg-[#040806]/90 border border-[#143a22] space-y-2">
                     <div className="hud-text text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                       <Database className="w-3.5 h-3.5" /> ONTOLOGY GRAPH MUTATIONS APPLIED
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                      <div className="p-2 rounded bg-slate-950/80 border border-slate-800 text-center">
-                        <div className="text-base font-bold text-cyan-400">
+                      <div className="p-2 rounded bg-slate-950/80 border border-[#143a22] text-center">
+                        <div className="text-base font-bold text-[#00ff88]">
                           +{researchDossier.graph_mutations_applied?.nodes_added ?? researchDossier.ontology_mutations?.nodes_added ?? 0}
                         </div>
                         <div className="text-[10px] text-slate-400">NODES INJECTED</div>
                       </div>
-                      <div className="p-2 rounded bg-slate-950/80 border border-slate-800 text-center">
+                      <div className="p-2 rounded bg-slate-950/80 border border-[#143a22] text-center">
                         <div className="text-base font-bold text-amber-400">
                           +{researchDossier.graph_mutations_applied?.edges_added ?? researchDossier.ontology_mutations?.edges_added ?? 0}
                         </div>
@@ -962,9 +966,9 @@ export default function CommandPage() {
 
                   {/* Actionable Mitigations */}
                   {researchDossier.recommended_mitigations && researchDossier.recommended_mitigations.length > 0 && (
-                    <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+                    <div className="p-3.5 rounded-lg bg-[#040806]/90 border border-[#143a22] space-y-2">
                       <div className="hud-text text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-cyan-400" /> RECOMMENDED MITIGATIONS
+                        <Zap className="w-3.5 h-3.5 text-[#00ff88]" /> RECOMMENDED MITIGATIONS
                       </div>
                       <ul className="space-y-1 text-xs text-slate-300 list-disc list-inside font-sans">
                         {researchDossier.recommended_mitigations.map((m, i) => (
@@ -980,14 +984,14 @@ export default function CommandPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-slate-800 bg-[#0a0f1d] flex items-center justify-between">
+            <div className="px-5 py-3 border-t border-[#143a22] bg-[#0a0f1d] flex items-center justify-between">
               <span className="text-[10px] text-slate-500 font-mono">
                 Model: Google News Ingestion + Bayesian LLR Engine v2.4
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setResearchOpen(false)}
-                  className="px-3 py-1.5 text-xs font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
+                  className="px-3 py-1.5 text-xs font-mono rounded bg-[#0a1710] hover:bg-slate-700 text-slate-300"
                 >
                   DISMISS
                 </button>
@@ -1007,10 +1011,10 @@ export default function CommandPage() {
       )}
 
       {/* ── Bottom Telemetry Status Strip ── */}
-      <footer className="flex items-center justify-between px-4 py-2 border-t border-slate-800 bg-[#0a0f1d] shrink-0 text-[11px] hud-text">
+      <footer className="flex items-center justify-between px-4 py-2 border-t border-[#143a22] bg-[#0a0f1d] shrink-0 text-[11px] hud-text">
         <div className="flex items-center gap-6 text-slate-400">
           <span>
-            CHOKEPOINTS: <strong className="text-cyan-400">{cpCount}</strong>
+            CHOKEPOINTS: <strong className="text-[#00ff88]">{cpCount}</strong>
           </span>
           <span>
             HAZARD EVENTS: <strong className="text-amber-400">{evCount}</strong>
@@ -1035,7 +1039,7 @@ export default function CommandPage() {
           disabled={liveLoading}
           className="btn-tactical text-xs px-3 py-1 rounded flex items-center gap-1.5 disabled:opacity-50"
         >
-          <Radio className={`w-3.5 h-3.5 ${liveLoading ? 'animate-spin' : 'text-cyan-400'}`} />
+          <Radio className={`w-3.5 h-3.5 ${liveLoading ? 'animate-spin' : 'text-[#00ff88]'}`} />
           {liveLoading ? 'PULLING SENSORS…' : '⬇ INGEST LIVE FEEDS'}
         </button>
       </footer>

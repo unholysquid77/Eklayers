@@ -845,19 +845,28 @@ globe_router = APIRouter(prefix="/v1/globe", tags=["Globe"])
 
 @globe_router.get("/cascade/map", summary="Core Cascade state for Globe")
 def get_globe_cascade_map():
-    # 1. Chokepoints
+    # 1. Surface all chokepoints, ports, and suppliers with valid geo-coordinates
     chokepoints = []
-    for cp in state.graph.surface_chokepoints():
-        chokepoints.append({
-            "id": cp.id,
-            "name": cp.name,
-            "category": cp.kind,
-            "latitude": cp.lat if cp.lat is not None else 0.0,
-            "longitude": cp.lon if cp.lon is not None else 0.0,
-            "stress_level": cp.chokepoint_score if cp.chokepoint_score is not None else 0.0,
-            "baseline": 0.10,
-            "criticality": cp.criticality if cp.criticality is not None else 0.5,
-        })
+    seen_ids = set()
+    for n in state.graph.all_nodes:
+        if n.lat is not None and n.lon is not None:
+            if n.id in seen_ids:
+                continue
+            seen_ids.add(n.id)
+            stress = float(n.chokepoint_score or 0.35)
+            if hasattr(n, "properties") and isinstance(n.properties, dict):
+                stress = float(n.properties.get("stress_level", stress) or stress)
+            chokepoints.append({
+                "id": n.id,
+                "name": n.name or n.id,
+                "category": n.kind if isinstance(n.kind, str) else getattr(n.kind, "value", str(n.kind)),
+                "latitude": float(n.lat),
+                "longitude": float(n.lon),
+                "stress_level": round(stress, 3),
+                "baseline": round(float(n.properties.get("baseline_stress", 0.10) or 0.10), 3) if hasattr(n, "properties") and isinstance(n.properties, dict) else 0.10,
+                "criticality": round(float(n.criticality or 0.5), 3),
+                "country": n.properties.get("country", "") if hasattr(n, "properties") and isinstance(n.properties, dict) else "",
+            })
     
     # 2. Events (from Paqshi archive seed + live signals)
     events = []
@@ -1330,143 +1339,10 @@ def get_globe_chokepoint_forecast(node_id: str):
 
 app.include_router(globe_router)
 
-# ---------------------------------------------------------------------------
-# Console Page Routes
-# ---------------------------------------------------------------------------
-console_router = APIRouter(prefix="/v1/console", tags=["Console Page"])
-
-@console_router.get("/summary", summary="Console high-level summary")
-def get_console_summary():
-    from .models import ConsoleSummaryResponse
-    chokepoints_count = len([n for n in state.graph.all_nodes if "chokepoint" in n.tags]) or 124
-    signals_count = len(state.signals) or 89
-    forecasts_count = 42
-    supply_chains_count = 15
-    max_stress = 0.89
-    avg_stress = 0.45
-    return _envelope(ConsoleSummaryResponse(
-        chokepoints_count=chokepoints_count,
-        signals_count=signals_count,
-        forecasts_count=forecasts_count,
-        supply_chains_count=supply_chains_count,
-        max_stress=max_stress,
-        average_weighted_stress=avg_stress
-    ))
-
-@console_router.get("/simulations/monte-carlo", summary="Monte Carlo Simulation data")
-def get_console_monte_carlo():
-    from .models import MonteCarloSimulationResponse
-    try:
-        from .scoring import run_console_monte_carlo
-        data = run_console_monte_carlo(simulations=10000)
-        return _envelope(MonteCarloSimulationResponse(**data))
-    except Exception:
-        return _envelope(MonteCarloSimulationResponse(
-            simulations=10000,
-            mean_disruption_days=12.4,
-            percentiles={"p50": 10, "p90": 21, "p99": 45},
-            histogram_data=[50, 180, 420, 850, 1420, 1950, 1720, 1240, 780, 460, 310, 210, 140, 90, 65, 45, 35, 20, 12, 8]
-        ))
-
-@console_router.get("/chokepoints", summary="Ranked list of chokepoints")
-def get_console_chokepoints():
-    from .models import ChokepointListResponse, ChokepointBasic
-    chokepoints = []
-    for i, n in enumerate(state.graph.all_nodes[:20]):
-        chokepoints.append(ChokepointBasic(
-            id=n.id,
-            name=n.name or f"Chokepoint {n.id}",
-            current_stress=round(0.5 + (0.4 * (1 - i/20)), 2),
-            trend="increasing",
-            country="United States"
-        ))
-    if not chokepoints:
-        chokepoints = [
-            ChokepointBasic(id="chk_007", name="Bab-el-Mandeb Strait", current_stress=0.88, trend="increasing", country="Yemen/Djibouti"),
-            ChokepointBasic(id="chk_001", name="Panama Canal", current_stress=0.85, trend="increasing", country="Panama"),
-            ChokepointBasic(id="chk_002", name="Suez Canal", current_stress=0.82, trend="increasing", country="Egypt"),
-            ChokepointBasic(id="chk_003", name="Strait of Malacca", current_stress=0.74, trend="stable", country="Singapore/Malaysia"),
-        ]
-    return _envelope(ChokepointListResponse(chokepoints=chokepoints))
-
-@console_router.get("/chokepoints/{id}/details", summary="Mathematical details of a chokepoint")
-def get_console_chokepoint_details(id: str):
-    from .models import ChokepointDetailResponse
-    return _envelope(ChokepointDetailResponse(
-        id=id,
-        centrality_score=0.92,
-        flow_capacity_variance=0.15,
-        historical_stress_coefficient=1.24,
-        vulnerability_index=0.78
-    ))
-
-@console_router.get("/headlines", summary="Relevant headlines")
-def get_console_headlines():
-    from .models import HeadlineListResponse, HeadlineItem
-    headlines = [
-        HeadlineItem(
-            id="news_1", title="Port Strike Looms on East Coast", source="Reuters", 
-            timestamp=_utcnow(), related_chokepoints=["chk_1", "chk_001"]
-        ),
-        HeadlineItem(
-            id="news_2", title="Red Sea Shipping Reroutes via Cape of Good Hope Add 12 Days", source="Bloomberg", 
-            timestamp=_utcnow(), related_chokepoints=["chk_007", "chk_002"]
-        )
-    ]
-    return _envelope(HeadlineListResponse(headlines=headlines))
-
-@console_router.get("/signals", summary="Signals feed")
-def get_console_signals():
-    from .models import SignalListResponse, SignalItem
-    signals = [
-        SignalItem(id="sig_1", type="WEATHER", severity="HIGH", description="Category 4 Typhoon Yagi approaching Luzon Strait", precision_score=0.95),
-        SignalItem(id="sig_2", type="LOGISTICS", severity="MEDIUM", description="Anchorage wait times at Singapore Hub exceed 72 hours", precision_score=0.88)
-    ]
-    return _envelope(SignalListResponse(signals=signals))
-
-@console_router.get("/stress/forecast", summary="30-day Stress Forecast")
-def get_console_stress_forecast():
-    from .models import StressForecastResponse
-    return _envelope(StressForecastResponse(
-        current_score=0.65,
-        highest_30d_forecast=0.88,
-        peak_date="2026-09-25",
-        disruption_probability=0.72
-    ))
-
-@console_router.get("/supply-chains", summary="Tracked supply chains")
-def get_console_supply_chains():
-    from .models import SupplyChainListResponse, SupplyChainEntry
-    chains = [
-        SupplyChainEntry(
-            id="sc_1", name="Semiconductor Route Alpha", chokepoints=["chk_1", "chk_001"], 
-            travel_time_days=45.0, revised_arrival_date="2026-10-15", stress=0.77, 
-            criticality="HIGH", disruption_probability=0.65
-        )
-    ]
-    return _envelope(SupplyChainListResponse(supply_chains=chains))
-
-@console_router.get("/alerts", summary="Severity scored alerts")
-def get_console_alerts():
-    from .models import AlertListResponse, AlertItem, MitigationRec
-    alerts = [
-        AlertItem(
-            id="alt_1", severity="CRITICAL", message="Potential stock-out in 14 days due to Red Sea disruption",
-            mitigations=[MitigationRec(type="REROUTE", recommendation="Switch to Supplier B in Munich", cost_impact="+15%")]
-        )
-    ]
-    return _envelope(AlertListResponse(alerts=alerts))
-
-@console_router.post("/stress-test/simulate", summary="Simulate a node loss")
-def post_console_stress_test(req: dict):
-    from .models import ConsoleStressTestResponse
-    return _envelope(ConsoleStressTestResponse(
-        simulation_id="sim_999", time_to_stock_out_days=18.0, 
-        cascading_effects=["Depletion of Inventory Hub A by Day 12", "Production halt at Factory C by Day 18"]
-    ))
-
-app.include_router(console_router)
+app.include_router(globe_router)
 
 from .console import router as api_console_router
 app.include_router(api_console_router)
+app.include_router(api_console_router, prefix="/v1")
+
 

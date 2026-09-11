@@ -1,20 +1,1411 @@
 import type { CascadeMap, AlertCard, GeoFeatureCollection } from "./contracts";
 
 export const MOCK_CASCADE: CascadeMap = {
-  chokepoints: [
-    { id: "port-singapore", name: "Port of Singapore", category: "port", latitude: 1.264, longitude: 103.840, stress_level: 0.85, baseline: 0.2, criticality: 0.9 },
-    { id: "suez-canal", name: "Suez Canal", category: "lane", latitude: 30.500, longitude: 32.300, stress_level: 0.90, baseline: 0.25, criticality: 0.95 },
-    { id: "strait-malacca", name: "Strait of Malacca", category: "lane", latitude: 2.500, longitude: 101.500, stress_level: 0.65, baseline: 0.2, criticality: 0.8 },
-    { id: "port-rotterdam", name: "Port of Rotterdam", category: "port", latitude: 51.922, longitude: 4.479, stress_level: 0.45, baseline: 0.15, criticality: 0.8 },
-    { id: "supplier-tsmc", name: "TSMC Hsinchu Fab", category: "supplier_site", latitude: 24.780, longitude: 121.010, stress_level: 0.75, baseline: 0.1, criticality: 0.95 },
+  "chokepoints": [
+    {
+      "id": "cp.strait_of_hormuz",
+      "name": "Strait of Hormuz",
+      "category": "chokepoint",
+      "latitude": 26.566,
+      "longitude": 56.25,
+      "stress_level": 0.777,
+      "baseline": 0.15,
+      "criticality": 0.916,
+      "country": "Iran/Oman"
+    },
+    {
+      "id": "cp.auto_gulf_of_oman",
+      "name": "Gulf of Oman",
+      "category": "chokepoint",
+      "latitude": 24.0,
+      "longitude": 58.0,
+      "stress_level": 0.701,
+      "baseline": 0.15,
+      "criticality": 0.82,
+      "country": "Oman/Iran"
+    },
+    {
+      "id": "cp.taiwan_strait",
+      "name": "Taiwan Strait",
+      "category": "chokepoint",
+      "latitude": 24.5,
+      "longitude": 120.5,
+      "stress_level": 0.385,
+      "baseline": 0.15,
+      "criticality": 0.914,
+      "country": "Taiwan/China"
+    },
+    {
+      "id": "cp.auto_gulf_of_aden_shipping_corridor",
+      "name": "Gulf of Aden Shipping Corridor",
+      "category": "chokepoint",
+      "latitude": 12.5,
+      "longitude": 45.0,
+      "stress_level": 0.697,
+      "baseline": 0.15,
+      "criticality": 0.7,
+      "country": "Yemen/Somalia"
+    },
+    {
+      "id": "cp.auto_gulf_of_aden_maritime_chokepoint",
+      "name": "Gulf of Aden Maritime Chokepoint",
+      "category": "chokepoint",
+      "latitude": 12.0,
+      "longitude": 45.0,
+      "stress_level": 0.69,
+      "baseline": 0.15,
+      "criticality": 0.7,
+      "country": "Somalia/Yemen"
+    },
+    {
+      "id": "cp.ukraine_grain",
+      "name": "Ukraine Grain Export Corridor",
+      "category": "chokepoint",
+      "latitude": 46.5,
+      "longitude": 30.7,
+      "stress_level": 0.65,
+      "baseline": 0.15,
+      "criticality": 0.72,
+      "country": "Ukraine"
+    },
+    {
+      "id": "cp.strait_of_malacca",
+      "name": "Strait of Malacca",
+      "category": "chokepoint",
+      "latitude": 2.5,
+      "longitude": 101.3,
+      "stress_level": 0.453,
+      "baseline": 0.15,
+      "criticality": 0.846,
+      "country": "Malaysia/Indonesia/Singapore"
+    },
+    {
+      "id": "cp.user_fujairah_crude_export_corridor",
+      "name": "Fujairah Crude Export Corridor",
+      "category": "chokepoint",
+      "latitude": 25.1276,
+      "longitude": 56.3269,
+      "stress_level": 0.584,
+      "baseline": 0.15,
+      "criticality": 0.723,
+      "country": "UAE"
+    },
+    {
+      "id": "cp.asml_veldhoven",
+      "name": "ASML Veldhoven (EUV)",
+      "category": "chokepoint",
+      "latitude": 51.42,
+      "longitude": 5.47,
+      "stress_level": 0.112,
+      "baseline": 0.15,
+      "criticality": 0.99,
+      "country": "Netherlands"
+    },
+    {
+      "id": "cp.tsmc_hsinchu",
+      "name": "TSMC Fabs (Hsinchu + Tainan)",
+      "category": "chokepoint",
+      "latitude": 24.78,
+      "longitude": 121.0,
+      "stress_level": 0.11,
+      "baseline": 0.15,
+      "criticality": 0.98,
+      "country": "Taiwan"
+    },
+    {
+      "id": "cp.bab_el_mandeb",
+      "name": "Bab-el-Mandeb / Red Sea",
+      "category": "chokepoint",
+      "latitude": 12.58,
+      "longitude": 43.33,
+      "stress_level": 0.345,
+      "baseline": 0.15,
+      "criticality": 0.793,
+      "country": "Yemen/Djibouti"
+    },
+    {
+      "id": "cp.panama_canal",
+      "name": "Panama Canal",
+      "category": "chokepoint",
+      "latitude": 9.08,
+      "longitude": -79.68,
+      "stress_level": 0.435,
+      "baseline": 0.15,
+      "criticality": 0.72,
+      "country": "Panama"
+    },
+    {
+      "id": "cp.suez_canal",
+      "name": "Suez Canal",
+      "category": "chokepoint",
+      "latitude": 30.59,
+      "longitude": 32.27,
+      "stress_level": 0.32,
+      "baseline": 0.15,
+      "criticality": 0.79,
+      "country": "Egypt"
+    },
+    {
+      "id": "cp.auto_kerch_strait_approaches",
+      "name": "Kerch Strait Approaches",
+      "category": "chokepoint",
+      "latitude": 45.35,
+      "longitude": 36.6,
+      "stress_level": 0.481,
+      "baseline": 0.15,
+      "criticality": 0.65,
+      "country": "Russia/Ukraine"
+    },
+    {
+      "id": "cp.auto_copper_mining_and_refining",
+      "name": "Copper Mining and Refining",
+      "category": "chokepoint",
+      "latitude": -27.3667,
+      "longitude": -70.3333,
+      "stress_level": 0.173,
+      "baseline": 0.15,
+      "criticality": 0.85,
+      "country": "Chile"
+    },
+    {
+      "id": "cp.china_ree",
+      "name": "China REE (Bayan Obo)",
+      "category": "chokepoint",
+      "latitude": 41.77,
+      "longitude": 109.97,
+      "stress_level": 0.09,
+      "baseline": 0.15,
+      "criticality": 0.9,
+      "country": "China"
+    },
+    {
+      "id": "cp.drc_cobalt",
+      "name": "DRC Cobalt Belt (Katanga)",
+      "category": "chokepoint",
+      "latitude": -10.7,
+      "longitude": 26.4,
+      "stress_level": 0.106,
+      "baseline": 0.15,
+      "criticality": 0.88,
+      "country": "DR Congo"
+    },
+    {
+      "id": "cp.auto_turkish_straits_approaches",
+      "name": "Turkish Straits Approaches",
+      "category": "chokepoint",
+      "latitude": 41.0,
+      "longitude": 29.0,
+      "stress_level": 0.122,
+      "baseline": 0.15,
+      "criticality": 0.85,
+      "country": "Turkey"
+    },
+    {
+      "id": "cp.user_cpc_novorossiysk_export_terminal",
+      "name": "CPC Novorossiysk Export Terminal",
+      "category": "chokepoint",
+      "latitude": 44.7,
+      "longitude": 37.8,
+      "stress_level": 0.304,
+      "baseline": 0.15,
+      "criticality": 0.724,
+      "country": "Russia"
+    },
+    {
+      "id": "cp.auto_kharg_island_oil_export_terminal",
+      "name": "Kharg Island Oil Export Terminal",
+      "category": "chokepoint",
+      "latitude": 29.276,
+      "longitude": 50.286,
+      "stress_level": 0.246,
+      "baseline": 0.15,
+      "criticality": 0.744,
+      "country": "Iran"
+    },
+    {
+      "id": "cp.auto_istanbul_approaches_sea_of_marmara",
+      "name": "Istanbul Approaches, Sea of Marmara",
+      "category": "chokepoint",
+      "latitude": 41.0,
+      "longitude": 29.0,
+      "stress_level": 0.086,
+      "baseline": 0.15,
+      "criticality": 0.85,
+      "country": "Turkey"
+    },
+    {
+      "id": "cp.auto_siliguri_corridor",
+      "name": "Siliguri Corridor",
+      "category": "chokepoint",
+      "latitude": 26.7,
+      "longitude": 88.4,
+      "stress_level": 0.235,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "India"
+    },
+    {
+      "id": "cp.auto_ras_tanura_oil_terminal",
+      "name": "Ras Tanura Oil Terminal",
+      "category": "chokepoint",
+      "latitude": 26.6244,
+      "longitude": 50.0389,
+      "stress_level": 0.122,
+      "baseline": 0.15,
+      "criticality": 0.82,
+      "country": "Saudi Arabia"
+    },
+    {
+      "id": "cp.user_cape_of_good_hope",
+      "name": "Cape of Good Hope",
+      "category": "chokepoint",
+      "latitude": -34.3568,
+      "longitude": 18.474,
+      "stress_level": 0.276,
+      "baseline": 0.15,
+      "criticality": 0.688,
+      "country": "South Africa"
+    },
+    {
+      "id": "cp.auto_ceuta_border_fence",
+      "name": "Ceuta Border Fence",
+      "category": "chokepoint",
+      "latitude": 35.8894,
+      "longitude": -5.3213,
+      "stress_level": 0.398,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "Spain/Morocco"
+    },
+    {
+      "id": "cp.auto_ceuta_border_crossing",
+      "name": "Ceuta Border Crossing",
+      "category": "chokepoint",
+      "latitude": 35.8894,
+      "longitude": -5.3213,
+      "stress_level": 0.398,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "Spain/Morocco"
+    },
+    {
+      "id": "cp.samsung_pyeongtaek",
+      "name": "Samsung Pyeongtaek Fab",
+      "category": "chokepoint",
+      "latitude": 37.05,
+      "longitude": 127.04,
+      "stress_level": 0.087,
+      "baseline": 0.15,
+      "criticality": 0.8,
+      "country": "South Korea"
+    },
+    {
+      "id": "cp.auto_yanbu_industrial_port",
+      "name": "Yanbu Industrial Port",
+      "category": "chokepoint",
+      "latitude": 24.086,
+      "longitude": 38.063,
+      "stress_level": 0.13,
+      "baseline": 0.15,
+      "criticality": 0.764,
+      "country": "Saudi Arabia"
+    },
+    {
+      "id": "cp.auto_loudoun_county_data_center_alley",
+      "name": "Loudoun County Data Center Alley",
+      "category": "chokepoint",
+      "latitude": 39.03,
+      "longitude": -77.5,
+      "stress_level": 0.144,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "United States"
+    },
+    {
+      "id": "cp.auto_port_of_bandar_abbas",
+      "name": "Port of Bandar Abbas",
+      "category": "chokepoint",
+      "latitude": 27.1833,
+      "longitude": 56.2667,
+      "stress_level": 0.141,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "Iran"
+    },
+    {
+      "id": "cp.auto_port_of_fujairah",
+      "name": "Port of Fujairah",
+      "category": "chokepoint",
+      "latitude": 25.127,
+      "longitude": 56.326,
+      "stress_level": 0.133,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "UAE"
+    },
+    {
+      "id": "cp.auto_port_of_qingdao",
+      "name": "Port of Qingdao",
+      "category": "chokepoint",
+      "latitude": 36.0671,
+      "longitude": 120.3826,
+      "stress_level": 0.28,
+      "baseline": 0.15,
+      "criticality": 0.65,
+      "country": "China"
+    },
+    {
+      "id": "cp.user_sumed_pipeline_terminals",
+      "name": "SUMED Pipeline Terminals",
+      "category": "chokepoint",
+      "latitude": 29.87,
+      "longitude": 32.27,
+      "stress_level": 0.117,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "Egypt"
+    },
+    {
+      "id": "cp.auto_beirut_port",
+      "name": "Beirut Port",
+      "category": "chokepoint",
+      "latitude": 33.8938,
+      "longitude": 35.5018,
+      "stress_level": 0.192,
+      "baseline": 0.15,
+      "criticality": 0.7,
+      "country": "Lebanon"
+    },
+    {
+      "id": "cp.auto_kuwait_oil_export_terminals",
+      "name": "Kuwait Oil Export Terminals",
+      "category": "chokepoint",
+      "latitude": 29.3697,
+      "longitude": 48.0053,
+      "stress_level": 0.116,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "Kuwait"
+    },
+    {
+      "id": "cp.indonesia_nickel",
+      "name": "Indonesia Nickel (Sulawesi + Halmahera)",
+      "category": "chokepoint",
+      "latitude": -0.8,
+      "longitude": 122.0,
+      "stress_level": 0.089,
+      "baseline": 0.15,
+      "criticality": 0.75,
+      "country": "Indonesia"
+    },
+    {
+      "id": "cp.auto_volgograd_industrial_facility",
+      "name": "Volgograd Industrial Facility",
+      "category": "chokepoint",
+      "latitude": 48.708,
+      "longitude": 44.514,
+      "stress_level": 0.312,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "Russia"
+    },
+    {
+      "id": "cp.gibraltar",
+      "name": "Strait of Gibraltar",
+      "category": "chokepoint",
+      "latitude": 35.95,
+      "longitude": -5.6,
+      "stress_level": 0.381,
+      "baseline": 0.15,
+      "criticality": 0.55,
+      "country": "Spain/Morocco"
+    },
+    {
+      "id": "cp.intel_arizona",
+      "name": "Intel Ocotillo (Arizona)",
+      "category": "chokepoint",
+      "latitude": 33.32,
+      "longitude": -111.86,
+      "stress_level": 0.375,
+      "baseline": 0.15,
+      "criticality": 0.55,
+      "country": "United States"
+    },
+    {
+      "id": "cp.auto_great_nicobar_island_infrastructure",
+      "name": "Great Nicobar Island Infrastructure",
+      "category": "chokepoint",
+      "latitude": 7.5,
+      "longitude": 93.8,
+      "stress_level": 0.293,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "India"
+    },
+    {
+      "id": "cp.singapore_ix",
+      "name": "Singapore Internet Exchange",
+      "category": "chokepoint",
+      "latitude": 1.35,
+      "longitude": 103.82,
+      "stress_level": 0.112,
+      "baseline": 0.15,
+      "criticality": 0.72,
+      "country": "Singapore"
+    },
+    {
+      "id": "cp.sk_hynix",
+      "name": "SK Hynix (Icheon/Cheongju)",
+      "category": "chokepoint",
+      "latitude": 37.26,
+      "longitude": 127.45,
+      "stress_level": 0.111,
+      "baseline": 0.15,
+      "criticality": 0.72,
+      "country": "South Korea"
+    },
+    {
+      "id": "cp.auto_port_of_ain_sokhna",
+      "name": "Port of Ain Sokhna",
+      "category": "chokepoint",
+      "latitude": 29.8667,
+      "longitude": 32.2667,
+      "stress_level": 0.135,
+      "baseline": 0.15,
+      "criticality": 0.7,
+      "country": "Egypt"
+    },
+    {
+      "id": "cp.red_sea_cables",
+      "name": "Red Sea Subsea Cable Corridor",
+      "category": "chokepoint",
+      "latitude": 20.0,
+      "longitude": 38.0,
+      "stress_level": 0.102,
+      "baseline": 0.15,
+      "criticality": 0.72,
+      "country": "Red Sea (int'l waters)"
+    },
+    {
+      "id": "cp.auto_port_of_mokha",
+      "name": "Port of Mokha",
+      "category": "chokepoint",
+      "latitude": 13.317,
+      "longitude": 43.183,
+      "stress_level": 0.273,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "Yemen"
+    },
+    {
+      "id": "cp.user_port_of_churchill",
+      "name": "Port of Churchill",
+      "category": "chokepoint",
+      "latitude": 58.7689,
+      "longitude": -94.1644,
+      "stress_level": 0.269,
+      "baseline": 0.15,
+      "criticality": 0.6,
+      "country": "Canada"
+    },
+    {
+      "id": "cp.user_port_of_durban",
+      "name": "Port of Durban",
+      "category": "chokepoint",
+      "latitude": -29.8833,
+      "longitude": 31.05,
+      "stress_level": 0.16,
+      "baseline": 0.15,
+      "criticality": 0.668,
+      "country": "South Africa"
+    },
+    {
+      "id": "cp.english_channel",
+      "name": "English Channel / Dover Strait",
+      "category": "chokepoint",
+      "latitude": 51.0,
+      "longitude": 1.5,
+      "stress_level": 0.409,
+      "baseline": 0.15,
+      "criticality": 0.5,
+      "country": "UK/France"
+    },
+    {
+      "id": "cp.auto_new_delhi_diplomatic_hub",
+      "name": "New Delhi Diplomatic Hub",
+      "category": "chokepoint",
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "stress_level": 0.319,
+      "baseline": 0.15,
+      "criticality": 0.55,
+      "country": "India"
+    },
+    {
+      "id": "cp.auto_lebanon_israel_maritime_border",
+      "name": "Lebanon-Israel Maritime Border",
+      "category": "chokepoint",
+      "latitude": 33.1,
+      "longitude": 35.5,
+      "stress_level": 0.314,
+      "baseline": 0.15,
+      "criticality": 0.55,
+      "country": "Lebanon/Israel"
+    }
   ],
-  events: [
-    { id: "evt-1", latitude: 1.264, longitude: 103.840, severity: 0.85, domain: "weather", event_category: "Severe Weather", occurred_at: new Date().toISOString(), raw_text: "Monsoon squalls causing berth delay", title: "Singapore Berth Congestion", actor: "", object: "port-singapore", location: "Singapore", source_ids: ["open-meteo"] },
-    { id: "evt-2", latitude: 30.500, longitude: 32.300, severity: 0.90, domain: "geopolitics", event_category: "Maritime Security", occurred_at: new Date().toISOString(), raw_text: "Security advisory along Red Sea corridor", title: "Red Sea / Suez Route Alert", actor: "", object: "suez-canal", location: "Red Sea", source_ids: ["gdacs"] },
+  "events": [
+    {
+      "id": "cca6a35e-208f-4977-8b90-e3241373be67",
+      "latitude": 13.317,
+      "longitude": 43.183,
+      "severity": 0.6,
+      "domain": "supply_chain",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T15:19:17",
+      "raw_text": "Iran-backed Houthis seize key Red Sea port in blow to Saudi forces. Yemen's Iran-aligned Houthi militants have seized th",
+      "title": "published_headline: Iran-backed Houthis seize key Red Sea port in blow",
+      "actor": "Times of India",
+      "object": "Iran-backed Houthis seize key Red Sea port in blow to Saudi forces",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.174fe71267b34e1c26f1",
+      "latitude": 24.0,
+      "longitude": 58.0,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T13:53:48.835658",
+      "raw_text": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - reuters.com. Oil jumps to $105 a barrel after Mid",
+      "title": "published_article: Oil jumps to $105 a barrel after Middle East tanke",
+      "actor": "watch_feed",
+      "object": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - reuters.com",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.96414c7de22ccd081728",
+      "latitude": 24.5,
+      "longitude": 120.5,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T13:22:14.970221",
+      "raw_text": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - Reuters. Oil jumps to $105 a barrel after Middle ",
+      "title": "published_article: Oil jumps to $105 a barrel after Middle East tanke",
+      "actor": "watch_feed",
+      "object": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - Reuters",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.20e1f2d407f7f2a82b8f",
+      "latitude": 12.5,
+      "longitude": 45.0,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T15:53:58.191676",
+      "raw_text": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - The Globe and Mail. Oil jumps to $105 a barrel af",
+      "title": "published_article: Oil jumps to $105 a barrel after Middle East tanke",
+      "actor": "watch_feed",
+      "object": "Oil jumps to $105 a barrel after Middle East tanker attacks escalate - The Globe and Mail",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "9204bdb8-ccb4-4bb8-8ba2-0c3ee1d606e2",
+      "latitude": 12.0,
+      "longitude": 45.0,
+      "severity": 0.6,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-09T17:40:19",
+      "raw_text": "Osama bin Laden had Taliban rival assassinated 2 days before 9/11 attack. Ahmad Shah Massoud, the prominent Afghan resis",
+      "title": "published_headline: Osama bin Laden had Taliban rival assassinated 2 d",
+      "actor": "Times of India",
+      "object": "Osama bin Laden had Taliban rival assassinated 2 days before 9/11 attack",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.403581c0a6e0cda7adb2",
+      "latitude": 46.5,
+      "longitude": 30.7,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-09T17:02:46.410088",
+      "raw_text": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - The Mighty 790 KFGO. Iran attacks US base in Jord",
+      "title": "published_article: Iran attacks US base in Jordan, ships near Hormuz ",
+      "actor": "watch_feed",
+      "object": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - The Mighty 790 KFGO",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.9d068e4c88b4509d85a1",
+      "latitude": 2.5,
+      "longitude": 101.3,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-09T05:54:49.178406",
+      "raw_text": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - WTVB. Iran attacks US base in Jordan, ships near ",
+      "title": "published_article: Iran attacks US base in Jordan, ships near Hormuz ",
+      "actor": "watch_feed",
+      "object": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - WTVB",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.a785c35095da53ee0a2d",
+      "latitude": 25.1276,
+      "longitude": 56.3269,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-09T05:24:40.894681",
+      "raw_text": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - wtvbam.com. Iran attacks US base in Jordan, ships",
+      "title": "published_article: Iran attacks US base in Jordan, ships near Hormuz ",
+      "actor": "watch_feed",
+      "object": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - wtvbam.com",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "61d2d0df-97d4-437c-b2a3-453918da9da9",
+      "latitude": 51.42,
+      "longitude": 5.47,
+      "severity": 0.6,
+      "domain": "defense",
+      "event_category": "news",
+      "occurred_at": "2026-09-08T03:38:09",
+      "raw_text": "PLA report warns Chinese cities of potential nuclear attacks, flags Japan as \u2018threat\u2019. A new study by China\u00e2\u0080\u0099s People\u00e2\u0080",
+      "title": "published_headline: PLA report warns Chinese cities of potential nucle",
+      "actor": "Times of India",
+      "object": "PLA report warns Chinese cities of potential nuclear attacks, flags Japan as \u2018th",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "c3aacc27-ee64-449a-89a4-9c7d2ac6c3e6",
+      "latitude": 24.78,
+      "longitude": 121.0,
+      "severity": 0.7,
+      "domain": "defense",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T05:59:19",
+      "raw_text": "Cash-strapped Pakistan\u2019s jet, missile display exposes reliance on China, Turkey as India boosts defences | India News\nAp",
+      "title": "news_event: ",
+      "actor": "Balochistan",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "wsrc.f47b735317942ac213c0",
+      "latitude": 12.58,
+      "longitude": 43.33,
+      "severity": 0.55,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T05:38:20.599968",
+      "raw_text": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - kfgo.com. Iran attacks US base in Jordan, ships n",
+      "title": "published_article: Iran attacks US base in Jordan, ships near Hormuz ",
+      "actor": "watch_feed",
+      "object": "Iran attacks US base in Jordan, ships near Hormuz after tankers sunk - kfgo.com",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "368457a7-210d-4674-a3f5-65e155e678e6",
+      "latitude": 9.08,
+      "longitude": -79.68,
+      "severity": 0.7,
+      "domain": "macro",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T05:04:03",
+      "raw_text": "Botswana vice president calls on Korean business to invest | UA.NEWS\nBotswana\u2019s Vice President Ndaba Gaolathe called on ",
+      "title": "news_event: ",
+      "actor": "Intel Feed",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "47cfc9aa-5ab4-4752-8391-c955f68a99cc",
+      "latitude": 30.59,
+      "longitude": 32.27,
+      "severity": 0.6,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T04:49:26",
+      "raw_text": "At Least 5 Dead, More Than 80 Missing After Ferry Fire in the Philippines. The June Aster was sailing from Manila to Cor",
+      "title": "published_headline: At Least 5 Dead, More Than 80 Missing After Ferry ",
+      "actor": "NY Times International",
+      "object": "At Least 5 Dead, More Than 80 Missing After Ferry Fire in the Philippines",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "9f6b7f3a-f6b0-4409-94c9-a7279ddc36a3",
+      "latitude": 45.35,
+      "longitude": 36.6,
+      "severity": 0.7,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T04:04:11",
+      "raw_text": "Trump claims he will give $5,000 to every American if Republicans win the midterms as he defends Iran war and tariffs\u2013 a",
+      "title": "news_event: ",
+      "actor": "Intel Feed",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "867dda48-58e2-4fba-b233-c617a03c8177",
+      "latitude": -27.3667,
+      "longitude": -70.3333,
+      "severity": 0.6,
+      "domain": "defense",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T03:27:45",
+      "raw_text": "US suffered major aircraft losses after Iran strike on Jordan base: Report. Multiple US military aircraft were damaged a",
+      "title": "published_headline: US suffered major aircraft losses after Iran strik",
+      "actor": "Times of India",
+      "object": "US suffered major aircraft losses after Iran strike on Jordan base: Report",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "a7b181a9-0a9b-41bc-9c4e-aed0d47292f4",
+      "latitude": 41.77,
+      "longitude": 109.97,
+      "severity": 0.6,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T03:21:04",
+      "raw_text": "Iran war to outlast Trump 2.0? Top aides sound alarm despite his 'quick end' claim. Vice President JD Vance and Secretar",
+      "title": "published_headline: Iran war to outlast Trump 2.0? Top aides sound ala",
+      "actor": "Times of India",
+      "object": "Iran war to outlast Trump 2.0? Top aides sound alarm despite his 'quick end' cla",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "c045707a-1e3f-4acb-ab48-6f26d100ab59",
+      "latitude": -10.7,
+      "longitude": 26.4,
+      "severity": 0.6,
+      "domain": "energy",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T02:53:59",
+      "raw_text": "Oil holds above $100 as Iran-US attacks threaten deeper supply disruption. Oil prices extended gains on Thursday, with B",
+      "title": "published_headline: Oil holds above $100 as Iran-US attacks threaten d",
+      "actor": "Times of India",
+      "object": "Oil holds above $100 as Iran-US attacks threaten deeper supply disruption",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "2d82818b-7d96-4d23-8ccc-db37f95ee4f5",
+      "latitude": 41.0,
+      "longitude": 29.0,
+      "severity": 0.7,
+      "domain": "energy",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T05:00:15",
+      "raw_text": "Climate solutions most likely to reach \u2018positive tipping points\u2019 revealed by scientists\nGlobal shift towards clean elect",
+      "title": "news_event: ",
+      "actor": "Intel Feed",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "84c4932e-867d-4269-8d1f-3882c7e7220d",
+      "latitude": 44.7,
+      "longitude": 37.8,
+      "severity": 0.7,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-10T01:43:07",
+      "raw_text": "Ukraine war briefing: Arctic attack extends Kyiv\u2019s strike reach into Russian gas heartland\n\u2018Guess who?\u2019 says Fire Point,",
+      "title": "news_event: ",
+      "actor": "Intel Feed",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    },
+    {
+      "id": "7ac2e392-b4ff-4eb6-a173-61559c6e3aab",
+      "latitude": 26.566,
+      "longitude": 56.25,
+      "severity": 0.7,
+      "domain": "geopolitics",
+      "event_category": "news",
+      "occurred_at": "2026-09-09T16:18:15",
+      "raw_text": "Iran claims to have attacked 10 ships near strait of Hormuz after US strikes\nOil price rises above $100 a barrel as Tehr",
+      "title": "news_event: ",
+      "actor": "Intel Feed",
+      "object": "",
+      "location": "",
+      "source_ids": [
+        "paqshi_archive"
+      ]
+    }
   ],
-  impact_edges: [
-    { from_chokepoint: "port-singapore", to_entity_id: "part-semiconductor", to_entity_name: "Automotive MCU IC", severity: 0.85 },
-    { from_chokepoint: "suez-canal", to_entity_id: "port-rotterdam", to_entity_name: "Port of Rotterdam", severity: 0.90 },
+  "impact_edges": [
+    {
+      "from_chokepoint": "cp.auto_ceuta_border_crossing",
+      "to_entity_id": "cp.auto_ceuta_border_fence",
+      "to_entity_name": "Ceuta Border Fence",
+      "severity": 1.0,
+      "from_lat": 35.8894,
+      "from_lon": -5.3213,
+      "to_lat": 35.8894,
+      "to_lon": -5.3213
+    },
+    {
+      "from_chokepoint": "cp.auto_istanbul_approaches_sea_of_marmara",
+      "to_entity_id": "cp.auto_turkish_straits_approaches",
+      "to_entity_name": "Turkish Straits Approaches",
+      "severity": 1.0,
+      "from_lat": 41.0,
+      "from_lon": 29.0,
+      "to_lat": 41.0,
+      "to_lon": 29.0
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_fujairah",
+      "to_entity_id": "cp.user_fujairah_crude_export_corridor",
+      "to_entity_name": "Fujairah Crude Export Corridor",
+      "severity": 1.0,
+      "from_lat": 25.127,
+      "from_lon": 56.326,
+      "to_lat": 25.1276,
+      "to_lon": 56.3269
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_ain_sokhna",
+      "to_entity_id": "cp.user_sumed_pipeline_terminals",
+      "to_entity_name": "Sumed Pipeline Terminals",
+      "severity": 1.0,
+      "from_lat": 29.8667,
+      "from_lon": 32.2667,
+      "to_lat": 29.87,
+      "to_lon": 32.27
+    },
+    {
+      "from_chokepoint": "cp.auto_ceuta_border_crossing",
+      "to_entity_id": "cp.gibraltar",
+      "to_entity_name": "Gibraltar",
+      "severity": 0.97,
+      "from_lat": 35.8894,
+      "from_lon": -5.3213,
+      "to_lat": 35.95,
+      "to_lon": -5.6
+    },
+    {
+      "from_chokepoint": "cp.auto_ceuta_border_fence",
+      "to_entity_id": "cp.gibraltar",
+      "to_entity_name": "Gibraltar",
+      "severity": 0.97,
+      "from_lat": 35.8894,
+      "from_lon": -5.3213,
+      "to_lat": 35.95,
+      "to_lon": -5.6
+    },
+    {
+      "from_chokepoint": "cp.samsung_pyeongtaek",
+      "to_entity_id": "cp.sk_hynix",
+      "to_entity_name": "Sk Hynix",
+      "severity": 0.95,
+      "from_lat": 37.05,
+      "from_lon": 127.04,
+      "to_lat": 37.26,
+      "to_lon": 127.45
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_aden_maritime_chokepoint",
+      "to_entity_id": "cp.auto_gulf_of_aden_shipping_corridor",
+      "to_entity_name": "Gulf Of Aden Shipping Corridor",
+      "severity": 0.93,
+      "from_lat": 12.0,
+      "from_lon": 45.0,
+      "to_lat": 12.5,
+      "to_lon": 45.0
+    },
+    {
+      "from_chokepoint": "cp.taiwan_strait",
+      "to_entity_id": "cp.tsmc_hsinchu",
+      "to_entity_name": "Tsmc Hsinchu",
+      "severity": 0.93,
+      "from_lat": 24.5,
+      "from_lon": 120.5,
+      "to_lat": 24.78,
+      "to_lon": 121.0
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.strait_of_hormuz",
+      "to_entity_name": "Strait Of Hormuz",
+      "severity": 0.91,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 26.566,
+      "to_lon": 56.25
+    },
+    {
+      "from_chokepoint": "cp.intel_arizona",
+      "to_entity_id": "cp.tsmc_hsinchu",
+      "to_entity_name": "Tsmc Hsinchu",
+      "severity": 0.9,
+      "from_lat": 33.32,
+      "from_lon": -111.86,
+      "to_lat": 24.78,
+      "to_lon": 121.0
+    },
+    {
+      "from_chokepoint": "cp.panama_canal",
+      "to_entity_id": "cp.suez_canal",
+      "to_entity_name": "Suez Canal",
+      "severity": 0.9,
+      "from_lat": 9.08,
+      "from_lon": -79.68,
+      "to_lat": 30.59,
+      "to_lon": 32.27
+    },
+    {
+      "from_chokepoint": "cp.samsung_pyeongtaek",
+      "to_entity_id": "cp.tsmc_hsinchu",
+      "to_entity_name": "Tsmc Hsinchu",
+      "severity": 0.9,
+      "from_lat": 37.05,
+      "from_lon": 127.04,
+      "to_lat": 24.78,
+      "to_lon": 121.0
+    },
+    {
+      "from_chokepoint": "cp.suez_canal",
+      "to_entity_id": "cp.user_sumed_pipeline_terminals",
+      "to_entity_name": "Sumed Pipeline Terminals",
+      "severity": 0.9,
+      "from_lat": 30.59,
+      "from_lon": 32.27,
+      "to_lat": 29.87,
+      "to_lon": 32.27
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_ain_sokhna",
+      "to_entity_id": "cp.suez_canal",
+      "to_entity_name": "Suez Canal",
+      "severity": 0.9,
+      "from_lat": 29.8667,
+      "from_lon": 32.2667,
+      "to_lat": 30.59,
+      "to_lon": 32.27
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_mokha",
+      "to_entity_id": "cp.bab_el_mandeb",
+      "to_entity_name": "Bab El Mandeb",
+      "severity": 0.9,
+      "from_lat": 13.317,
+      "from_lon": 43.183,
+      "to_lat": 12.58,
+      "to_lon": 43.33
+    },
+    {
+      "from_chokepoint": "cp.auto_beirut_port",
+      "to_entity_id": "cp.auto_lebanon_israel_maritime_border",
+      "to_entity_name": "Lebanon Israel Maritime Border",
+      "severity": 0.89,
+      "from_lat": 33.8938,
+      "from_lon": 35.5018,
+      "to_lat": 33.1,
+      "to_lon": 35.5
+    },
+    {
+      "from_chokepoint": "cp.auto_kerch_strait_approaches",
+      "to_entity_id": "cp.user_cpc_novorossiysk_export_terminal",
+      "to_entity_name": "Cpc Novorossiysk Export Terminal",
+      "severity": 0.85,
+      "from_lat": 45.35,
+      "from_lon": 36.6,
+      "to_lat": 44.7,
+      "to_lon": 37.8
+    },
+    {
+      "from_chokepoint": "cp.strait_of_hormuz",
+      "to_entity_id": "cp.user_fujairah_crude_export_corridor",
+      "to_entity_name": "Fujairah Crude Export Corridor",
+      "severity": 0.8,
+      "from_lat": 26.566,
+      "from_lon": 56.25,
+      "to_lat": 25.1276,
+      "to_lon": 56.3269
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_fujairah",
+      "to_entity_id": "cp.strait_of_hormuz",
+      "to_entity_name": "Strait Of Hormuz",
+      "severity": 0.8,
+      "from_lat": 25.127,
+      "from_lon": 56.326,
+      "to_lat": 26.566,
+      "to_lon": 56.25
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_aden_shipping_corridor",
+      "to_entity_id": "cp.bab_el_mandeb",
+      "to_entity_name": "Bab El Mandeb",
+      "severity": 0.77,
+      "from_lat": 12.5,
+      "from_lon": 45.0,
+      "to_lat": 12.58,
+      "to_lon": 43.33
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_aden_maritime_chokepoint",
+      "to_entity_id": "cp.bab_el_mandeb",
+      "to_entity_name": "Bab El Mandeb",
+      "severity": 0.76,
+      "from_lat": 12.0,
+      "from_lon": 45.0,
+      "to_lat": 12.58,
+      "to_lon": 43.33
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_oman",
+      "to_entity_id": "cp.user_fujairah_crude_export_corridor",
+      "to_entity_name": "Fujairah Crude Export Corridor",
+      "severity": 0.74,
+      "from_lat": 24.0,
+      "from_lon": 58.0,
+      "to_lat": 25.1276,
+      "to_lon": 56.3269
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_oman",
+      "to_entity_id": "cp.auto_port_of_fujairah",
+      "to_entity_name": "Port Of Fujairah",
+      "severity": 0.74,
+      "from_lat": 24.0,
+      "from_lon": 58.0,
+      "to_lat": 25.127,
+      "to_lon": 56.326
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_aden_shipping_corridor",
+      "to_entity_id": "cp.auto_port_of_mokha",
+      "to_entity_name": "Port Of Mokha",
+      "severity": 0.73,
+      "from_lat": 12.5,
+      "from_lon": 45.0,
+      "to_lat": 13.317,
+      "to_lon": 43.183
+    },
+    {
+      "from_chokepoint": "cp.auto_kharg_island_oil_export_terminal",
+      "to_entity_id": "cp.auto_kuwait_oil_export_terminals",
+      "to_entity_name": "Kuwait Oil Export Terminals",
+      "severity": 0.72,
+      "from_lat": 29.276,
+      "from_lon": 50.286,
+      "to_lat": 29.3697,
+      "to_lon": 48.0053
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.user_fujairah_crude_export_corridor",
+      "to_entity_name": "Fujairah Crude Export Corridor",
+      "severity": 0.71,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 25.1276,
+      "to_lon": 56.3269
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.auto_port_of_fujairah",
+      "to_entity_name": "Port Of Fujairah",
+      "severity": 0.71,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 25.127,
+      "to_lon": 56.326
+    },
+    {
+      "from_chokepoint": "cp.auto_kharg_island_oil_export_terminal",
+      "to_entity_id": "cp.auto_ras_tanura_oil_terminal",
+      "to_entity_name": "Ras Tanura Oil Terminal",
+      "severity": 0.7,
+      "from_lat": 29.276,
+      "from_lon": 50.286,
+      "to_lat": 26.6244,
+      "to_lon": 50.0389
+    },
+    {
+      "from_chokepoint": "cp.auto_kharg_island_oil_export_terminal",
+      "to_entity_id": "cp.intel_arizona",
+      "to_entity_name": "Intel Arizona",
+      "severity": 0.7,
+      "from_lat": 29.276,
+      "from_lon": 50.286,
+      "to_lat": 33.32,
+      "to_lon": -111.86
+    },
+    {
+      "from_chokepoint": "cp.auto_kharg_island_oil_export_terminal",
+      "to_entity_id": "cp.auto_yanbu_industrial_port",
+      "to_entity_name": "Yanbu Industrial Port",
+      "severity": 0.7,
+      "from_lat": 29.276,
+      "from_lon": 50.286,
+      "to_lat": 24.086,
+      "to_lon": 38.063
+    },
+    {
+      "from_chokepoint": "cp.auto_kharg_island_oil_export_terminal",
+      "to_entity_id": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_name": "Loudoun County Data Center Alley",
+      "severity": 0.7,
+      "from_lat": 29.276,
+      "from_lon": 50.286,
+      "to_lat": 39.03,
+      "to_lon": -77.5
+    },
+    {
+      "from_chokepoint": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_id": "cp.china_ree",
+      "to_entity_name": "China Ree",
+      "severity": 0.7,
+      "from_lat": 39.03,
+      "from_lon": -77.5,
+      "to_lat": 41.77,
+      "to_lon": 109.97
+    },
+    {
+      "from_chokepoint": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_id": "cp.auto_volgograd_industrial_facility",
+      "to_entity_name": "Volgograd Industrial Facility",
+      "severity": 0.7,
+      "from_lat": 39.03,
+      "from_lon": -77.5,
+      "to_lat": 48.708,
+      "to_lon": 44.514
+    },
+    {
+      "from_chokepoint": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_id": "cp.user_cpc_novorossiysk_export_terminal",
+      "to_entity_name": "Cpc Novorossiysk Export Terminal",
+      "severity": 0.7,
+      "from_lat": 39.03,
+      "from_lon": -77.5,
+      "to_lat": 44.7,
+      "to_lon": 37.8
+    },
+    {
+      "from_chokepoint": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_id": "cp.auto_port_of_bandar_abbas",
+      "to_entity_name": "Port Of Bandar Abbas",
+      "severity": 0.7,
+      "from_lat": 39.03,
+      "from_lon": -77.5,
+      "to_lat": 27.1833,
+      "to_lon": 56.2667
+    },
+    {
+      "from_chokepoint": "cp.auto_loudoun_county_data_center_alley",
+      "to_entity_id": "cp.auto_port_of_qingdao",
+      "to_entity_name": "Port Of Qingdao",
+      "severity": 0.7,
+      "from_lat": 39.03,
+      "from_lon": -77.5,
+      "to_lat": 36.0671,
+      "to_lon": 120.3826
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.auto_ras_tanura_oil_terminal",
+      "to_entity_name": "Ras Tanura Oil Terminal",
+      "severity": 0.7,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 26.6244,
+      "to_lon": 50.0389
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.intel_arizona",
+      "to_entity_name": "Intel Arizona",
+      "severity": 0.7,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 33.32,
+      "to_lon": -111.86
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_bandar_abbas",
+      "to_entity_id": "cp.auto_yanbu_industrial_port",
+      "to_entity_name": "Yanbu Industrial Port",
+      "severity": 0.7,
+      "from_lat": 27.1833,
+      "from_lon": 56.2667,
+      "to_lat": 24.086,
+      "to_lon": 38.063
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_qingdao",
+      "to_entity_id": "cp.tsmc_hsinchu",
+      "to_entity_name": "Tsmc Hsinchu",
+      "severity": 0.7,
+      "from_lat": 36.0671,
+      "from_lon": 120.3826,
+      "to_lat": 24.78,
+      "to_lon": 121.0
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_qingdao",
+      "to_entity_id": "cp.intel_arizona",
+      "to_entity_name": "Intel Arizona",
+      "severity": 0.7,
+      "from_lat": 36.0671,
+      "from_lon": 120.3826,
+      "to_lat": 33.32,
+      "to_lon": -111.86
+    },
+    {
+      "from_chokepoint": "cp.auto_volgograd_industrial_facility",
+      "to_entity_id": "cp.intel_arizona",
+      "to_entity_name": "Intel Arizona",
+      "severity": 0.7,
+      "from_lat": 48.708,
+      "from_lon": 44.514,
+      "to_lat": 33.32,
+      "to_lon": -111.86
+    },
+    {
+      "from_chokepoint": "cp.china_ree",
+      "to_entity_id": "cp.tsmc_hsinchu",
+      "to_entity_name": "Tsmc Hsinchu",
+      "severity": 0.7,
+      "from_lat": 41.77,
+      "from_lon": 109.97,
+      "to_lat": 24.78,
+      "to_lon": 121.0
+    },
+    {
+      "from_chokepoint": "cp.china_ree",
+      "to_entity_id": "cp.intel_arizona",
+      "to_entity_name": "Intel Arizona",
+      "severity": 0.7,
+      "from_lat": 41.77,
+      "from_lon": 109.97,
+      "to_lat": 33.32,
+      "to_lon": -111.86
+    },
+    {
+      "from_chokepoint": "cp.intel_arizona",
+      "to_entity_id": "cp.user_cpc_novorossiysk_export_terminal",
+      "to_entity_name": "Cpc Novorossiysk Export Terminal",
+      "severity": 0.7,
+      "from_lat": 33.32,
+      "from_lon": -111.86,
+      "to_lat": 44.7,
+      "to_lon": 37.8
+    },
+    {
+      "from_chokepoint": "cp.strait_of_hormuz",
+      "to_entity_id": "cp.auto_gulf_of_aden_shipping_corridor",
+      "to_entity_name": "Gulf Of Aden Shipping Corridor",
+      "severity": 0.88,
+      "from_lat": 26.566,
+      "from_lon": 56.25,
+      "to_lat": 12.5,
+      "to_lon": 45.0
+    },
+    {
+      "from_chokepoint": "cp.auto_gulf_of_aden_shipping_corridor",
+      "to_entity_id": "cp.taiwan_strait",
+      "to_entity_name": "Taiwan Strait",
+      "severity": 0.75,
+      "from_lat": 12.5,
+      "from_lon": 45.0,
+      "to_lat": 24.5,
+      "to_lon": 120.5
+    },
+    {
+      "from_chokepoint": "cp.taiwan_strait",
+      "to_entity_id": "cp.auto_port_of_fujairah",
+      "to_entity_name": "Port Of Fujairah",
+      "severity": 0.65,
+      "from_lat": 24.5,
+      "from_lon": 120.5,
+      "to_lat": 25.127,
+      "to_lon": 56.326
+    },
+    {
+      "from_chokepoint": "cp.auto_port_of_fujairah",
+      "to_entity_id": "cp.auto_ceuta_border_crossing",
+      "to_entity_name": "Ceuta Border Crossing",
+      "severity": 0.7,
+      "from_lat": 25.127,
+      "from_lon": 56.326,
+      "to_lat": 35.8894,
+      "to_lon": -5.3213
+    },
+    {
+      "from_chokepoint": "cp.auto_turkish_straits_approaches",
+      "to_entity_id": "cp.auto_port_of_ain_sokhna",
+      "to_entity_name": "Port Of Ain Sokhna",
+      "severity": 0.78,
+      "from_lat": 41.0,
+      "from_lon": 29.0,
+      "to_lat": 29.8667,
+      "to_lon": 32.2667
+    }
   ]
 };
 

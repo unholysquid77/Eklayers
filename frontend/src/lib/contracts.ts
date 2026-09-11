@@ -227,6 +227,7 @@ export interface GlobeChokepoint {
   stress_level: number;
   baseline: number;
   criticality: number;
+  country?: string;
 }
 
 export interface GlobeEvent {
@@ -250,6 +251,10 @@ export interface ImpactEdge {
   to_entity_id: string;
   to_entity_name: string;
   severity: number;
+  from_lat?: number;
+  from_lon?: number;
+  to_lat?: number;
+  to_lon?: number;
 }
 
 export interface CascadeMap {
