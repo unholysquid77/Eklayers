@@ -60,6 +60,9 @@ export const metadata: Metadata = {
   classification: "Supply Chain Intelligence",
 };
 
+import TopNav from '@/components/TopNav';
+import GlobalStatusBar from '@/components/GlobalStatusBar';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -72,13 +75,15 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body className="antialiased bg-[#040806] text-[#e6f7ec]" suppressHydrationWarning>
+      <body className="antialiased bg-[#040806] text-[#e6f7ec] flex flex-col min-h-screen" suppressHydrationWarning>
         <TacticalBackground />
-        <div className="relative z-10 min-h-screen">
+        <TopNav />
+        <div className="relative z-10 flex-1 flex flex-col">
           <ErrorBoundary name="Sarvadarshi">
             {children}
           </ErrorBoundary>
         </div>
+        <GlobalStatusBar />
       </body>
     </html>
   );

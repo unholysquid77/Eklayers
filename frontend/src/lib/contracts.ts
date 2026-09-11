@@ -656,3 +656,205 @@ export interface ChokepointResearchDossier {
   };
   timestamp: string;
 }
+
+// ============================================================================
+// Decision Support & Polish Spec v1 Types
+// ============================================================================
+
+export interface NetworkHealthBreakdown {
+  supply_continuity: number;
+  transport_stability: number;
+  supplier_health: number;
+  inventory_resilience: number;
+  external_disruption: number;
+}
+
+export interface DashboardSummary {
+  network_health: number;
+  network_health_breakdown: NetworkHealthBreakdown;
+  active_disruptions_count: number;
+  exposed_orders_count: number;
+  at_risk_skus_count: number;
+  predicted_stockouts_count: number;
+  network_stress_pct: number;
+  revenue_exposure_inr: number;
+  expected_delay_days: number;
+  critical_chokepoints_count: number;
+  as_of: string;
+}
+
+export interface SKUExposureItem {
+  id: string;
+  name: string;
+  product_category: string;
+  current_stock: number;
+  daily_demand: number;
+  runway_days: number;
+  stockout_probability: number;
+  orders_exposed_count: number;
+  revenue_exposure_inr: number;
+  severity: string;
+  safety_stock: number;
+  gap_days: number;
+  expected_arrival_p50: string;
+  expected_arrival_p90: string;
+  expected_arrival_p99: string;
+  required_by: string;
+  p_late: number;
+  component_name: string;
+  supplier_name: string;
+  transit_hub: string;
+  prob_stockout_7d: number;
+  prob_stockout_14d: number;
+  prob_stockout_21d: number;
+  prob_stockout_30d: number;
+}
+
+export interface CustomerOrderExposureItem {
+  id: string;
+  customer_name: string;
+  sku_id: string;
+  sku_name: string;
+  quantity: number;
+  promised_date: string;
+  expected_date: string;
+  delay_days: number;
+  revenue_exposure_inr: number;
+  status: string;
+  severity: string;
+  p_miss: number;
+  root_cause: string;
+  affected_component: string;
+  recommended_action: string;
+  expected_mitigated_date: string;
+  mitigated_p_miss: number;
+}
+
+export interface ShipmentItem {
+  id: string;
+  origin: string;
+  destination: string;
+  carrier: string;
+  current_status: string;
+  current_eta: string;
+  p50_eta: string;
+  p90_eta: string;
+  p99_eta: string;
+  p_late: number;
+  current_route: string;
+  primary_risk_chokepoint: string;
+  affected_skus: string[];
+  affected_orders: string[];
+}
+
+export interface SupplierAlternative {
+  supplier_id: string;
+  name: string;
+  capacity_pct: number;
+  lead_time_days: number;
+  cost_delta_pct: number;
+  risk_score: number;
+}
+
+export interface SupplierProfile {
+  id: string;
+  name: string;
+  tier: number;
+  country: string;
+  region: string;
+  risk_score: number;
+  risk_velocity_7d: string;
+  on_time_delivery_pct: number;
+  quality_pct: number;
+  capacity_utilization_pct: number;
+  financial_score: string;
+  dependency_level: string;
+  tier2_name: string;
+  tier2_risk_score: number;
+  tier2_relation: string;
+  hhi_share_pct: number;
+  alternatives: SupplierAlternative[];
+}
+
+export interface SignalReliabilityItem {
+  source_name: string;
+  category: string;
+  precision_pct: number;
+  status: string;
+  suppression_reason?: string | null;
+  signals_analyzed_30d: number;
+}
+
+export interface FalseAlarmControl {
+  alerts_generated: number;
+  validated_alerts: number;
+  false_alarms: number;
+  precision_pct: number;
+  false_alarm_rate_pct: number;
+  sources: SignalReliabilityItem[];
+}
+
+export interface DecisionStressTestResult {
+  target_name: string;
+  simulations_count: number;
+  survival_clock_hours: number;
+  survival_clock_display: string;
+  operational_survival_p50_days: number;
+  operational_survival_p75_days: number;
+  operational_survival_p90_days: number;
+  operational_survival_p99_days: number;
+  survival_unmitigated_days: number;
+  survival_reallocated_days: number;
+  survival_expedited_days: number;
+  stockout_skus_count: number;
+  orders_exposed_count: number;
+  production_lines_halted: number;
+  revenue_exposed_inr: number;
+  most_vulnerable_skus: string[];
+}
+
+export interface MitigationComparisonItem {
+  id: string;
+  action_type: string;
+  title: string;
+  description: string;
+  cost_inr: number;
+  lead_time_improvement_days: number;
+  stockout_probability_after: number;
+  orders_protected_count: number;
+  revenue_protected_inr: number;
+  is_best_value: boolean;
+  decision_window_days: number;
+  best_before_date: string;
+}
+
+export interface AICitation {
+  label: string;
+  entity_kind: string;
+  entity_id: string;
+}
+
+export interface AIQueryResponse {
+  answer: string;
+  probability_pct: number;
+  orders_exposed: number;
+  revenue_exposed_inr: number;
+  drivers: string[];
+  recommended_action: string;
+  expected_effect: string;
+  citations: AICitation[];
+  as_of: string;
+}
+
+export interface SystemStatusResponse {
+  system_live: boolean;
+  ingestion_rate: string;
+  model_updated_seconds_ago: number;
+  graph_nodes_count: number;
+  graph_relations_count: number;
+  forecast_next_refresh_seconds: number;
+  data_health: Record<string, string>;
+  model_health: Record<string, string>;
+  last_successful_ingest: string;
+}
+

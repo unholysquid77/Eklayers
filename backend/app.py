@@ -1339,10 +1339,12 @@ def get_globe_chokepoint_forecast(node_id: str):
 
 app.include_router(globe_router)
 
-app.include_router(globe_router)
-
 from .console import router as api_console_router
 app.include_router(api_console_router)
 app.include_router(api_console_router, prefix="/v1")
+
+from .decision_engine import router as decision_router
+app.include_router(decision_router)
+
 
 

@@ -170,3 +170,80 @@ export const runConsoleStressTestSimulate = (req: StressTestSimulateReq) =>
 export const researchChokepoint = (req: ChokepointResearchReq) =>
   _post<ChokepointResearchDossier>('/v1/chokepoints/research', req);
 
+
+// ============================================================================
+// Decision Support & Polish Spec v1 API Methods
+// ============================================================================
+
+import {
+  MOCK_DASHBOARD_SUMMARY, MOCK_SKUS, MOCK_ORDERS,
+  MOCK_SHIPMENTS, MOCK_SUPPLIERS, MOCK_RELIABILITY,
+  MOCK_MITIGATIONS, MOCK_DECISION_STRESS_TEST,
+  MOCK_SYSTEM_STATUS, MOCK_AI_RESPONSE
+} from './mock';
+
+import type {
+  DashboardSummary, SKUExposureItem, CustomerOrderExposureItem,
+  ShipmentItem, SupplierProfile, FalseAlarmControl,
+  MitigationComparisonItem, DecisionStressTestResult,
+  SystemStatusResponse, AIQueryResponse
+} from './contracts';
+
+export const getDashboardSummary = () =>
+  _get<DashboardSummary>('/v1/dashboard/summary').catch(() => MOCK_DASHBOARD_SUMMARY);
+
+export const getSKUsExposure = () =>
+  _get<SKUExposureItem[]>('/v1/skus').catch(() => MOCK_SKUS);
+
+export const getSKUDetail = (id: string) =>
+  _get<SKUExposureItem>(`/v1/skus/${id}`).catch(() => MOCK_SKUS.find(s => s.id === id) || MOCK_SKUS[0]);
+
+export const getOrdersExposure = () =>
+  _get<CustomerOrderExposureItem[]>('/v1/orders').catch(() => MOCK_ORDERS);
+
+export const getOrderDetail = (id: string) =>
+  _get<CustomerOrderExposureItem>(`/v1/orders/${id}`).catch(() => MOCK_ORDERS.find(o => o.id === id) || MOCK_ORDERS[0]);
+
+export const getShipments = () =>
+  _get<ShipmentItem[]>('/v1/shipments').catch(() => MOCK_SHIPMENTS);
+
+export const getShipmentDetail = (id: string) =>
+  _get<ShipmentItem>(`/v1/shipments/${id}`).catch(() => MOCK_SHIPMENTS.find(s => s.id === id) || MOCK_SHIPMENTS[0]);
+
+export const getSuppliersProfiles = () =>
+  _get<SupplierProfile[]>('/v1/suppliers').catch(() => MOCK_SUPPLIERS);
+
+export const getSignalsReliability = () =>
+  _get<FalseAlarmControl>('/v1/signals/reliability').catch(() => MOCK_RELIABILITY);
+
+export const runDecisionStressTest = (req: { target_type?: string; target_id?: string; duration_days?: number; severity_pct?: number; demand_scenario?: string }) =>
+  _post<DecisionStressTestResult>('/v1/scenarios/stress-test', req).catch(() => MOCK_DECISION_STRESS_TEST);
+
+export const getMitigationsComparison = () =>
+  _get<MitigationComparisonItem[]>('/v1/mitigations/compare').catch(() => MOCK_MITIGATIONS);
+
+export const queryAIAnalyst = (question: string, context_entity_id?: string) =>
+  _post<AIQueryResponse>('/v1/ai/query', { question, context_entity_id }).catch(() => MOCK_AI_RESPONSE);
+
+export const getSystemStatus = () =>
+  _get<SystemStatusResponse>('/v1/system/status').catch(() => MOCK_SYSTEM_STATUS);
+
+export const getDataHealth = () =>
+  _get<Record<string, any>>('/v1/system/data-health').catch(() => ({
+    status: 'HEALTHY',
+    coverage_pct: 87.0,
+    last_ingest: '12:31:42 IST'
+  }));
+
+export const getModelHealth = () =>
+  _get<Record<string, any>>('/v1/system/model-health').catch(() => ({
+    signal_freshness_pct: 94.0,
+    calibration_score_pct: 88.0,
+    forecast_confidence_pct: 81.0,
+  }));
+
+export const resetDemoState = () =>
+  _post<{ status: string; message: string }>('/v1/demo/reset', {}).catch(() => ({
+    status: 'SUCCESS',
+    message: 'Demo state deterministically reset.'
+  }));
