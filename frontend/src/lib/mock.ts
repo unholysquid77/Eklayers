@@ -1,4 +1,4 @@
-import type { CascadeMap, AlertCard, GeoFeatureCollection } from "./contracts";
+import type { CascadeMap, AlertCard, GeoFeatureCollection, VesselsResponse, FlightsResponse } from "./contracts";
 
 export const MOCK_CASCADE: CascadeMap = {
   "chokepoints": [
@@ -2289,4 +2289,66 @@ export const MOCK_AI_RESPONSE: AIQueryResponse = {
     { label: "Order ORD-18421 (Acme Automotive)", entity_kind: "order", entity_id: "ORD-18421" }
   ],
   as_of: new Date().toISOString()
+};
+
+
+export const MOCK_VESSELS: VesselsResponse = {
+  vessels: [
+    { mmsi: "563001240", name: "MAERSK MC-KINNEY MOLLER", lat: 1.224, lon: 103.882, speed: 14.8, heading: 115, bucket: "cargo" },
+    { mmsi: "353124000", name: "EVER GIVEN", lat: 1.310, lon: 104.120, speed: 12.2, heading: 85, bucket: "cargo" },
+    { mmsi: "228318600", name: "CMA CGM ANTOINE", lat: 2.150, lon: 102.180, speed: 16.4, heading: 132, bucket: "cargo" },
+    { mmsi: "440120000", name: "HMM ALGECIRAS", lat: 2.850, lon: 101.200, speed: 15.1, heading: 305, bucket: "cargo" },
+    { mmsi: "477123900", name: "COSCO SHIPPING UNIVERSE", lat: 1.150, lon: 103.620, speed: 13.9, heading: 110, bucket: "cargo" },
+    { mmsi: "636015420", name: "MSC OSCAR", lat: 3.450, lon: 100.250, speed: 17.0, heading: 130, bucket: "cargo" },
+    { mmsi: "538006120", name: "FRONT HERCULES (VLCC)", lat: 1.180, lon: 103.740, speed: 11.5, heading: 92, bucket: "tanker" },
+    { mmsi: "311000450", name: "BW LESMES (LNG)", lat: 1.420, lon: 104.380, speed: 15.8, heading: 45, bucket: "tanker" },
+    { mmsi: "211284000", name: "AL MURABBA (Hapag-Lloyd)", lat: 29.980, lon: 32.550, speed: 8.4, heading: 170, bucket: "cargo" },
+    { mmsi: "374128000", name: "ONE TRIUMPH", lat: 27.850, lon: 34.200, speed: 16.2, heading: 165, bucket: "cargo" },
+    { mmsi: "636092100", name: "TI ASIA (ULCC)", lat: 12.650, lon: 43.350, speed: 13.2, heading: 325, bucket: "tanker" },
+    { mmsi: "257012000", name: "GASLOG SINGAPORE (LNG)", lat: 14.100, lon: 42.450, speed: 17.5, heading: 142, bucket: "tanker" },
+    { mmsi: "403120000", name: "SAFANIYA STAR (VLCC)", lat: 26.350, lon: 56.400, speed: 12.8, heading: 85, bucket: "tanker" },
+    { mmsi: "431200980", name: "TAI SHAN (VLCC)", lat: 25.800, lon: 57.100, speed: 13.4, heading: 110, bucket: "tanker" },
+    { mmsi: "355120000", name: "EVER MAX", lat: 9.250, lon: -79.920, speed: 6.8, heading: 140, bucket: "cargo" },
+    { mmsi: "235089000", name: "MAERSK DENVER", lat: 8.850, lon: -79.520, speed: 14.2, heading: 210, bucket: "cargo" },
+    { mmsi: "244120000", name: "ROTTERDAM EXPRESS", lat: 51.980, lon: 3.850, speed: 11.2, heading: 90, bucket: "cargo" },
+    { mmsi: "228012000", name: "CMA CGM JACQUES SAADE", lat: 50.450, lon: -0.850, speed: 16.8, heading: 65, bucket: "cargo" },
+    { mmsi: "255806000", name: "MSC GULSUN", lat: 36.120, lon: -5.350, speed: 18.1, heading: 85, bucket: "cargo" },
+    { mmsi: "419001200", name: "SCI MUMBAI", lat: 18.920, lon: 72.820, speed: 10.5, heading: 45, bucket: "cargo" },
+    { mmsi: "419001880", name: "BHARAT RATNA", lat: 22.350, lon: 69.850, speed: 12.0, heading: 120, bucket: "tanker" },
+    { mmsi: "419002100", name: "COLOMBO VOYAGER", lat: 6.950, lon: 79.820, speed: 13.8, heading: 180, bucket: "cargo" },
+  ],
+  connected: true,
+};
+
+export const MOCK_FLIGHTS: FlightsResponse = {
+  flights: [
+    { icao: "4b1821", callsign: "SQ8821", lat: 18.25, lon: 118.42, alt_m: 11200, vel_ms: 242, heading: 48, country: "Singapore", mil: false, on_ground: false },
+    { icao: "a24f11", callsign: "FDX012", lat: 34.50, lon: -150.20, alt_m: 10500, vel_ms: 255, heading: 78, country: "United States", mil: false, on_ground: false },
+    { icao: "a89c20", callsign: "UPS088", lat: 42.10, lon: -165.40, alt_m: 9800, vel_ms: 238, heading: 85, country: "United States", mil: false, on_ground: false },
+    { icao: "7102a1", callsign: "CPA024", lat: 24.80, lon: 135.20, alt_m: 11800, vel_ms: 260, heading: 62, country: "Hong Kong", mil: false, on_ground: false },
+    { icao: "865032", callsign: "ANA108", lat: 38.20, lon: -172.50, alt_m: 10800, vel_ms: 245, heading: 75, country: "Japan", mil: false, on_ground: false },
+    { icao: "400812", callsign: "BAW117", lat: 44.50, lon: 52.80, alt_m: 11500, vel_ms: 248, heading: 115, country: "United Kingdom", mil: false, on_ground: false },
+    { icao: "3c65a0", callsign: "DLH778", lat: 38.90, lon: 65.40, alt_m: 10900, vel_ms: 252, heading: 108, country: "Germany", mil: false, on_ground: false },
+    { icao: "06a120", callsign: "QTR814", lat: 22.40, lon: 78.50, alt_m: 11200, vel_ms: 244, heading: 98, country: "Qatar", mil: false, on_ground: false },
+    { icao: "896431", callsign: "UAE412", lat: 12.80, lon: 85.20, alt_m: 11800, vel_ms: 258, heading: 122, country: "United Arab Emirates", mil: false, on_ground: false },
+    { icao: "8002b5", callsign: "AIC102", lat: 51.20, lon: 18.40, alt_m: 10400, vel_ms: 235, heading: 128, country: "India", mil: false, on_ground: false },
+    { icao: "a01245", callsign: "AAL100", lat: 52.40, lon: -35.20, alt_m: 11200, vel_ms: 262, heading: 82, country: "United States", mil: false, on_ground: false },
+    { icao: "406cd2", callsign: "VIR045", lat: 54.20, lon: -28.60, alt_m: 11800, vel_ms: 240, heading: 265, country: "United Kingdom", mil: false, on_ground: false },
+    { icao: "484128", callsign: "KLM641", lat: 55.40, lon: -38.20, alt_m: 11400, vel_ms: 248, heading: 272, country: "Netherlands", mil: false, on_ground: false },
+    { icao: "70014a", callsign: "MAS180", lat: 4.20, lon: 102.50, alt_m: 9400, vel_ms: 225, heading: 165, country: "Malaysia", mil: false, on_ground: false },
+    { icao: "885102", callsign: "THA920", lat: 15.80, lon: 98.40, alt_m: 11200, vel_ms: 242, heading: 295, country: "Thailand", mil: false, on_ground: false },
+    { icao: "7c0211", callsign: "QFA001", lat: -18.40, lon: 125.60, alt_m: 11800, vel_ms: 255, heading: 310, country: "Australia", mil: false, on_ground: false },
+  ],
+  stale: false,
+};
+
+export const MOCK_EARTHQUAKES: GeoFeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    { type: "Feature", geometry: { type: "Point", coordinates: [142.37, 38.30] }, properties: { mag: 5.4, place: "Off East Coast of Honshu, Japan", time: Date.now() - 3600000 } },
+    { type: "Feature", geometry: { type: "Point", coordinates: [-71.20, -31.60] }, properties: { mag: 4.8, place: "Coquimbo, Chile", time: Date.now() - 7200000 } },
+    { type: "Feature", geometry: { type: "Point", coordinates: [126.80, 1.45] }, properties: { mag: 5.1, place: "Molucca Sea, Indonesia", time: Date.now() - 10800000 } },
+    { type: "Feature", geometry: { type: "Point", coordinates: [-122.40, 37.80] }, properties: { mag: 3.6, place: "San Francisco Bay Area, CA", time: Date.now() - 14400000 } },
+    { type: "Feature", geometry: { type: "Point", coordinates: [95.80, 3.30] }, properties: { mag: 4.9, place: "Northern Sumatra, Indonesia", time: Date.now() - 18000000 } },
+  ],
 };

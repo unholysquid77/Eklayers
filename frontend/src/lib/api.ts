@@ -10,7 +10,7 @@ import type {
   InfraLayerName,
   ChokepointResearchReq, ChokepointResearchDossier,
 } from './contracts';
-import { MOCK_CASCADE, MOCK_ALERTS, MOCK_SHIPPING } from './mock';
+import { MOCK_CASCADE, MOCK_ALERTS, MOCK_SHIPPING, MOCK_VESSELS, MOCK_FLIGHTS, MOCK_EARTHQUAKES } from './mock';
 
 // In the browser, use relative URLs to leverage Next.js rewrites proxy (bypasses CORS/extension blocking)
 // On server / node environment, use 127.0.0.1:8000
@@ -101,13 +101,13 @@ export const getGlobeCascadeMap = () =>
   _get<CascadeMap>('/v1/globe/cascade/map').catch(() => MOCK_CASCADE);
 
 export const getGlobeVessels = () =>
-  _get<VesselsResponse>('/v1/globe/vessels');
+  _get<VesselsResponse>('/v1/globe/vessels').catch(() => MOCK_VESSELS);
 
 export const getGlobeFlights = (limit = 2000) =>
-  _get<FlightsResponse>(`/v1/globe/flights?limit=${limit}`);
+  _get<FlightsResponse>(`/v1/globe/flights?limit=${limit}`).catch(() => MOCK_FLIGHTS);
 
 export const getGlobeEarthquakes = () =>
-  _get<GeoFeatureCollection>('/v1/globe/events/earthquakes');
+  _get<GeoFeatureCollection>('/v1/globe/events/earthquakes').catch(() => MOCK_EARTHQUAKES);
 
 export const getGlobeShippingLanes = () =>
   _get<ShippingLanesResponse>('/v1/globe/shipping_lanes').catch(() => MOCK_SHIPPING);

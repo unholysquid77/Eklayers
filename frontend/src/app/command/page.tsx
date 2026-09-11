@@ -40,6 +40,8 @@ import type {
   ChokepointResearchReq,
 } from '@/lib/contracts';
 import { DEFAULT_LAYER_VISIBILITY, INFRA_LAYER_NAMES } from '@/lib/contracts';
+import TacticalDrillDownModal from '@/components/TacticalDrillDownModal';
+import { ChevronLeft } from 'lucide-react';
 import {
   getAlerts,
   getGlobeCascadeMap,
@@ -163,6 +165,17 @@ export default function CommandPage() {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchStatusMsg, setResearchStatusMsg] = useState('');
   const [researchDossier, setResearchDossier] = useState<ChokepointResearchDossier | null>(null);
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [alertsOpen, setAlertsOpen] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [drillDownTarget, setDrillDownTarget] = useState<{
+    isOpen: boolean;
+    lat: number;
+    lon: number;
+    title: string;
+    category?: string;
+    stress?: number;
+  } | null>(null);
 
   const cpCount = cascadeData?.chokepoints.length ?? 0;
   const evCount = cascadeData?.events.length ?? 0;
@@ -329,78 +342,61 @@ export default function CommandPage() {
   }, [cascadeData, bomArcs, vessels, flights, earthquakes, shippingLanes, infraLayers]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#040806] text-slate-100 overflow-hidden font-sans">
-      {/* ── Top Tactical Navigation Bar ── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-[#143a22] bg-[#0a0f1d] shrink-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-            <span className="text-amber-400 font-bold text-base tracking-widest hud-text">SARVADARSHI</span>
-          </div>
-          <span className="text-slate-600">|</span>
-          <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-[#00ff88]" />
-            <span className="hud-text text-xs text-[#44ffa2] font-semibold">DISRUPTION COMMAND</span>
-            <span className="hidden md:inline text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-[#00ff88] border border-cyan-800">
-              PS #3 PREDICTION & EXP-MAP
-            </span>
-          </div>
+    <div className="flex flex-col h-[calc(100vh-3rem)] bg-[#040806] text-slate-100 overflow-hidden font-sans relative">
+      {/* ── Floating Top Command HUD Pill ── */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 rounded-full border border-[#143a22] bg-[#040806]/90 px-4 py-1.5 shadow-2xl backdrop-blur-md font-mono text-xs">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-ping" />
+          <span className="text-[#00ff88] font-bold">DISRUPTION COMMAND</span>
         </div>
-
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setResearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1 bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/80 rounded text-xs font-mono text-[#44ffa2] transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#00ff88] animate-pulse" />
-            <span>AUTONOMOUS CHOKEPOINT RESEARCH</span>
-          </button>
-
-          <ZuluClock />
-
-          <div className="flex items-center gap-2">
-            <a
-              href="/command"
-              className="px-2.5 py-1 text-xs font-mono rounded bg-cyan-950/80 text-[#44ffa2] border border-cyan-700/80 font-semibold shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-            >
-              🌐 GLOBE
-            </a>
-            <a
-              href="/console"
-              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-[#44ffa2] hover:bg-[#0a1710]/60 transition border border-transparent hover:border-[#1c482c]"
-            >
-              📊 CONSOLE
-            </a>
-            <a
-              href="/risk"
-              className="px-2.5 py-1 text-xs font-mono rounded text-slate-400 hover:text-amber-300 hover:bg-[#0a1710]/60 transition border border-transparent hover:border-[#1c482c]"
-            >
-              🛡️ RISK
-            </a>
-            <button
-              onClick={handleReset}
-              className="btn-tactical text-xs px-2.5 py-1 ml-2 flex items-center gap-1.5"
-              title="Reset to deterministic fixture baseline"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              RESET DEMO
-            </button>
-          </div>
-        </div>
-      </header>
+        <div className="h-3.5 w-px bg-[#143a22]" />
+        <button
+          onClick={() => setResearchOpen(true)}
+          className="flex items-center gap-1.5 text-xs text-[#44ffa2] hover:text-white transition"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-[#00ff88] animate-pulse" />
+          <span>AUTONOMOUS RESEARCH</span>
+        </button>
+        <div className="h-3.5 w-px bg-[#143a22]" />
+        <ZuluClock />
+      </div>
 
       {/* ── Main Command Viewport ── */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* ── Left Layer Toggles Sidebar (14+ Layers with dynamic counts) ── */}
-        <aside className="w-64 shrink-0 bg-[#060d09]/95 border-r border-[#143a22] p-3 flex flex-col justify-between overflow-y-auto styled-scrollbar">
-          <div>
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#143a22]">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#00ff88]" />
-                <span className="hud-text text-xs font-bold text-slate-300">TACTICAL LAYERS</span>
+      <div className="flex flex-1 overflow-hidden relative w-full h-full">
+        {/* ── Floating Toggle for Left Sidebar (when collapsed) ── */}
+        {!layersOpen && (
+          <button
+            onClick={() => setLayersOpen(true)}
+            className="absolute top-14 left-3 z-30 flex items-center gap-2 rounded-lg border border-[#143a22] bg-[#07140b]/90 px-3 py-2 font-mono text-xs text-[#00ff88] shadow-xl backdrop-blur-md hover:bg-[#0c2214] transition-all"
+            title="Open Tactical Layers"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="font-bold">LAYERS</span>
+            <ChevronRight className="w-3.5 h-3.5 text-[#87a894]" />
+          </button>
+        )}
+
+        {/* ── Left Layer Toggles Sidebar (Collapsible) ── */}
+        {layersOpen && (
+          <aside className="w-64 shrink-0 bg-[#060d09]/95 border-r border-[#143a22] p-3 flex flex-col justify-between overflow-y-auto styled-scrollbar z-20">
+            <div>
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#143a22]">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#00ff88]" />
+                  <span className="hud-text text-xs font-bold text-slate-300">TACTICAL LAYERS</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#00ff88] font-mono">14 ACTIVE</span>
+                  <button
+                    onClick={() => setLayersOpen(false)}
+                    className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#143a22]"
+                    title="Collapse Layers Panel"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <span className="text-[10px] text-[#00ff88] font-mono">14 ACTIVE</span>
-            </div>
+
 
             {LAYER_GROUPS.map((grp) => (
               <div key={grp.label} className="mb-4">
@@ -459,6 +455,7 @@ export default function CommandPage() {
             </div>
           </div>
         </aside>
+        )}
 
         {/* ── 3D Interactive Three.js Globe ── */}
         <main className="flex-1 relative bg-black">
@@ -477,20 +474,46 @@ export default function CommandPage() {
             bomArcs={bomArcs}
             infraLayers={infraLayers as Record<string, GeoFeatureCollection>}
             activeLayers={layers}
+            autoRotate={autoRotate}
+            onToggleAutoRotate={() => setAutoRotate((prev) => !prev)}
             onFeatureClick={handleFeatureClick}
+            onDrillDown={(target) => setDrillDownTarget({ ...target, isOpen: true })}
           />
         </main>
 
-        {/* ── Right Disruption Alert Feed / Deep-Dive Drawer ── */}
+        {/* ── Floating Toggle for Right Sidebar (when collapsed) ── */}
+        {!alertsOpen && (
+          <button
+            onClick={() => setAlertsOpen(true)}
+            className="absolute top-14 right-3 z-30 flex items-center gap-2 rounded-lg border border-[#143a22] bg-[#07140b]/90 px-3 py-2 font-mono text-xs text-amber-400 shadow-xl backdrop-blur-md hover:bg-[#0c2214] transition-all"
+            title="Open Live Disruption Feed"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 text-[#87a894]" />
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-bold">ALERTS ({alerts.length})</span>
+          </button>
+        )}
+
+        {/* ── Right Disruption Alert Feed / Deep-Dive Drawer (Collapsible) ── */}
+        {alertsOpen && (
         <aside className="w-96 shrink-0 bg-[#090e1d]/95 border-l border-[#143a22] flex flex-col overflow-hidden">
           <div className="px-4 py-2.5 border-b border-[#143a22] flex items-center justify-between bg-[#0d1426]">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-amber-400" />
               <span className="hud-text text-xs font-bold text-amber-400">LIVE DISRUPTION ALERTS</span>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-[#0a1710] text-slate-300 hud-text">
-              {alerts.length} ACTIVE
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-[#0a1710] text-slate-300 hud-text">
+                {alerts.length} ACTIVE
+              </span>
+              <button
+                onClick={() => setAlertsOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded hover:bg-[#143a22]"
+                title="Collapse Disruption Feed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {selectedAlert ? (
@@ -802,6 +825,7 @@ export default function CommandPage() {
             </div>
           )}
         </aside>
+        )}
       </div>
 
       {/* ── Autonomous Chokepoint Research Modal / Dossier HUD ── */}
@@ -1008,6 +1032,20 @@ export default function CommandPage() {
             </div>
           </div>
         </div>
+      )}
+
+
+      {/* ── 2D High-Resolution Google Earth / Satellite Tactical Drill-Down Modal ── */}
+      {drillDownTarget && (
+        <TacticalDrillDownModal
+          isOpen={drillDownTarget.isOpen}
+          onClose={() => setDrillDownTarget(null)}
+          lat={drillDownTarget.lat}
+          lon={drillDownTarget.lon}
+          title={drillDownTarget.title}
+          category={drillDownTarget.category}
+          stress={drillDownTarget.stress}
+        />
       )}
 
       {/* ── Bottom Telemetry Status Strip ── */}
