@@ -14,7 +14,7 @@ export const MOCK_CASCADE: CascadeMap = {
 };
 
 export const MOCK_ALERTS: AlertCard[] = [
-  { id: "al-1", title: "Suez Canal Blockage", signal_type: "geopolitical", severity: "critical", location: "Egypt", entities_affected: 15, expected_delay_days: 12, confidence: 0.85, summary: "Major blockage in Suez.", impact_radius_km: 500, created_at: new Date().toISOString() }
+  { id: "al-1", subject_id: "cp-1", title: "Suez Canal Blockage", severity: "critical", prior: 0.2, posterior: 0.8, delta: 0.6, evidence: [], created_at: new Date().toISOString() }
 ];
 
 export const MOCK_SHIPPING: GeoFeatureCollection = {
