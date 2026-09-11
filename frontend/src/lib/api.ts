@@ -12,30 +12,63 @@ import type {
 } from './contracts';
 import { MOCK_CASCADE, MOCK_ALERTS, MOCK_SHIPPING } from './mock';
 
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+// In the browser, use relative URLs to leverage Next.js rewrites proxy (bypasses CORS/extension blocking)
+// On server / node environment, use 127.0.0.1:8000
+const IS_BROWSER = typeof window !== 'undefined';
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || (IS_BROWSER ? '' : 'http://127.0.0.1:8000');
 
 async function _get<T>(path: string): Promise<T> {
-  try {
-    const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`${path}   ${res.status}`);
-    const json = await res.json();
-    return ('data' in json ? json.data : json) as T;
-  } catch (err) {
-    console.warn(`Backend fetch failed for ${path}, falling back to mock data if available. Error:`, err);
-    throw err; // let the specific functions handle their own fallbacks
+  // Candidate URLs to try
+  const targets = [
+    `${BASE}${path}`,
+    `http://127.0.0.1:8000${path}`,
+    `http://localhost:8000${path}`,
+  ];
+
+  let lastErr: unknown = null;
+  for (const url of targets) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`${path} -> HTTP ${res.status}`);
+      const json = await res.json();
+      return ('data' in json ? json.data : json) as T;
+    } catch (err) {
+      lastErr = err;
+      // If we are in browser and relative URL failed, continue to direct backend URL
+      if (!IS_BROWSER) break;
+    }
   }
+
+  console.warn(`Backend fetch failed for ${path}, falling back to mock data if available. Error:`, lastErr);
+  throw lastErr;
 }
 
 async function _post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`POST ${path} → ${res.status}`);
-  const json = await res.json();
-  return ('data' in json ? json.data : json) as T;
+  const targets = [
+    `${BASE}${path}`,
+    `http://127.0.0.1:8000${path}`,
+    `http://localhost:8000${path}`,
+  ];
+
+  let lastErr: unknown = null;
+  for (const url of targets) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`POST ${path} -> HTTP ${res.status}`);
+      const json = await res.json();
+      return ('data' in json ? json.data : json) as T;
+    } catch (err) {
+      lastErr = err;
+      if (!IS_BROWSER) break;
+    }
+  }
+
+  throw lastErr;
 }
 
 // ---------------------------------------------------------------------------
@@ -65,33 +98,25 @@ export const ingestLive = () => _post<unknown>('/v1/ingest/live', {});
 // ---------------------------------------------------------------------------
 
 export const getGlobeCascadeMap = () =>
-  fetch(`${BASE}/v1/globe/cascade/map`, { cache: 'no-store' })
-    .then(r => r.json())
-    .catch(() => MOCK_CASCADE) as Promise<CascadeMap>;
+  _get<CascadeMap>('/v1/globe/cascade/map').catch(() => MOCK_CASCADE);
 
 export const getGlobeVessels = () =>
-  fetch(`${BASE}/v1/globe/vessels`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<VesselsResponse>;
+  _get<VesselsResponse>('/v1/globe/vessels');
 
 export const getGlobeFlights = (limit = 2000) =>
-  fetch(`${BASE}/v1/globe/flights?limit=${limit}`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<FlightsResponse>;
+  _get<FlightsResponse>(`/v1/globe/flights?limit=${limit}`);
 
 export const getGlobeEarthquakes = () =>
-  fetch(`${BASE}/v1/globe/events/earthquakes`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<GeoFeatureCollection>;
+  _get<GeoFeatureCollection>('/v1/globe/events/earthquakes');
 
 export const getGlobeShippingLanes = () =>
-  fetch(`${BASE}/v1/globe/shipping_lanes`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<ShippingLanesResponse>;
+  _get<ShippingLanesResponse>('/v1/globe/shipping_lanes').catch(() => MOCK_SHIPPING);
 
 export const getGlobeInfraLayer = (layer: InfraLayerName) =>
-  fetch(`${BASE}/v1/globe/infrastructure/${layer}`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<GeoFeatureCollection>;
+  _get<GeoFeatureCollection>(`/v1/globe/infrastructure/${layer}`);
 
 export const getGlobeOntologyEdges = () =>
-  fetch(`${BASE}/v1/globe/ontology/edges`, { cache: 'no-store' })
-    .then(r => r.json()) as Promise<OntologyEdgesResponse>;
+  _get<OntologyEdgesResponse>('/v1/globe/ontology/edges');
 
 export const getGlobeChokepointForecast = (nodeId: string) =>
   _get<ChokepointForecast>(`/v1/globe/chokepoints/${nodeId}/forecast`);
