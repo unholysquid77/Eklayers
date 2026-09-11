@@ -843,5 +843,20 @@ def get_globe_infrastructure(layer_name: str):
     # Stubbed as empty feature collections for now, ready to ingest real datasets
     return {"type": "FeatureCollection", "features": []}
 
+@globe_router.get("/chokepoints/{node_id}/forecast", summary="30-day stress forecast for a chokepoint")
+def get_globe_chokepoint_forecast(node_id: str):
+    from .scoring import forecast_chokepoint_stress
+    try:
+        forecast = forecast_chokepoint_stress(
+            chokepoint_id=node_id,
+            graph=state.graph,
+            state=state,
+            horizon_days=30,
+            threshold=0.70
+        )
+        return _envelope(forecast, provenance=["bayesian_update", "kalman_filter", "monte_carlo"])
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
 app.include_router(globe_router)
 

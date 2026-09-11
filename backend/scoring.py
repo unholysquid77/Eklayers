@@ -1,4 +1,4 @@
-﻿"""Scoring and pipeline services for SupplyChain Sentinel.
+"""Scoring and pipeline services for SupplyChain Sentinel.
 
 Orchestrates math_engine primitives, SupplyGraph traversal and Pydantic models
 into the complete API outputs.  No risk logic lives in API handlers; all of it
@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 from .math_engine import (
     Evidence,
     KalmanLeadTime,
+    KalmanStressModel,
+    simulate_stress_forecast,
     bayesian_update,
     concentration_score,
     monte_carlo_exposure,
@@ -489,3 +491,88 @@ def run_stress_test(
         node_results=node_results,
         ranked_mitigations=mitigations,
     )
+
+
+# ---------------------------------------------------------------------------
+# Chokepoint Forecasting
+# ---------------------------------------------------------------------------
+
+def forecast_chokepoint_stress(
+    chokepoint_id: str,
+    graph: "SupplyGraph",
+    state: object,
+    horizon_days: int = 30,
+    threshold: float = 0.70
+) -> dict:
+    """Predicts if a chokepoint's stress value will exceed a threshold over the next N days.
+    
+    1. Uses structural prior for base risk.
+    2. Performs Bayesian update on recent signals.
+    3. Runs Kalman state-space model for stress state.
+    4. Monte Carlo samples the outcome.
+    """
+    node = graph.node(chokepoint_id)
+    if not node:
+        raise ValueError(f"Chokepoint {chokepoint_id} not found in graph.")
+
+    # 1. Priors and Criticality
+    prior = prior_for_node(node.kind, node.criticality, horizon_days)
+    
+    # 2. Bayesian Update with Signals
+    now = _utcnow()
+    signals = getattr(state, "signals", [])
+    relevant_sigs = []
+    for sig in signals:
+        if any(e.id == chokepoint_id for e in sig.entities):
+            relevant_sigs.append(sig)
+        elif not sig.entities and sig.lat is not None and sig.lon is not None:
+            if node.lat is not None and node.lon is not None:
+                # Basic distance heuristic for geographical match
+                if abs(sig.lat - node.lat) < 1.0 and abs(sig.lon - node.lon) < 1.0:
+                    relevant_sigs.append(sig)
+
+    evidence_list = []
+    stress_inputs = []
+    for sig in relevant_sigs:
+        obs = sig.observed_at
+        if obs.tzinfo is None:
+            obs = obs.replace(tzinfo=timezone.utc)
+        age_days = max(0.0, (now - obs).total_seconds() / 86400.0)
+
+        llr = math.log((sig.intensity + 1e-6) / (1.0 - sig.intensity + 1e-6))
+        evidence_list.append(Evidence(
+            name=sig.type, llr=llr, weight=sig.credibility,
+            source=sig.source, confidence=sig.confidence
+        ))
+        stress_inputs.append((sig.intensity, sig.confidence, age_days))
+
+    posterior = bayesian_update(chokepoint_id, prior, evidence_list)
+    current_stress = node_stress(stress_inputs)
+
+    # 3. Kalman State-Space Model
+    kf = KalmanStressModel(mean_stress=current_stress)
+    
+    # The bayesian posterior probability shifts the expected stress
+    shift = (posterior.probability - prior) * node.criticality
+    forecast = kf.forecast(horizon_days, bayesian_shift=shift)
+    
+    # 4. Monte Carlo Distribution
+    mc_sim = simulate_stress_forecast(
+        mean_stress=forecast["mean_stress"],
+        std_stress=forecast["std_stress"],
+        threshold=threshold,
+        trials=1000
+    )
+    
+    return {
+        "chokepoint_id": chokepoint_id,
+        "horizon_days": horizon_days,
+        "current_stress": round(current_stress, 4),
+        "prior_probability": round(prior, 4),
+        "posterior_probability": round(posterior.probability, 4),
+        "forecasted_mean_stress": forecast["mean_stress"],
+        "forecasted_std_stress": forecast["std_stress"],
+        "probability_exceeding_threshold": mc_sim["probability_exceeding"],
+        "p95_stress_scenario": mc_sim["p95_stress"]
+    }
+

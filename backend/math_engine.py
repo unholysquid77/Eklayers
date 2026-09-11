@@ -151,6 +151,67 @@ class KalmanLeadTime:
         }
 
 
+@dataclass
+class KalmanStressModel:
+    """Scalar Kalman filter for normalized stress levels, tracking x_t in [0.0, 1.0]."""
+    mean_stress: float
+    variance: float = 0.05
+    process_variance: float = 0.01
+    observations: int = 0
+
+    def update(self, observed_stress: float, observation_variance: float) -> None:
+        prior_variance = self.variance + self.process_variance
+        gain = prior_variance / (prior_variance + max(observation_variance, EPSILON))
+        self.mean_stress += gain * (observed_stress - self.mean_stress)
+        self.mean_stress = clamp(self.mean_stress)
+        self.variance = (1.0 - gain) * prior_variance
+        self.observations += 1
+
+    def forecast(self, horizon_days: int, bayesian_shift: float = 0.0) -> dict:
+        # Expected stress shifts based on recent bayesian evidence.
+        mean = clamp(self.mean_stress + bayesian_shift)
+        # Uncertainty grows linearly over time
+        variance = self.variance + max(0, horizon_days) * self.process_variance
+        sigma = math.sqrt(variance)
+        
+        return {
+            "horizon_days": horizon_days,
+            "distribution": "normal",
+            "mean_stress": round(mean, 3),
+            "std_stress": round(sigma, 3),
+            "p50_stress": round(clamp(mean), 3),
+            "p80_stress": round(clamp(mean + NORMAL.inv_cdf(0.80) * sigma), 3),
+            "p95_stress": round(clamp(mean + NORMAL.inv_cdf(0.95) * sigma), 3),
+            "observations": self.observations,
+        }
+
+
+def simulate_stress_forecast(mean_stress: float, std_stress: float, threshold: float = 0.70, trials: int = 1000, rng_seed: int = 42) -> dict:
+    """Monte Carlo simulation to estimate probability of stress exceeding a threshold."""
+    randomizer = random.Random(rng_seed)
+    exceeded = 0
+    samples = []
+    
+    for _ in range(trials):
+        # Sample from the forecasted normal distribution
+        sample = randomizer.gauss(mean_stress, std_stress)
+        # Clip to real-world bounds [0, 1]
+        sample = clamp(sample)
+        samples.append(sample)
+        if sample > threshold:
+            exceeded += 1
+            
+    prob = exceeded / max(trials, 1)
+    return {
+        "threshold": threshold,
+        "probability_exceeding": round(prob, 4),
+        "trials": trials,
+        "expected_stress": round(sum(samples) / max(trials, 1), 3),
+        "p95_stress": round(percentile(samples, 0.95), 3)
+    }
+
+
+
 @dataclass(frozen=True)
 class Dependency:
     upstream_id: str
