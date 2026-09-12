@@ -761,34 +761,237 @@ CANONICAL_MITIGATIONS: list[MitigationComparisonItem] = [
 
 
 # ============================================================================
-# API Endpoints
+# Dynamic Enterprise Adapters & API Endpoints
 # ============================================================================
+
+def _get_enterprise_config() -> dict[str, Any]:
+    try:
+        from .app import _ENTERPRISE_CONFIG
+        return _ENTERPRISE_CONFIG or {}
+    except Exception:
+        return {}
+
+def _get_enterprise_skus() -> list[SKUExposureItem]:
+    cfg = _get_enterprise_config()
+    custom_skus = cfg.get("custom_skus", [])
+    if not custom_skus:
+        return CANONICAL_SKUS
+    
+    custom_suppliers = {s.get("part_sku"): s for s in cfg.get("custom_suppliers", [])}
+    customer_orders = cfg.get("customer_orders", [])
+    
+    items = []
+    for s in custom_skus:
+        sku_id = s.get("sku_id", "SKU-001")
+        name = s.get("name", "Industrial Assembly")
+        stock = int(s.get("current_stock_units", 1000))
+        daily_burn = float(s.get("daily_burn_units", 100.0))
+        runway = float(s.get("runway_days", 14.0))
+        buf_days = float(s.get("safety_buffer_days", 14.0))
+        crit_part = s.get("critical_part", "MCU-441")
+        
+        sup_info = custom_suppliers.get(crit_part, {})
+        supplier_name = sup_info.get("name", "Alpha Microelectronics Co.")
+        sup_country = sup_info.get("country", "Singapore")
+        
+        if runway <= 7:
+            stockout_prob = 0.85
+            severity = "CRITICAL"
+        elif runway <= 14:
+            stockout_prob = 0.65
+            severity = "HIGH"
+        elif runway <= 21:
+            stockout_prob = 0.38
+            severity = "MEDIUM"
+        else:
+            stockout_prob = 0.15
+            severity = "LOW"
+            
+        gap = max(0.0, buf_days - runway)
+        
+        matching_orders = [o for o in customer_orders if o.get("sku_id") == sku_id]
+        orders_exposed = len(matching_orders) if matching_orders else max(4, int(20 - runway))
+        rev_exposed = sum(float(o.get("order_value_inr", 0)) for o in matching_orders)
+        if rev_exposed == 0:
+            rev_exposed = float(orders_exposed * 180000.0)
+            
+        hub = "Port of Singapore" if "Singapore" in sup_country else ("Taiwan Strait" if "Taiwan" in sup_country else ("Suez Canal / Red Sea" if "Germany" in sup_country else "Strait of Malacca"))
+        
+        p_7d = 0.85 if runway <= 7 else (0.25 if runway <= 11 else 0.04)
+        p_14d = 0.92 if runway <= 14 else (0.45 if runway <= 18 else 0.12)
+        p_21d = 0.96 if runway <= 21 else (0.68 if runway <= 25 else 0.28)
+        p_30d = 0.99 if runway <= 30 else 0.55
+        
+        items.append(SKUExposureItem(
+            id=sku_id,
+            name=name,
+            product_category="Automotive & Industrial Electronics",
+            current_stock=stock,
+            daily_demand=daily_burn,
+            runway_days=runway,
+            stockout_probability=stockout_prob,
+            orders_exposed_count=orders_exposed,
+            revenue_exposure_inr=rev_exposed,
+            severity=severity,
+            safety_stock=int(daily_burn * buf_days),
+            gap_days=gap,
+            expected_arrival_p50="22 Sep 2026",
+            expected_arrival_p90="28 Sep 2026",
+            expected_arrival_p99="04 Oct 2026",
+            required_by="24 Sep 2026",
+            p_late=stockout_prob,
+            component_name=crit_part,
+            supplier_name=supplier_name,
+            transit_hub=hub,
+            prob_stockout_7d=p_7d,
+            prob_stockout_14d=p_14d,
+            prob_stockout_21d=p_21d,
+            prob_stockout_30d=p_30d,
+        ))
+    return items
+
+def _get_enterprise_orders() -> list[CustomerOrderExposureItem]:
+    cfg = _get_enterprise_config()
+    custom_orders = cfg.get("customer_orders", [])
+    if not custom_orders:
+        return CANONICAL_ORDERS
+        
+    custom_skus = {s.get("sku_id"): s for s in cfg.get("custom_skus", [])}
+    items = []
+    for o in custom_orders:
+        o_id = o.get("order_id", "ORD-10001")
+        cust = o.get("customer_name", "Enterprise Client")
+        sku_id = o.get("sku_id", "SKU-441")
+        units = int(o.get("units", 100))
+        val = float(o.get("order_value_inr", 1000000.0))
+        sla = o.get("promised_delivery_date", "2026-09-26")
+        prio = o.get("priority", "HIGH")
+        
+        sku_info = custom_skus.get(sku_id, {})
+        sku_name = sku_info.get("name", "Power Controller Subsystem")
+        crit_part = sku_info.get("critical_part", "MCU-441")
+        
+        delay = 5.0 if prio == "CRITICAL" else (3.0 if prio == "HIGH" else 1.5)
+        p_miss = 0.82 if prio == "CRITICAL" else (0.64 if prio == "HIGH" else 0.32)
+        
+        items.append(CustomerOrderExposureItem(
+            id=o_id,
+            customer_name=cust,
+            sku_id=sku_id,
+            sku_name=sku_name,
+            quantity=units,
+            promised_date=sla,
+            expected_date="28 Sep 2026",
+            delay_days=delay,
+            revenue_exposure_inr=val,
+            status="CRITICAL" if prio == "CRITICAL" else "AT RISK",
+            severity=prio,
+            p_miss=p_miss,
+            root_cause=f"Inbound transit corridor congestion affecting {crit_part}",
+            affected_component=crit_part,
+            recommended_action="Expedite shipment via Air Charter or draw from regional safety buffer",
+            expected_mitigated_date=sla,
+            mitigated_p_miss=0.12,
+        ))
+    return items
+
+def _get_enterprise_suppliers() -> list[SupplierProfile]:
+    cfg = _get_enterprise_config()
+    custom_suppliers = cfg.get("custom_suppliers", [])
+    if not custom_suppliers:
+        return CANONICAL_SUPPLIERS
+        
+    profiles = []
+    for s in custom_suppliers:
+        s_id = s.get("id", "SUP-001")
+        name = s.get("name", "Supplier Corp")
+        country = s.get("country", "Singapore")
+        single = bool(s.get("single_source", False))
+        spend = float(s.get("spend_inr", 5000000.0))
+        part = s.get("part_sku", "Component")
+        
+        score = 72.0 if single else 32.0
+        profiles.append(SupplierProfile(
+            id=s_id,
+            name=name,
+            tier=1,
+            country=country,
+            region="Asia-Pacific" if country in ["Singapore", "Taiwan", "Japan", "Malaysia"] else "Europe",
+            risk_score=score,
+            risk_velocity_7d="+8 (ESCALATING)" if single else "-2 (STABLE)",
+            on_time_delivery_pct=89.0 if single else 96.5,
+            quality_pct=98.8,
+            capacity_utilization_pct=91.0 if single else 78.0,
+            financial_score="ELEVATED CONCENTRATION" if single else "STRONG TIER-1",
+            hhi_market_share=0.72 if single else 0.28,
+            is_single_source=single,
+            spend_inr=spend,
+            parts_supplied=[part],
+            sub_tier2_suppliers=["TSMC Sub-Fab 14 (Hsinchu)"] if single else ["UMC Foundry (Tainan)"],
+            qual_alternate_suppliers=[
+                SupplierAlternative(supplier_id="SUP-ALT-01", name="Renesas Kumamoto Fab", capacity_pct=45.0, lead_time_days=12, cost_delta_pct=14.0, risk_score=18.0)
+            ]
+        ))
+    return profiles
+
+def _get_enterprise_dashboard_summary() -> DashboardSummaryResponse:
+    skus = _get_enterprise_skus()
+    orders = _get_enterprise_orders()
+    
+    total_rev_exposed = sum(o.revenue_exposure_inr for o in orders)
+    at_risk_skus = [s for s in skus if s.stockout_probability >= 0.35]
+    predicted_stockouts = [s for s in skus if s.runway_days <= 14.0]
+    
+    now = _utcnow()
+    ist_now = (now + timedelta(hours=5, minutes=30)).strftime("%H:%M:%S IST")
+    
+    return DashboardSummaryResponse(
+        network_health=68.5,
+        network_health_breakdown=NetworkHealthBreakdown(
+            supply_continuity=74.0,
+            transport_stability=62.0,
+            supplier_health=79.0,
+            inventory_resilience=58.0,
+            external_disruption=50.0
+        ),
+        active_disruptions_count=8,
+        exposed_orders_count=len(orders),
+        at_risk_skus_count=len(at_risk_skus),
+        predicted_stockouts_count=len(predicted_stockouts),
+        network_stress_pct=62.0,
+        revenue_exposure_inr=total_rev_exposed if total_rev_exposed > 0 else 48000000.0,
+        expected_delay_days=5.8,
+        critical_chokepoints_count=4,
+        as_of=ist_now
+    )
 
 @router.get("/dashboard/summary", response_model=DashboardSummaryResponse, summary="Executive & Operational Control Tower Summary")
 def get_dashboard_summary():
-    return DashboardSummaryResponse()
+    return _get_enterprise_dashboard_summary()
 
 @router.get("/skus", response_model=list[SKUExposureItem], summary="SKU Exposure Center list")
 def get_skus_exposure():
-    return CANONICAL_SKUS
+    return _get_enterprise_skus()
 
 @router.get("/skus/{sku_id}", response_model=SKUExposureItem, summary="SKU Exposure Detail")
 def get_sku_detail(sku_id: str):
-    for sku in CANONICAL_SKUS:
+    skus = _get_enterprise_skus()
+    for sku in skus:
         if sku.id.lower() == sku_id.lower():
             return sku
-    return CANONICAL_SKUS[0]
+    return skus[0]
 
 @router.get("/orders", response_model=list[CustomerOrderExposureItem], summary="Customer Order Exposure list")
 def get_orders_exposure():
-    return CANONICAL_ORDERS
+    return _get_enterprise_orders()
 
 @router.get("/orders/{order_id}", response_model=CustomerOrderExposureItem, summary="Customer Order Exposure Detail")
 def get_order_detail(order_id: str):
-    for ord_item in CANONICAL_ORDERS:
+    orders = _get_enterprise_orders()
+    for ord_item in orders:
         if ord_item.id.lower() == order_id.lower():
             return ord_item
-    return CANONICAL_ORDERS[0]
+    return orders[0]
 
 @router.get("/shipments", response_model=list[ShipmentItem], summary="Active Shipments with ETA distributions")
 def get_shipments():
@@ -803,7 +1006,7 @@ def get_shipment_detail(shipment_id: str):
 
 @router.get("/suppliers", response_model=list[SupplierProfile], summary="Supplier Risk Profiles & Concentration")
 def get_suppliers():
-    return CANONICAL_SUPPLIERS
+    return _get_enterprise_suppliers()
 
 @router.get("/signals/reliability", response_model=FalseAlarmControl, summary="Signal Reliability & False Alarm Control")
 def get_signals_reliability():
@@ -1083,10 +1286,26 @@ def query_ai_analyst(req: AIQueryRequest):
             }
         ]
     }
+    cfg = _get_enterprise_config()
+    org_prof = cfg.get("org_profile", {})
+    custom_skus = cfg.get("custom_skus", [])
+    custom_sups = cfg.get("custom_suppliers", [])
+    company_name = org_prof.get("company_name", "Apex Industrial Electronics Ltd.")
+    plant_name = org_prof.get("primary_plant", "Pune Gigafactory, India")
+    port_name = org_prof.get("primary_port", "Port of Nhava Sheva (JNPT)")
+
+    context_data["enterprise_profile"] = {
+        "company_name": company_name,
+        "primary_plant": plant_name,
+        "primary_port": port_name,
+        "configured_suppliers": [{"id": s.get("id"), "name": s.get("name"), "country": s.get("country"), "part": s.get("part_sku"), "single_source": s.get("single_source")} for s in custom_sups],
+        "configured_skus": [{"id": s.get("sku_id"), "name": s.get("name"), "runway_days": s.get("runway_days"), "part": s.get("critical_part")} for s in custom_skus],
+    }
 
     # 2. Try calling live LLM Agent with tool context
     sys_prompt = (
-        "You are the Sarvadarshi Operational Intelligence Agent, grounded in continuous Bayesian risk modeling. "
+        f"You are the Sarvadarshi Operational Intelligence Agent for {company_name}, grounded in continuous Bayesian risk modeling. "
+        f"Your manufacturing facilities are located at {plant_name}, and your primary inbound logistics port is {port_name}. "
         "Use the provided supply chain context to rigorously answer the user query. "
         "You must respond ONLY with a JSON object with keys: "
         '{"answer": string, "probability_pct": float, "orders_exposed": int, "revenue_exposed_inr": float, '
@@ -1258,22 +1477,39 @@ def _generate_llm_scenarios_and_mitigations(req: StressTestRequest) -> StressTes
     target_name = req.target_name or req.target_id.replace("cp.", "").replace("port-", "Port of ").replace("sup-", "Supplier ").replace("_", " ").replace("-", " ").title()
     custom_scen = req.custom_scenario or f"{req.severity_pct}% operational disruption shock at {target_name} for {req.duration_days} days"
     
+    cfg = _get_enterprise_config()
+    org_prof = cfg.get("org_profile", {})
+    custom_skus = cfg.get("custom_skus", [])
+    custom_sups = cfg.get("custom_suppliers", [])
+    
+    company_name = org_prof.get("company_name", "Apex Industrial Electronics Ltd.")
+    plant_name = org_prof.get("primary_plant", "Pune Gigafactory, India")
+    port_name = org_prof.get("primary_port", "Port of Nhava Sheva (JNPT)")
+
+    key_parts = [f"{s.get('name')} ({s.get('critical_part', '')})" for s in custom_skus[:4]] or [
+        "MCU-441 Automotive Microcontroller", "SiC Power MOSFET Module (SKU-108)", "High-Voltage Inverter (SKU-205)"
+    ]
+    crit_sups = [f"{s.get('name')} ({s.get('country')})" for s in custom_sups[:4]] or [
+        "Alpha Components GmbH", "Beta Semiconductor Fab", "TSMC Sub-Fab 14"
+    ]
+
     # 1. Supply chain context for prompt
     context = {
+        "enterprise_operator": company_name,
         "target": target_name,
         "target_type": req.target_type,
         "duration_days": req.duration_days,
         "severity_pct": req.severity_pct,
         "scenario_hypothesis": custom_scen,
-        "destination_cluster": "Pune Automotive & Industrial Electronics Cluster (Chakan / Talegaon)",
-        "inbound_gateway": "JNPT Nhava Sheva (Port of Mumbai)",
-        "key_parts": ["MCU-441 Automotive Microcontroller", "SiC Power MOSFET Module (SKU-108)", "High-Voltage Inverter (SKU-205)"],
-        "critical_suppliers": ["Alpha Components GmbH", "Beta Precision KK", "TSMC Sub-Fab 14"]
+        "destination_cluster": plant_name,
+        "inbound_gateway": port_name,
+        "key_parts": key_parts,
+        "critical_suppliers": crit_sups
     }
 
     sys_prompt = (
-        "You are the Sarvadarshi Supply Chain Scenario & Optimization Engine, powered by Bayesian risk modeling and operational logistics intelligence. "
-        "Analyze the failure scenario against the supply chain network (Pune automotive cluster, JNPT gateway, semiconductors like MCU-441, SiC MOSFETs, Asian and European suppliers). "
+        f"You are the Sarvadarshi Supply Chain Scenario & Optimization Engine for {company_name}. "
+        f"Analyze the failure scenario against the enterprise supply chain network ({plant_name}, {port_name}, key parts: {', '.join(key_parts[:2])}, suppliers: {', '.join(crit_sups[:2])}). "
         "Respond ONLY with a valid JSON object with keys: "
         '{"target_name": string, "survival_clock_hours": float, "survival_clock_display": string, '
         '"operational_survival_p50_days": float, "operational_survival_p75_days": float, "operational_survival_p90_days": float, "operational_survival_p99_days": float, '

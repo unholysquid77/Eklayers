@@ -71,6 +71,32 @@ async function _post<T>(path: string, body: unknown): Promise<T> {
   throw lastErr;
 }
 
+async function _delete<T>(path: string): Promise<T> {
+  const targets = [
+    `${BASE}${path}`,
+    `http://127.0.0.1:8000${path}`,
+    `http://localhost:8000${path}`,
+  ];
+
+  let lastErr: unknown = null;
+  for (const url of targets) {
+    try {
+      const res = await fetch(url, {
+        method: 'DELETE',
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`DELETE ${path} -> HTTP ${res.status}`);
+      const json = await res.json();
+      return ('data' in json ? json.data : json) as T;
+    } catch (err) {
+      lastErr = err;
+      if (!IS_BROWSER) break;
+    }
+  }
+
+  throw lastErr;
+}
+
 // ---------------------------------------------------------------------------
 // Supply chain core
 // ---------------------------------------------------------------------------
@@ -241,7 +267,8 @@ import type {
   DashboardSummary, SKUExposureItem, CustomerOrderExposureItem,
   ShipmentItem, SupplierProfile, FalseAlarmControl,
   MitigationComparisonItem, DecisionStressTestResult,
-  SystemStatusResponse, AIQueryResponse
+  SystemStatusResponse, AIQueryResponse,
+  EnterpriseData, EnterpriseRoute
 } from './contracts';
 
 export const getDashboardSummary = () =>
@@ -324,3 +351,34 @@ export const resetDemoState = () =>
     status: 'SUCCESS',
     message: 'Demo state deterministically reset.'
   }));
+
+// ---------------------------------------------------------------------------
+// Enterprise Admin Master Data & Control APIs
+// ---------------------------------------------------------------------------
+
+export const getEnterpriseData = () =>
+  _get<EnterpriseData>('/v1/admin/enterprise-data').catch(() => null);
+
+export const updateEnterpriseData = (payload: Partial<EnterpriseData>) =>
+  _post<{ status: string; message: string }>('/v1/admin/enterprise-data', payload);
+
+export const injectDisruption = (payload: {
+  node_id: string;
+  disruption_name: string;
+  intensity: number;
+  event_type: string;
+  notes?: string;
+}) => _post<any>('/v1/admin/disruptions/inject', payload);
+
+export const getEnterpriseRoutes = () =>
+  _get<EnterpriseRoute[]>('/v1/admin/routes').catch(() => []);
+
+export const saveEnterpriseRoute = (route: Partial<EnterpriseRoute>) =>
+  _post<{ status: string; route: EnterpriseRoute }>('/v1/admin/routes', route);
+
+export const deleteEnterpriseRoute = (routeId: string) =>
+  _delete<{ status: string; route_id: string }>(`/v1/admin/routes/${routeId}`);
+
+export const validateApiKey = (provider: string, key: string) =>
+  _post<{ valid: boolean; provider: string; message: string }>('/v1/admin/api-keys/validate', { provider, key });
+

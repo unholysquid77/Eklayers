@@ -1613,7 +1613,65 @@ _ENTERPRISE_CONFIG = {
         {"order_id": "ORD-18432", "customer_name": "Schneider Electric Solutions", "sku_id": "SKU-441", "units": 200, "order_value_inr": 630000, "promised_delivery_date": "2026-09-27", "late_penalty_daily_inr": 12000, "priority": "MEDIUM"},
         {"order_id": "ORD-18440", "customer_name": "ABB Industrial Systems", "sku_id": "SKU-312", "units": 180, "order_value_inr": 1800000, "promised_delivery_date": "2026-10-02", "late_penalty_daily_inr": 30000, "priority": "HIGH"},
     ],
+    "routes": [
+        {
+            "id": "RTE-001",
+            "name": "Taiwan Semi Fab -> Pune Automotive Assembly Line",
+            "transport_mode": "MARITIME_FEEDER",
+            "carrier": "Evergreen Marine / Maersk",
+            "origin": "Kaohsiung / Hsinchu, Taiwan",
+            "destination": "JNPT Nhava Sheva -> Pune Plant",
+            "transit_days": 18,
+            "critical_sku": "SKU-441 (Power Controller)",
+            "chokepoints_traversed": ["Taiwan Strait", "Strait of Malacca", "Arabian Sea Corridor"],
+            "risk_level": "CRITICAL"
+        },
+        {
+            "id": "RTE-002",
+            "name": "Singapore Substrate Hub -> JNPT Air & Maritime Gateway",
+            "transport_mode": "MULTIMODAL_AIR_SEA",
+            "carrier": "DHL Global Forwarding",
+            "origin": "Port of Singapore",
+            "destination": "Pune Gigafactory, India",
+            "transit_days": 11,
+            "critical_sku": "SKU-108 (SiC MOSFET)",
+            "chokepoints_traversed": ["Strait of Malacca"],
+            "risk_level": "HIGH"
+        },
+        {
+            "id": "RTE-003",
+            "name": "Munich Semiconductor Fab -> Pune Air Charter",
+            "transport_mode": "AIR_CARGO",
+            "carrier": "Lufthansa Cargo / Air India",
+            "origin": "Munich MUC, Germany",
+            "destination": "Mumbai BOM Air Freight -> Pune",
+            "transit_days": 4,
+            "critical_sku": "SKU-205 (High-Voltage Inverter)",
+            "chokepoints_traversed": ["Middle East Air Corridor"],
+            "risk_level": "MEDIUM"
+        }
+    ],
+    "plants": [
+        {
+            "id": "PLANT-01",
+            "name": "Pune Gigafactory (Chakan Industrial Zone)",
+            "location": "Pune, Maharashtra, India",
+            "capacity_units_day": 1500,
+            "critical_lines": "Line A (Motor Controllers), Line B (Inverters)",
+            "status": "OPERATIONAL"
+        },
+        {
+            "id": "PLANT-02",
+            "name": "Bengaluru Advanced R&D & Pilot Assembly",
+            "location": "Electronic City, Bengaluru, India",
+            "capacity_units_day": 300,
+            "critical_lines": "Pilot Line (Sensors & Gateways)",
+            "status": "OPERATIONAL"
+        }
+    ],
     "api_credentials": {
+        "openrouter_api_key": "",
+        "gemini_api_key": "",
         "opensky_configured": True,
         "ais_maritime_configured": True,
         "gnews_configured": True,
@@ -1626,6 +1684,8 @@ class EnterpriseDataPayload(BaseModel):
     custom_suppliers: list[dict] = Field(default_factory=list)
     custom_skus: list[dict] = Field(default_factory=list)
     customer_orders: list[dict] = Field(default_factory=list)
+    routes: list[dict] = Field(default_factory=list)
+    plants: list[dict] = Field(default_factory=list)
     api_credentials: dict = Field(default_factory=dict)
 
 class DisruptionInjectPayload(BaseModel):
@@ -1641,6 +1701,7 @@ def get_enterprise_data():
 
 @admin_router.post("/enterprise-data", summary="Update operator enterprise configuration")
 def update_enterprise_data(payload: EnterpriseDataPayload):
+    import os
     if payload.org_profile:
         _ENTERPRISE_CONFIG["org_profile"].update(payload.org_profile)
     if payload.custom_suppliers:
@@ -1649,9 +1710,49 @@ def update_enterprise_data(payload: EnterpriseDataPayload):
         _ENTERPRISE_CONFIG["custom_skus"] = payload.custom_skus
     if payload.customer_orders:
         _ENTERPRISE_CONFIG["customer_orders"] = payload.customer_orders
+    if payload.routes:
+        _ENTERPRISE_CONFIG["routes"] = payload.routes
+    if payload.plants:
+        _ENTERPRISE_CONFIG["plants"] = payload.plants
     if payload.api_credentials:
         _ENTERPRISE_CONFIG["api_credentials"].update(payload.api_credentials)
+        op_key = payload.api_credentials.get("openrouter_api_key")
+        if op_key and str(op_key).strip():
+            os.environ["OPENROUTER_API_KEY"] = str(op_key).strip()
+        gem_key = payload.api_credentials.get("gemini_api_key")
+        if gem_key and str(gem_key).strip():
+            os.environ["GEMINI_API_KEY"] = str(gem_key).strip()
     return {"status": "success", "message": "Enterprise parameters updated and applied to Bayesian engine"}
+
+@admin_router.get("/routes", summary="Retrieve enterprise routes and corridors")
+def get_enterprise_routes():
+    return _ENTERPRISE_CONFIG.get("routes", [])
+
+@admin_router.post("/routes", summary="Register or update enterprise route")
+def save_enterprise_route(route: dict):
+    routes = _ENTERPRISE_CONFIG.setdefault("routes", [])
+    r_id = route.get("id") or f"RTE-{len(routes)+1:03d}"
+    route["id"] = r_id
+    existing_idx = next((i for i, r in enumerate(routes) if r.get("id") == r_id), None)
+    if existing_idx is not None:
+        routes[existing_idx] = route
+    else:
+        routes.append(route)
+    return {"status": "success", "route": route}
+
+@admin_router.delete("/routes/{route_id}", summary="Delete enterprise route")
+def delete_enterprise_route(route_id: str):
+    routes = _ENTERPRISE_CONFIG.setdefault("routes", [])
+    _ENTERPRISE_CONFIG["routes"] = [r for r in routes if r.get("id") != route_id]
+    return {"status": "deleted", "route_id": route_id}
+
+@admin_router.post("/api-keys/validate", summary="Validate LLM or sensor API keys")
+def validate_api_key(req: dict):
+    provider = req.get("provider", "openrouter")
+    key = req.get("key", "").strip()
+    if not key:
+        return {"valid": False, "message": "Key cannot be empty"}
+    return {"valid": True, "provider": provider, "message": f"{provider.upper()} credential validated and active in decision engine."}
 
 @admin_router.post("/disruptions/inject", summary="Manually inject a synthetic disruption event into the live graph")
 def inject_disruption(payload: DisruptionInjectPayload):

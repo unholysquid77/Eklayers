@@ -879,3 +879,89 @@ export interface SystemStatusResponse {
   last_successful_ingest: string;
 }
 
+// ---------------------------------------------------------------------------
+// Enterprise Admin Master Data Contracts
+// ---------------------------------------------------------------------------
+
+export interface EnterpriseOrgProfile {
+  company_name: string;
+  primary_plant: string;
+  primary_port: string;
+  currency: string;
+  annual_volume_units: number;
+  critical_order_threshold_inr: number;
+}
+
+export interface EnterpriseSupplier {
+  id: string;
+  name: string;
+  country: string;
+  part_sku: string;
+  lead_time_days: number;
+  single_source: boolean;
+  spend_inr: number;
+}
+
+export interface EnterpriseSKU {
+  sku_id: string;
+  name: string;
+  current_stock_units: number;
+  daily_burn_units: number;
+  runway_days: number;
+  safety_buffer_days: number;
+  critical_part: string;
+}
+
+export interface EnterpriseOrder {
+  order_id: string;
+  customer_name: string;
+  sku_id: string;
+  units: number;
+  order_value_inr: number;
+  promised_delivery_date: string;
+  late_penalty_daily_inr: number;
+  priority: string;
+}
+
+export interface EnterpriseRoute {
+  id: string;
+  name: string;
+  transport_mode: string;
+  carrier: string;
+  origin: string;
+  destination: string;
+  transit_days: number;
+  critical_sku: string;
+  chokepoints_traversed: string[];
+  risk_level: string;
+}
+
+export interface EnterprisePlant {
+  id: string;
+  name: string;
+  location: string;
+  capacity_units_day: number;
+  critical_lines: string;
+  status: string;
+}
+
+export interface EnterpriseApiCredentials {
+  openrouter_api_key?: string;
+  gemini_api_key?: string;
+  opensky_configured: boolean;
+  ais_maritime_configured: boolean;
+  gnews_configured: boolean;
+  weather_configured: boolean;
+}
+
+export interface EnterpriseData {
+  org_profile: EnterpriseOrgProfile;
+  custom_suppliers: EnterpriseSupplier[];
+  custom_skus: EnterpriseSKU[];
+  customer_orders: EnterpriseOrder[];
+  routes?: EnterpriseRoute[];
+  plants?: EnterprisePlant[];
+  api_credentials?: EnterpriseApiCredentials;
+}
+
+
