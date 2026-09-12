@@ -95,10 +95,10 @@ export default function ExposurePage() {
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full font-mono">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#143a22] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#112818] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded bg-[#00ff88]/20 border border-[#00ff88]/40 px-2 py-0.5 text-[10px] text-[#00ff88]">
+            <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[10px] text-[#00e676]">
               [TRACE + QUANTIFY]
             </span>
             <span className="text-xs text-[#4e6e58]">BILL-OF-MATERIALS & ORDER EXPOSURE</span>
@@ -112,12 +112,12 @@ export default function ExposurePage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-1 rounded-lg border border-[#143a22] bg-[#07140b] p-1">
+        <div className="flex items-center gap-1 rounded-lg border border-[#112818] bg-[#020503] p-1">
           <button
             onClick={() => setActiveTab('skus')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-bold transition ${
               activeTab === 'skus'
-                ? 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/40'
+                ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
                 : 'text-[#87a894] hover:text-white'
             }`}
           >
@@ -128,7 +128,7 @@ export default function ExposurePage() {
             onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-bold transition ${
               activeTab === 'orders'
-                ? 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/40'
+                ? 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
                 : 'text-[#87a894] hover:text-white'
             }`}
           >
@@ -146,7 +146,7 @@ export default function ExposurePage() {
           {/* Left Table (7 cols) */}
           <div className="lg:col-span-7 space-y-4">
             {/* Search & Sort Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#07140b] p-3 rounded-lg border border-[#143a22]">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#020503] p-3 rounded-lg border border-[#112818]">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#4e6e58]" />
                 <input
@@ -154,7 +154,7 @@ export default function ExposurePage() {
                   value={skuSearch}
                   onChange={(e) => setSkuSearch(e.target.value)}
                   placeholder="Filter SKUs, parts or components…"
-                  className="w-full rounded border border-[#143a22] bg-[#040806] pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#4e6e58] focus:border-[#00ff88] focus:outline-none"
+                  className="w-full rounded border border-[#112818] bg-[#000000] pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#4e6e58] focus:border-[#00e676] focus:outline-none"
                 />
               </div>
 
@@ -163,7 +163,7 @@ export default function ExposurePage() {
                 <select
                   value={skuSort}
                   onChange={(e) => setSkuSort(e.target.value as any)}
-                  className="rounded border border-[#143a22] bg-[#040806] px-2 py-1.5 text-xs text-[#00ff88] focus:outline-none"
+                  className="rounded border border-[#112818] bg-[#000000] px-2 py-1.5 text-xs text-[#00e676] focus:outline-none"
                 >
                   <option value="consequence">Highest Consequence</option>
                   <option value="runway">Soonest Stockout (Runway)</option>
@@ -174,11 +174,11 @@ export default function ExposurePage() {
             </div>
 
             {/* SKU Table */}
-            <div className="rounded-xl border border-[#143a22] bg-[#07140b] overflow-hidden">
+            <div className="rounded-xl border border-[#112818] bg-[#020503] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-[#143a22] bg-[#040806] text-[#4e6e58] text-[10px] uppercase tracking-wider">
+                    <tr className="border-b border-[#112818] bg-[#000000] text-[#4e6e58] text-[10px] uppercase tracking-wider">
                       <th className="p-3">SKU / Product</th>
                       <th className="p-3 text-right">Stock</th>
                       <th className="p-3 text-right">Runway</th>
@@ -197,8 +197,8 @@ export default function ExposurePage() {
                           onClick={() => setSelectedSku(sku)}
                           className={`cursor-pointer transition ${
                             isSelected
-                              ? 'bg-[#00ff88]/15 border-l-2 border-[#00ff88]'
-                              : 'hover:bg-[#00ff88]/5'
+                              ? 'bg-[#00e676]/15 border-l-2 border-[#00e676]'
+                              : 'hover:bg-[#00e676]/5'
                           }`}
                         >
                           <td className="p-3">
@@ -220,14 +220,14 @@ export default function ExposurePage() {
                                   ? 'text-red-400'
                                   : sku.stockout_probability > 0.4
                                   ? 'text-amber-400'
-                                  : 'text-[#00ff88]'
+                                  : 'text-[#00e676]'
                               }`}
                             >
                               {Math.round(sku.stockout_probability * 100)}%
                             </span>
                           </td>
                           <td className="p-3 text-right text-[#87a894]">{sku.orders_exposed_count}</td>
-                          <td className="p-3 text-right font-bold text-[#00ff88]">
+                          <td className="p-3 text-right font-bold text-[#00e676]">
                             {formatRupee(sku.revenue_exposure_inr)}
                           </td>
                           <td className="p-3 text-center">
@@ -237,7 +237,7 @@ export default function ExposurePage() {
                                   ? 'bg-red-500/20 text-red-400 border border-red-500/40'
                                   : sku.severity === 'HIGH'
                                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                  : 'bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/40'
+                                  : 'bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/40'
                               }`}
                             >
                               {sku.severity}
@@ -255,13 +255,13 @@ export default function ExposurePage() {
           {/* Right Detail Panel: SKU Profile & Runway (Section 20 & 23 & 24) (5 cols) */}
           <div className="lg:col-span-5">
             {selectedSku ? (
-              <div className="rounded-xl border border-[#00ff88]/40 bg-[#07140b] p-5 space-y-5 sticky top-16 shadow-[0_0_20px_rgba(0,255,136,0.1)]">
+              <div className="rounded-xl border border-[#00e676]/40 bg-[#020503] p-5 space-y-5 sticky top-16 shadow-[0_0_20px_rgba(0,255,136,0.1)]">
                 {/* Header */}
-                <div className="flex items-start justify-between border-b border-[#143a22] pb-3">
+                <div className="flex items-start justify-between border-b border-[#112818] pb-3">
                   <div>
                     <span className="text-[10px] text-[#4e6e58] uppercase">SKU DEEP DIVE</span>
                     <h2 className="text-lg font-black text-white mt-0.5">{selectedSku.id}</h2>
-                    <span className="text-xs text-[#00ff88]">{selectedSku.name}</span>
+                    <span className="text-xs text-[#00e676]">{selectedSku.name}</span>
                   </div>
                   <span
                     className={`rounded px-2 py-0.5 text-[10px] font-bold ${
@@ -276,17 +276,17 @@ export default function ExposurePage() {
 
                 {/* Key Metric Blocks */}
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
                     <span className="text-[9px] text-[#4e6e58] uppercase">Current Stock</span>
                     <div className="font-bold text-[#d1fae5] mt-1">{selectedSku.current_stock}</div>
                     <span className="text-[9px] text-[#4e6e58]">Demand: {selectedSku.daily_demand}/d</span>
                   </div>
-                  <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
                     <span className="text-[9px] text-[#4e6e58] uppercase">Runway</span>
                     <div className="font-bold text-red-400 mt-1">{selectedSku.runway_days.toFixed(1)} Days</div>
                     <span className="text-[9px] text-red-400/80">Gap: {selectedSku.gap_days}d</span>
                   </div>
-                  <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
                     <span className="text-[9px] text-[#4e6e58] uppercase">P(Stockout)</span>
                     <div className="font-bold text-red-400 mt-1">
                       {Math.round(selectedSku.stockout_probability * 100)}%
@@ -296,11 +296,11 @@ export default function ExposurePage() {
                 </div>
 
                 {/* Supply Chain Causal Path (Section 20) */}
-                <div className="space-y-1.5 border-t border-[#143a22] pt-3">
+                <div className="space-y-1.5 border-t border-[#112818] pt-3">
                   <span className="text-[10px] text-[#4e6e58] uppercase tracking-wider">
                     Supply Dependency Trace:
                   </span>
-                  <div className="bg-[#040806] p-3 rounded border border-[#143a22] space-y-2 text-xs">
+                  <div className="bg-[#000000] p-3 rounded border border-[#112818] space-y-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-red-400" />
                       <span className="text-[#87a894]">Disrupted Hub:</span>
@@ -312,7 +312,7 @@ export default function ExposurePage() {
                       <strong className="text-white">{selectedSku.supplier_name}</strong>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-[#00ff88]" />
+                      <span className="h-2 w-2 rounded-full bg-[#00e676]" />
                       <span className="text-[#87a894]">Component:</span>
                       <strong className="text-white">{selectedSku.component_name}</strong>
                     </div>
@@ -320,11 +320,11 @@ export default function ExposurePage() {
                 </div>
 
                 {/* Visual Inventory Runway Timeline (Section 23) */}
-                <div className="space-y-1.5 border-t border-[#143a22] pt-3">
+                <div className="space-y-1.5 border-t border-[#112818] pt-3">
                   <span className="text-[10px] text-[#4e6e58] uppercase tracking-wider">
                     Inventory Runway vs Inbound Arrival:
                   </span>
-                  <div className="bg-[#040806] p-3 rounded border border-[#143a22] space-y-2 text-xs">
+                  <div className="bg-[#000000] p-3 rounded border border-[#112818] space-y-2 text-xs">
                     <div className="flex justify-between text-[11px]">
                       <span>Today</span>
                       <span className="text-red-400 font-bold">Stockout: Day 11</span>
@@ -332,9 +332,9 @@ export default function ExposurePage() {
                     </div>
 
                     {/* Timeline Bar */}
-                    <div className="relative h-3 w-full rounded-full bg-[#143a22] overflow-hidden">
+                    <div className="relative h-3 w-full rounded-full bg-[#112818] overflow-hidden">
                       {/* Current runway (green) */}
-                      <div className="absolute top-0 left-0 h-full bg-[#00ff88]" style={{ width: '37%' }} />
+                      <div className="absolute top-0 left-0 h-full bg-[#00e676]" style={{ width: '37%' }} />
                       {/* Critical Stockout Gap (red striped) */}
                       <div className="absolute top-0 left-[37%] h-full bg-red-500/80" style={{ width: '23%' }} />
                     </div>
@@ -347,30 +347,30 @@ export default function ExposurePage() {
                 </div>
 
                 {/* Probabilistic Stockout Curve (Section 24) */}
-                <div className="space-y-1.5 border-t border-[#143a22] pt-3">
+                <div className="space-y-1.5 border-t border-[#112818] pt-3">
                   <span className="text-[10px] text-[#4e6e58] uppercase tracking-wider">
                     Cumulative Stockout Probability:
                   </span>
                   <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                    <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                    <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                       <span className="text-[9px] text-[#4e6e58]">&lt; 7 Days</span>
-                      <div className="font-bold text-[#00ff88] mt-0.5">
+                      <div className="font-bold text-[#00e676] mt-0.5">
                         {Math.round(selectedSku.prob_stockout_7d * 100)}%
                       </div>
                     </div>
-                    <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                    <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                       <span className="text-[9px] text-[#4e6e58]">&lt; 14 Days</span>
                       <div className="font-bold text-red-400 mt-0.5">
                         {Math.round(selectedSku.prob_stockout_14d * 100)}%
                       </div>
                     </div>
-                    <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                    <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                       <span className="text-[9px] text-[#4e6e58]">&lt; 21 Days</span>
                       <div className="font-bold text-red-400 mt-0.5">
                         {Math.round(selectedSku.prob_stockout_21d * 100)}%
                       </div>
                     </div>
-                    <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                    <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                       <span className="text-[9px] text-[#4e6e58]">&lt; 30 Days</span>
                       <div className="font-bold text-red-400 mt-0.5">
                         {Math.round(selectedSku.prob_stockout_30d * 100)}%
@@ -380,10 +380,10 @@ export default function ExposurePage() {
                 </div>
 
                 {/* Mitigation CTA */}
-                <div className="border-t border-[#143a22] pt-4">
+                <div className="border-t border-[#112818] pt-4">
                   <Link
                     href="/scenarios"
-                    className="flex w-full items-center justify-center gap-2 rounded border border-[#00ff88]/50 bg-[#00ff88]/20 py-2.5 text-xs font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition shadow-[0_0_15px_rgba(0,255,136,0.15)]"
+                    className="flex w-full items-center justify-center gap-2 rounded border border-[#00e676]/50 bg-[#00e676]/20 py-2.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_15px_rgba(0,255,136,0.15)]"
                   >
                     <span>SIMULATE EXPEDITE MITIGATION</span>
                     <ArrowRight className="w-4 h-4" />
@@ -391,7 +391,7 @@ export default function ExposurePage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-[#143a22] bg-[#07140b] p-8 text-center text-xs text-[#87a894]">
+              <div className="rounded-xl border border-[#112818] bg-[#020503] p-8 text-center text-xs text-[#87a894]">
                 Select an SKU from the table to inspect bill-of-materials and runway.
               </div>
             )}
@@ -405,7 +405,7 @@ export default function ExposurePage() {
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {/* Order Filters */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#07140b] p-3 rounded-lg border border-[#143a22]">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#020503] p-3 rounded-lg border border-[#112818]">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#4e6e58]" />
               <input
@@ -413,7 +413,7 @@ export default function ExposurePage() {
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
                 placeholder="Filter by customer, order ID, or SKU…"
-                className="w-full rounded border border-[#143a22] bg-[#040806] pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#4e6e58] focus:border-[#00ff88] focus:outline-none"
+                className="w-full rounded border border-[#112818] bg-[#000000] pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#4e6e58] focus:border-[#00e676] focus:outline-none"
               />
             </div>
 
@@ -422,7 +422,7 @@ export default function ExposurePage() {
               <select
                 value={orderFilterSeverity}
                 onChange={(e) => setOrderFilterSeverity(e.target.value)}
-                className="rounded border border-[#143a22] bg-[#040806] px-2.5 py-1.5 text-xs text-[#00ff88] focus:outline-none"
+                className="rounded border border-[#112818] bg-[#000000] px-2.5 py-1.5 text-xs text-[#00e676] focus:outline-none"
               >
                 <option value="all">All Severities</option>
                 <option value="critical">Critical Only</option>
@@ -433,11 +433,11 @@ export default function ExposurePage() {
           </div>
 
           {/* Orders Table */}
-          <div className="rounded-xl border border-[#143a22] bg-[#07140b] overflow-hidden">
+          <div className="rounded-xl border border-[#112818] bg-[#020503] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#143a22] bg-[#040806] text-[#4e6e58] text-[10px] uppercase tracking-wider">
+                  <tr className="border-b border-[#112818] bg-[#000000] text-[#4e6e58] text-[10px] uppercase tracking-wider">
                     <th className="p-3">Order ID</th>
                     <th className="p-3">Customer Account</th>
                     <th className="p-3">SKU</th>
@@ -455,7 +455,7 @@ export default function ExposurePage() {
                     <tr
                       key={ord.id}
                       onClick={() => setSelectedOrder(ord)}
-                      className="cursor-pointer hover:bg-[#00ff88]/5 transition"
+                      className="cursor-pointer hover:bg-[#00e676]/5 transition"
                     >
                       <td className="p-3 font-bold text-white">{ord.id}</td>
                       <td className="p-3 text-[#d1fae5]">{ord.customer_name}</td>
@@ -464,7 +464,7 @@ export default function ExposurePage() {
                       <td className="p-3 text-[#87a894]">{ord.promised_date}</td>
                       <td className="p-3 text-red-400 font-bold">{ord.expected_date}</td>
                       <td className="p-3 text-right text-red-400 font-bold">+{ord.delay_days}d</td>
-                      <td className="p-3 text-right text-[#00ff88] font-bold">
+                      <td className="p-3 text-right text-[#00e676] font-bold">
                         {formatRupee(ord.revenue_exposure_inr)}
                       </td>
                       <td className="p-3 text-center">
@@ -478,7 +478,7 @@ export default function ExposurePage() {
                             e.stopPropagation();
                             setSelectedOrder(ord);
                           }}
-                          className="rounded border border-[#00ff88]/40 bg-[#00ff88]/10 px-2 py-0.5 text-[10px] text-[#00ff88] hover:bg-[#00ff88]/20"
+                          className="rounded border border-[#00e676]/40 bg-[#00e676]/10 px-2 py-0.5 text-[10px] text-[#00e676] hover:bg-[#00e676]/20"
                         >
                           DETAIL
                         </button>
@@ -495,10 +495,10 @@ export default function ExposurePage() {
       {/* Order Detail Modal (Section 22) */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-xl border border-[#00ff88]/50 bg-[#040806] p-6 shadow-[0_0_30px_rgba(0,255,136,0.2)] font-mono text-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-[#143a22] pb-3">
+          <div className="w-full max-w-lg rounded-xl border border-[#00e676]/50 bg-[#000000] p-6 shadow-[0_0_30px_rgba(0,255,136,0.2)] font-mono text-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-[#112818] pb-3">
               <div>
-                <span className="text-[10px] text-[#00ff88] font-bold">[ORDER IMPACT TRACE]</span>
+                <span className="text-[10px] text-[#00e676] font-bold">[ORDER IMPACT TRACE]</span>
                 <h3 className="text-base font-black text-white uppercase mt-0.5">
                   ORDER {selectedOrder.id} · {selectedOrder.customer_name}
                 </h3>
@@ -512,11 +512,11 @@ export default function ExposurePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-[#07140b] p-3 rounded border border-[#143a22]">
+              <div className="bg-[#020503] p-3 rounded border border-[#112818]">
                 <span className="text-[10px] text-[#4e6e58] uppercase">Promised Delivery</span>
                 <div className="font-bold text-white mt-0.5">{selectedOrder.promised_date}</div>
               </div>
-              <div className="bg-[#07140b] p-3 rounded border border-[#143a22]">
+              <div className="bg-[#020503] p-3 rounded border border-[#112818]">
                 <span className="text-[10px] text-[#4e6e58] uppercase">Current Expected</span>
                 <div className="font-bold text-red-400 mt-0.5">
                   {selectedOrder.expected_date} (+{selectedOrder.delay_days}d)
@@ -524,7 +524,7 @@ export default function ExposurePage() {
               </div>
             </div>
 
-            <div className="space-y-2 bg-[#07140b] p-3.5 rounded border border-[#143a22] text-xs">
+            <div className="space-y-2 bg-[#020503] p-3.5 rounded border border-[#112818] text-xs">
               <div className="flex justify-between">
                 <span className="text-[#87a894]">Probability of Missing Date:</span>
                 <span className="font-bold text-red-400">{Math.round(selectedOrder.p_miss * 100)}%</span>
@@ -535,21 +535,21 @@ export default function ExposurePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-[#87a894]">Affected Component:</span>
-                <span className="font-bold text-[#00ff88]">{selectedOrder.affected_component}</span>
+                <span className="font-bold text-[#00e676]">{selectedOrder.affected_component}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#87a894]">Revenue at Risk:</span>
-                <span className="font-bold text-[#00ff88]">{formatRupee(selectedOrder.revenue_exposure_inr)}</span>
+                <span className="font-bold text-[#00e676]">{formatRupee(selectedOrder.revenue_exposure_inr)}</span>
               </div>
             </div>
 
             {/* Recommended Action */}
-            <div className="rounded border border-[#00ff88]/40 bg-[#00ff88]/10 p-3.5 space-y-1.5">
-              <span className="text-[10px] text-[#00ff88] font-bold uppercase">RECOMMENDED INTERVENTION:</span>
+            <div className="rounded border border-[#00e676]/40 bg-[#00e676]/10 p-3.5 space-y-1.5">
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">RECOMMENDED INTERVENTION:</span>
               <p className="text-xs text-white">{selectedOrder.recommended_action}</p>
-              <div className="flex justify-between text-[11px] text-[#87a894] border-t border-[#143a22] pt-1.5">
+              <div className="flex justify-between text-[11px] text-[#87a894] border-t border-[#112818] pt-1.5">
                 <span>Mitigated ETA: <strong className="text-white">{selectedOrder.expected_mitigated_date}</strong></span>
-                <span>P(Miss) falls to: <strong className="text-[#00ff88]">{Math.round(selectedOrder.mitigated_p_miss * 100)}%</strong></span>
+                <span>P(Miss) falls to: <strong className="text-[#00e676]">{Math.round(selectedOrder.mitigated_p_miss * 100)}%</strong></span>
               </div>
             </div>
 
@@ -562,7 +562,7 @@ export default function ExposurePage() {
               </button>
               <Link
                 href="/scenarios"
-                className="rounded border border-[#00ff88]/50 bg-[#00ff88]/20 px-3 py-1.5 text-xs font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition"
+                className="rounded border border-[#00e676]/50 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
               >
                 SIMULATE INTERVENTION
               </Link>

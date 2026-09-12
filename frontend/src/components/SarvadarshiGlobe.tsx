@@ -15,7 +15,7 @@ import type {
 const R = 1.0; // Globe radius
 const BORDERS_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
-const COLOR_TACTICAL_GREEN = 0x00ff88;
+const COLOR_TACTICAL_GREEN = 0x00e676;
 const COLOR_AMBER = 0xfbbf24;
 const COLOR_CRIMSON = 0xff3344;
 const COLOR_CYAN = 0x38bdf8;
@@ -163,7 +163,7 @@ export default function SarvadarshiGlobe({
 
     // Scene with dark tactical background
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020604);
+    scene.background = new THREE.Color(0x000000);
 
     // Camera
     const camera = new THREE.PerspectiveCamera(45, el.clientWidth / el.clientHeight, 0.01, 1000);
@@ -188,11 +188,11 @@ export default function SarvadarshiGlobe({
     controls.autoRotateSpeed = 0.35;
 
     // Lights
-    scene.add(new THREE.AmbientLight(0x183020, 0.85));
+    scene.add(new THREE.AmbientLight(0x0a160f, 0.75));
     const sun = new THREE.DirectionalLight(0x58a6ff, 1.2);
     sun.position.set(5, 3, 5);
     scene.add(sun);
-    const sun2 = new THREE.DirectionalLight(0x00ff88, 0.5);
+    const sun2 = new THREE.DirectionalLight(0x00e676, 0.30);
     sun2.position.set(-5, -3, -5);
     scene.add(sun2);
 
@@ -265,7 +265,7 @@ export default function SarvadarshiGlobe({
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       uniforms: {
-        uColor: { value: new THREE.Color(0x00ff88) },
+        uColor: { value: new THREE.Color(0x00e676) },
       },
       vertexShader: `
         varying vec3 vNormal;
@@ -280,7 +280,7 @@ export default function SarvadarshiGlobe({
         void main() {
           float d = dot(vNormal, vec3(0.0, 0.0, -1.0));
           float intensity = pow(0.72 - d, 2.6);
-          gl_FragColor = vec4(uColor, intensity * 0.50);
+          gl_FragColor = vec4(uColor, intensity * 0.35);
         }
       `,
     });

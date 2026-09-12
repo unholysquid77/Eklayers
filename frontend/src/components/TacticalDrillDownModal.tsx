@@ -194,31 +194,31 @@ export default function TacticalDrillDownModal({
         target: lgTarget,
       };
 
-      // 1. Target Reticle & Tactical Range Rings
+      // 1. Target Reticle & Tactical Range Rings (Brutalist Squared Crosshair)
       const targetIcon = L.divIcon({
         className: 'drilldown-target-icon',
         html: `
-          <div style="position:relative; width:64px; height:64px; transform:translate(-50%, -50%); pointer-events:none;">
-            <div style="position:absolute; inset:0; border:2px solid #00ff88; border-radius:50%; animation:ping 2s cubic-bezier(0,0,0.2,1) infinite; opacity:0.8;"></div>
-            <div style="position:absolute; inset:12px; border:2px dashed #00ff88; border-radius:50%; background:rgba(0,255,136,0.15);"></div>
-            <div style="position:absolute; top:31px; left:0; right:0; height:2px; background:#00ff88; box-shadow:0 0 8px #00ff88;"></div>
-            <div style="position:absolute; left:31px; top:0; bottom:0; width:2px; background:#00ff88; box-shadow:0 0 8px #00ff88;"></div>
-            <div style="position:absolute; top:36px; left:36px; background:rgba(4,8,6,0.9); border:1px solid #00ff88; color:#00ff88; font-family:monospace; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:3px; white-space:nowrap;">
-              PRIMARY TARGET: ${title}
+          <div style="position:relative; width:56px; height:56px; transform:translate(-50%, -50%); pointer-events:none;">
+            <div style="position:absolute; inset:0; border:1.5px solid #00e676; opacity:0.85;"></div>
+            <div style="position:absolute; inset:8px; border:1px dashed #00e676; background:rgba(0,230,118,0.06);"></div>
+            <div style="position:absolute; top:27px; left:0; right:0; height:1px; background:#00e676;"></div>
+            <div style="position:absolute; left:27px; top:0; bottom:0; width:1px; background:#00e676;"></div>
+            <div style="position:absolute; top:32px; left:32px; background:#000000; border:1px solid #00e676; color:#00e676; font-family:monospace; font-size:9px; font-weight:bold; padding:1px 5px; white-space:nowrap;">
+              TARGET: ${title}
             </div>
           </div>
         `,
-        iconSize: [64, 64],
+        iconSize: [56, 56],
       });
       L.marker([lat, lon], { icon: targetIcon }).addTo(lgTarget);
 
       // Range Rings (15 km tactical inner buffer, 35 km operational buffer)
       L.circle([lat, lon], {
         radius: 15000,
-        color: '#00ff88',
+        color: '#00e676',
         weight: 1,
         dashArray: '4, 8',
-        fillColor: '#00ff88',
+        fillColor: '#00e676',
         fillOpacity: 0.04,
       }).addTo(lgRings);
 
@@ -236,7 +236,7 @@ export default function TacticalDrillDownModal({
           if (lane.geometry && lane.geometry.coordinates) {
             const latLngs = lane.geometry.coordinates.map((c: any) => [c[1], c[0]]);
             L.polyline(latLngs, {
-              color: '#00ff88',
+              color: '#00e676',
               weight: 2,
               opacity: 0.5,
               dashArray: '6, 6',
@@ -293,22 +293,21 @@ export default function TacticalDrillDownModal({
           const cpLon = cp.longitude ?? (cp as any).lon ?? 0;
           const cpId = cp.id ?? (cp as any).node_id ?? cp.name;
           const stressVal = cp.stress_level ?? 0.5;
-          const color = stressVal > 0.65 ? '#ef4444' : stressVal > 0.4 ? '#f59e0b' : '#00ff88';
+          const color = stressVal > 0.65 ? '#ef4444' : stressVal > 0.4 ? '#f59e0b' : '#00e676';
 
           const cpIcon = L.divIcon({
             className: 'cp-marker',
             html: `
-              <div style="position:relative; width:28px; height:28px; transform:translate(-50%, -50%); cursor:pointer;">
-                <div style="position:absolute; inset:0; border-radius:50%; background:${color}; opacity:0.3; animation:pulse 2s infinite;"></div>
-                <div style="position:absolute; inset:4px; border-radius:50%; background:#040806; border:2px solid ${color}; display:flex; align-items:center; justify-content:center;">
-                  <div style="width:6px; height:6px; border-radius:50%; background:${color};"></div>
+              <div style="position:relative; width:24px; height:24px; transform:translate(-50%, -50%); cursor:pointer;">
+                <div style="position:absolute; inset:0; background:#000000; border:1.5px solid ${color}; display:flex; align-items:center; justify-content:center;">
+                  <div style="width:6px; height:6px; background:${color};"></div>
                 </div>
-                <div style="position:absolute; top:28px; left:50%; transform:translateX(-50%); background:rgba(4,8,6,0.9); border:1px solid ${color}; color:${color}; font-size:9px; font-family:monospace; padding:1px 4px; border-radius:2px; white-space:nowrap; pointer-events:none;">
+                <div style="position:absolute; top:26px; left:50%; transform:translateX(-50%); background:#000000; border:1px solid ${color}; color:${color}; font-size:9px; font-family:monospace; padding:1px 4px; white-space:nowrap; pointer-events:none;">
                   ${cp.name.split(' ')[0]} ${Math.round(stressVal * 100)}%
                 </div>
               </div>
             `,
-            iconSize: [28, 28],
+            iconSize: [24, 24],
           });
 
           const marker = L.marker([cpLat, cpLon], { icon: cpIcon }).addTo(lgChokepoints);
@@ -351,7 +350,7 @@ export default function TacticalDrillDownModal({
                 </div>
               ` : ''}
               <div style="transform: rotate(${headingDeg}deg); width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="${col}" stroke="#040806" stroke-width="1.5">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="${col}" stroke="#000000" stroke-width="1.5">
                   <path d="M12 2L4 20L12 17L20 20L12 2Z" />
                 </svg>
               </div>
@@ -394,7 +393,7 @@ export default function TacticalDrillDownModal({
           html: `
             <div style="position:relative; width:24px; height:24px; transform:translate(-50%, -50%); cursor:pointer;">
               <div style="transform: rotate(${headingDeg}deg); width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="${color}" stroke="#040806" stroke-width="1">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="${color}" stroke="#000000" stroke-width="1">
                   <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
                 </svg>
               </div>
@@ -446,7 +445,7 @@ export default function TacticalDrillDownModal({
               const iIcon = L.divIcon({
                 className: 'infra-marker',
                 html: `
-                  <div style="width:16px; height:16px; transform:translate(-50%, -50%); border-radius:3px; background:#040806; border:1.5px solid ${it.color}; display:flex; align-items:center; justify-content:center; color:${it.color}; font-size:10px; cursor:pointer;">
+                  <div style="width:16px; height:16px; transform:translate(-50%, -50%); border-radius:3px; background:#000000; border:1.5px solid ${it.color}; display:flex; align-items:center; justify-content:center; color:${it.color}; font-size:10px; cursor:pointer;">
                     ${it.icon}
                   </div>
                 `,
@@ -531,22 +530,22 @@ export default function TacticalDrillDownModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#040806] font-mono text-white select-none">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#000000] font-mono text-white select-none">
       {/* Top Tactical Command Bar */}
-      <div className="flex h-14 items-center justify-between border-b border-[#143a22] bg-[#07140b]/95 px-6 backdrop-blur-md z-20">
+      <div className="flex h-14 items-center justify-between border-b border-[#112818] bg-[#000000]/95 px-6 backdrop-blur-md z-20">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 rounded border border-[#00ff88]/40 bg-[#00ff88]/10 px-3.5 py-1.5 text-xs font-bold text-[#00ff88] transition-all hover:bg-[#00ff88]/20"
+            className="flex items-center gap-2 rounded border border-[#00e676]/40 bg-[#00e676]/10 px-3.5 py-1.5 text-xs font-bold text-[#00e676] transition-all hover:bg-[#00e676]/20"
           >
             &larr; BACK TO 3D GLOBE
           </button>
-          <div className="h-5 w-px bg-[#143a22]" />
+          <div className="h-5 w-px bg-[#112818]" />
           <div>
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#00ff88] animate-pulse" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#00e676] animate-pulse" />
               <h2 className="text-sm font-black tracking-wider text-white uppercase">{title}</h2>
-              <span className="rounded border border-[#00ff88]/40 bg-[#00ff88]/15 px-2 py-0.5 text-[9px] text-[#00ff88]">
+              <span className="rounded border border-[#00e676]/40 bg-[#00e676]/15 px-2 py-0.5 text-[9px] text-[#00e676]">
                 {category}
               </span>
               {anomalyCount > 0 && (
@@ -565,11 +564,11 @@ export default function TacticalDrillDownModal({
         {/* Controls & Basemap Switcher */}
         <div className="flex items-center gap-3">
           {/* Basemap Options */}
-          <div className="flex items-center rounded border border-[#143a22] bg-[#040806] p-0.5 text-xs">
+          <div className="flex items-center rounded border border-[#112818] bg-[#000000] p-0.5 text-xs">
             <button
               onClick={() => setMapType('carto_dark')}
               className={`rounded px-3 py-1 text-[11px] font-bold transition-colors ${
-                mapType === 'carto_dark' ? 'bg-[#00ff88] text-black' : 'text-[#87a894] hover:text-white'
+                mapType === 'carto_dark' ? 'bg-[#00e676] text-black' : 'text-[#87a894] hover:text-white'
               }`}
             >
               CARTO DARK
@@ -577,7 +576,7 @@ export default function TacticalDrillDownModal({
             <button
               onClick={() => setMapType('osm_bw')}
               className={`rounded px-3 py-1 text-[11px] font-bold transition-colors ${
-                mapType === 'osm_bw' ? 'bg-[#00ff88] text-black' : 'text-[#87a894] hover:text-white'
+                mapType === 'osm_bw' ? 'bg-[#00e676] text-black' : 'text-[#87a894] hover:text-white'
               }`}
             >
               OSM B&W
@@ -585,7 +584,7 @@ export default function TacticalDrillDownModal({
             <button
               onClick={() => setMapType('satellite')}
               className={`rounded px-3 py-1 text-[11px] font-bold transition-colors ${
-                mapType === 'satellite' ? 'bg-[#00ff88] text-black' : 'text-[#87a894] hover:text-white'
+                mapType === 'satellite' ? 'bg-[#00e676] text-black' : 'text-[#87a894] hover:text-white'
               }`}
             >
               SATELLITE
@@ -595,14 +594,14 @@ export default function TacticalDrillDownModal({
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleZoom(1)}
-              className="flex h-8 w-8 items-center justify-center rounded border border-[#143a22] bg-[#07140b] text-[#00ff88] hover:bg-[#143a22]"
+              className="flex h-8 w-8 items-center justify-center rounded border border-[#112818] bg-[#000000] text-[#00e676] hover:bg-[#112818]"
               title="Zoom In"
             >
               <ZoomIn className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleZoom(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded border border-[#143a22] bg-[#07140b] text-[#00ff88] hover:bg-[#143a22]"
+              className="flex h-8 w-8 items-center justify-center rounded border border-[#112818] bg-[#000000] text-[#00e676] hover:bg-[#112818]"
               title="Zoom Out"
             >
               <ZoomOut className="h-4 w-4" />
@@ -611,7 +610,7 @@ export default function TacticalDrillDownModal({
 
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded border border-[#143a22] bg-[#07140b] text-white hover:border-red-500 hover:text-red-400"
+            className="flex h-8 w-8 items-center justify-center rounded border border-[#112818] bg-[#000000] text-white hover:border-red-500 hover:text-red-400"
           >
             <X className="h-4 w-4" />
           </button>
@@ -619,16 +618,16 @@ export default function TacticalDrillDownModal({
       </div>
 
       {/* Secondary Layer Filter Strip */}
-      <div className="flex items-center justify-between border-b border-[#143a22] bg-[#040806]/90 px-6 py-2 text-[11px] z-10">
+      <div className="flex items-center justify-between border-b border-[#112818] bg-[#000000]/90 px-6 py-2 text-[11px] z-10">
         <div className="flex items-center gap-2 text-[#87a894]">
-          <Filter className="h-3.5 w-3.5 text-[#00ff88]" />
+          <Filter className="h-3.5 w-3.5 text-[#00e676]" />
           <span className="font-bold text-white uppercase">Tactical Overlays:</span>
         </div>
         <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={() => toggleModalLayer('chokepoints')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.chokepoints ? 'border-[#00ff88] bg-[#00ff88]/15 text-[#00ff88]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.chokepoints ? 'border-[#00e676] bg-[#00e676]/15 text-[#00e676]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Chokepoints ({cascadeData?.chokepoints.length || 0})
@@ -636,7 +635,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('vessels')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.vessels ? 'border-[#38bdf8] bg-[#38bdf8]/15 text-[#38bdf8]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.vessels ? 'border-[#38bdf8] bg-[#38bdf8]/15 text-[#38bdf8]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             AIS Vessels ({vessels.length})
@@ -644,7 +643,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('flights')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.flights ? 'border-[#a78bfa] bg-[#a78bfa]/15 text-[#a78bfa]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.flights ? 'border-[#a78bfa] bg-[#a78bfa]/15 text-[#a78bfa]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Flights ({flights.length})
@@ -652,7 +651,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('infra')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.infra ? 'border-[#f97316] bg-[#f97316]/15 text-[#f97316]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.infra ? 'border-[#f97316] bg-[#f97316]/15 text-[#f97316]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Refineries & Terminals
@@ -660,7 +659,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('shippingLanes')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.shippingLanes ? 'border-[#00ff88] bg-[#00ff88]/15 text-[#00ff88]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.shippingLanes ? 'border-[#00e676] bg-[#00e676]/15 text-[#00e676]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Corridors
@@ -668,7 +667,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('customChains')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.customChains ? 'border-[#e879f9] bg-[#e879f9]/15 text-[#e879f9]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.customChains ? 'border-[#e879f9] bg-[#e879f9]/15 text-[#e879f9]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Custom 3PL Chains ({customSupplyChains.length})
@@ -676,7 +675,7 @@ export default function TacticalDrillDownModal({
           <button
             onClick={() => toggleModalLayer('rangeRings')}
             className={`rounded px-2.5 py-1 font-bold border transition-colors ${
-              visibleLayers.rangeRings ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]' : 'border-[#143a22] text-[#87a894]'
+              visibleLayers.rangeRings ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]' : 'border-[#112818] text-[#87a894]'
             }`}
           >
             Buffer Rings (15/35km)
@@ -689,8 +688,8 @@ export default function TacticalDrillDownModal({
         <div ref={mapContainerRef} className="w-full h-full" />
 
         {/* Reticle Target Coordinates HUD */}
-        <div className="absolute bottom-6 left-6 z-10 rounded-lg border border-[#00ff88]/40 bg-[#040806]/90 p-4 backdrop-blur-md shadow-2xl">
-          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-[#00ff88]">
+        <div className="absolute bottom-6 left-6 z-10 rounded-lg border border-[#00e676]/40 bg-[#000000]/90 p-4 backdrop-blur-md ">
+          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-[#00e676]">
             <Compass className="h-4 w-4 animate-spin" />
             <span>GEO-SPATIAL TARGET ACQUISITION</span>
           </div>
@@ -698,9 +697,9 @@ export default function TacticalDrillDownModal({
             <div>COORDINATES:</div>
             <div className="font-bold text-white">{lat.toFixed(5)}&deg;N, {lon.toFixed(5)}&deg;E</div>
             <div>ZOOM LEVEL:</div>
-            <div className="font-bold text-[#00ff88]">LEVEL {zoomLevel} (SUB-METER VECTOR)</div>
+            <div className="font-bold text-[#00e676]">LEVEL {zoomLevel} (SUB-METER VECTOR)</div>
             <div>ESTIMATED STRESS:</div>
-            <div className={`font-bold ${stress > 0.6 ? 'text-red-400' : stress > 0.4 ? 'text-amber-400' : 'text-[#00ff88]'}`}>
+            <div className={`font-bold ${stress > 0.6 ? 'text-red-400' : stress > 0.4 ? 'text-amber-400' : 'text-[#00e676]'}`}>
               {Math.round(stress * 100)}%
             </div>
             <div>STATUS:</div>
@@ -710,10 +709,10 @@ export default function TacticalDrillDownModal({
 
         {/* Slide-Out Tactical Entity Inspector Drawer */}
         {inspectedEntity && (
-          <div className="absolute top-6 right-6 bottom-6 w-96 z-20 flex flex-col rounded-lg border border-[#00ff88]/50 bg-[#07140b]/95 p-5 backdrop-blur-md shadow-2xl overflow-y-auto animate-in slide-in-from-right">
-            <div className="flex items-center justify-between border-b border-[#143a22] pb-3 mb-4">
-              <div className="flex items-center gap-2 text-xs font-black text-[#00ff88] uppercase">
-                <Crosshair className="h-4 w-4 text-[#00ff88]" />
+          <div className="absolute top-6 right-6 bottom-6 w-96 z-20 flex flex-col rounded-lg border border-[#00e676]/50 bg-[#000000]/95 p-5 backdrop-blur-md  overflow-y-auto animate-in slide-in-from-right">
+            <div className="flex items-center justify-between border-b border-[#112818] pb-3 mb-4">
+              <div className="flex items-center gap-2 text-xs font-black text-[#00e676] uppercase">
+                <Crosshair className="h-4 w-4 text-[#00e676]" />
                 <span>Entity Telemetry</span>
               </div>
               <button
@@ -743,11 +742,11 @@ export default function TacticalDrillDownModal({
 
             <div className="space-y-2 mb-4">
               <div className="text-[10px] font-bold text-[#87a894] uppercase tracking-wider">Live Telemetry</div>
-              <div className="rounded border border-[#143a22] bg-[#040806]/80 p-3 space-y-2">
+              <div className="rounded border border-[#112818] bg-[#000000]/80 p-3 space-y-2">
                 {inspectedEntity.metrics.map((m, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <span className="text-[#87a894]">{m.label}:</span>
-                    <span className={`font-bold ${m.highlight ? 'text-[#00ff88]' : 'text-white'}`}>
+                    <span className={`font-bold ${m.highlight ? 'text-[#00e676]' : 'text-white'}`}>
                       {m.value}
                     </span>
                   </div>
@@ -755,9 +754,9 @@ export default function TacticalDrillDownModal({
               </div>
             </div>
 
-            <div className="mt-auto pt-3 border-t border-[#143a22] text-[10px] text-[#87a894] flex items-center justify-between">
+            <div className="mt-auto pt-3 border-t border-[#112818] text-[10px] text-[#87a894] flex items-center justify-between">
               <span>LAT: {inspectedEntity.lat.toFixed(4)}&deg; &middot; LON: {inspectedEntity.lon.toFixed(4)}&deg;</span>
-              <span className="text-[#00ff88]">[OBSERVED]</span>
+              <span className="text-[#00e676]">[OBSERVED]</span>
             </div>
           </div>
         )}

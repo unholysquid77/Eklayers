@@ -130,7 +130,7 @@ function ScoreGauge({ score }: { score: number }) {
           }}
         />
         <div
-          className="absolute inset-2 rounded-full bg-[#0a0f1d]"
+          className="absolute inset-2 rounded-full bg-[#000000]"
           style={{ transform: 'scaleY(0.5)', transformOrigin: 'bottom center' }}
         />
       </div>
@@ -304,7 +304,7 @@ export default function RiskPage() {
   return (
     <div className="flex flex-col h-screen bg-[#030712] text-slate-100 overflow-hidden font-sans">
       {/* ── Top bar ── */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#0a0f1d] shrink-0 z-20">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#000000] shrink-0 z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
@@ -377,7 +377,7 @@ export default function RiskPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* ── Supplier roster list ── */}
         <aside className="w-64 shrink-0 bg-[#080d1a]/95 border-r border-slate-800 overflow-y-auto styled-scrollbar">
-          <div className="px-3 py-2 hud-text text-[10px] text-slate-400 border-b border-slate-800 bg-[#0d1426] flex items-center justify-between">
+          <div className="px-3 py-2 hud-text text-[10px] text-slate-400 border-b border-slate-800 bg-[#020503] flex items-center justify-between">
             <span>SUPPLIER REGISTRY</span>
             <span className="text-[9px] text-slate-500">BY RISK RANK</span>
           </div>

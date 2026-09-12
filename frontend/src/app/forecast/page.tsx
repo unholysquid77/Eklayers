@@ -87,7 +87,7 @@ export default function ForecastPage() {
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full font-mono">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#143a22] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#112818] pb-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded bg-purple-500/20 border border-purple-500/40 px-2 py-0.5 text-[10px] text-purple-400">
@@ -104,12 +104,12 @@ export default function ForecastPage() {
         </div>
 
         {/* Forecast Confidence Badge (Section 27) */}
-        <div className="flex items-center gap-3 rounded-lg border border-[#00ff88]/40 bg-[#07140b] p-3 shadow-[0_0_15px_rgba(0,255,136,0.1)]">
-          <ShieldCheck className="w-5 h-5 text-[#00ff88]" />
+        <div className="flex items-center gap-3 rounded-lg border border-[#00e676]/40 bg-[#020503] p-3 shadow-[0_0_15px_rgba(0,255,136,0.1)]">
+          <ShieldCheck className="w-5 h-5 text-[#00e676]" />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white">MODEL CONFIDENCE:</span>
-              <span className="text-xs font-black text-[#00ff88]">HIGH (88%)</span>
+              <span className="text-xs font-black text-[#00e676]">HIGH (88%)</span>
             </div>
             <p className="text-[10px] text-[#87a894]">Based on 18 historical analogues & 7 independent signal streams</p>
           </div>
@@ -119,8 +119,8 @@ export default function ForecastPage() {
       {/* Row 1: Forecast Trajectories & Stockout Curve (Section 26 & 24) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Disruption Probability 30-Day Trajectory (7 cols) */}
-        <div className="lg:col-span-7 rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+        <div className="lg:col-span-7 rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
               <span className="text-[10px] text-purple-400 font-bold uppercase">[FORECAST TRAJECTORY]</span>
               <h2 className="text-xs font-bold uppercase text-white mt-0.5">
@@ -140,10 +140,10 @@ export default function ForecastPage() {
             </div>
 
             {/* Ascending Trajectory Bars */}
-            <div className="grid grid-cols-6 gap-2 items-end h-32 pt-4 bg-[#040806] p-3 rounded-lg border border-[#143a22]">
+            <div className="grid grid-cols-6 gap-2 items-end h-32 pt-4 bg-[#000000] p-3 rounded-lg border border-[#112818]">
               <div className="flex flex-col items-center gap-1.5 h-full justify-end">
                 <span className="text-[9px] text-[#87a894]">58%</span>
-                <div className="w-full bg-[#00ff88]" style={{ height: '58%' }} />
+                <div className="w-full bg-[#00e676]" style={{ height: '58%' }} />
                 <span className="text-[9px] text-[#4e6e58]">Day 0</span>
               </div>
               <div className="flex flex-col items-center gap-1.5 h-full justify-end">
@@ -180,8 +180,8 @@ export default function ForecastPage() {
         </div>
 
         {/* Stockout Probability Horizon (Section 24) (5 cols) */}
-        <div className="lg:col-span-5 rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+        <div className="lg:col-span-5 rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
               <span className="text-[10px] text-red-400 font-bold uppercase">[STOCKOUT HORIZON]</span>
               <h2 className="text-xs font-bold uppercase text-white mt-0.5">
@@ -195,10 +195,10 @@ export default function ForecastPage() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs">
                 <span className="text-[#87a894]">Stockout before Day 7:</span>
-                <span className="text-[#00ff88] font-bold">12%</span>
+                <span className="text-[#00e676] font-bold">12%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#143a22] overflow-hidden">
-                <div className="h-full bg-[#00ff88]" style={{ width: '12%' }} />
+              <div className="h-2 w-full rounded-full bg-[#112818] overflow-hidden">
+                <div className="h-full bg-[#00e676]" style={{ width: '12%' }} />
               </div>
             </div>
 
@@ -207,7 +207,7 @@ export default function ForecastPage() {
                 <span className="text-[#87a894]">Stockout before Day 14 (Critical Window):</span>
                 <span className="text-red-400 font-bold">78%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#143a22] overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#112818] overflow-hidden">
                 <div className="h-full bg-red-400" style={{ width: '78%' }} />
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function ForecastPage() {
                 <span className="text-[#87a894]">Stockout before Day 21:</span>
                 <span className="text-red-400 font-bold">91%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#143a22] overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#112818] overflow-hidden">
                 <div className="h-full bg-red-400" style={{ width: '91%' }} />
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function ForecastPage() {
                 <span className="text-[#87a894]">Stockout before Day 30:</span>
                 <span className="text-red-400 font-bold">96%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-[#143a22] overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[#112818] overflow-hidden">
                 <div className="h-full bg-red-500" style={{ width: '96%' }} />
               </div>
             </div>
@@ -243,17 +243,17 @@ export default function ForecastPage() {
       </div>
 
       {/* Row 2: Strategic Chokepoint Risk Rankings (Section 28) */}
-      <div className="rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+      <div className="rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-[#112818] pb-2">
           <div>
-            <span className="text-[10px] text-[#00ff88] font-bold uppercase">[CHOKEPOINT RANKINGS]</span>
+            <span className="text-[10px] text-[#00e676] font-bold uppercase">[CHOKEPOINT RANKINGS]</span>
             <h2 className="text-sm font-bold uppercase text-white mt-0.5">
               GLOBAL STRATEGIC BOTTLENECKS (30-DAY OUTLOOK)
             </h2>
           </div>
           <Link
             href="/command"
-            className="text-xs font-bold text-[#00ff88] hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-[#00e676] hover:underline flex items-center gap-1"
           >
             <span>VIEW CHOKEPOINTS ON GLOBE</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -263,7 +263,7 @@ export default function ForecastPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#143a22] bg-[#040806] text-[#4e6e58] text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-[#112818] bg-[#000000] text-[#4e6e58] text-[10px] uppercase tracking-wider">
                 <th className="p-3">Chokepoint Node</th>
                 <th className="p-3">Category</th>
                 <th className="p-3 text-right">Current Stress</th>
@@ -276,7 +276,7 @@ export default function ForecastPage() {
             </thead>
             <tbody className="divide-y divide-[#0e2716]">
               {CHOKEPOINT_RANKINGS.map((cp) => (
-                <tr key={cp.id} className="hover:bg-[#00ff88]/5 transition">
+                <tr key={cp.id} className="hover:bg-[#00e676]/5 transition">
                   <td className="p-3 font-bold text-white">{cp.name}</td>
                   <td className="p-3 text-[#87a894]">{cp.category}</td>
                   <td className="p-3 text-right">
@@ -286,24 +286,24 @@ export default function ForecastPage() {
                           ? 'text-red-400'
                           : cp.current_stress > 60
                           ? 'text-amber-400'
-                          : 'text-[#00ff88]'
+                          : 'text-[#00e676]'
                       }`}
                     >
                       {cp.current_stress}%
                     </span>
                   </td>
                   <td className="p-3 text-right">
-                    <span className={cp.trend_pct > 0 ? 'text-red-400 font-bold' : 'text-[#00ff88]'}>
+                    <span className={cp.trend_pct > 0 ? 'text-red-400 font-bold' : 'text-[#00e676]'}>
                       {cp.trend_pct > 0 ? `▲ +${cp.trend_pct}%` : `▼ ${cp.trend_pct}%`}
                     </span>
                   </td>
                   <td className="p-3 text-right font-bold text-red-400">{cp.peak_30d}%</td>
                   <td className="p-3 text-right text-white">{cp.affected_suppliers}</td>
-                  <td className="p-3 text-right text-[#00ff88] font-bold">{cp.affected_orders}</td>
+                  <td className="p-3 text-right text-[#00e676] font-bold">{cp.affected_orders}</td>
                   <td className="p-3 text-center">
                     <Link
                       href={`/command?trace=${cp.id}`}
-                      className="rounded border border-[#00ff88]/40 bg-[#00ff88]/10 px-2.5 py-1 text-[10px] text-[#00ff88] hover:bg-[#00ff88]/20 transition"
+                      className="rounded border border-[#00e676]/40 bg-[#00e676]/10 px-2.5 py-1 text-[10px] text-[#00e676] hover:bg-[#00e676]/20 transition"
                     >
                       TRACE ON GLOBE
                     </Link>
@@ -317,7 +317,7 @@ export default function ForecastPage() {
 
       {/* Row 3: Shipment ETA Uncertainty Distributions (Section 25) */}
       <div className="space-y-4">
-        <div className="border-b border-[#143a22] pb-2">
+        <div className="border-b border-[#112818] pb-2">
           <span className="text-[10px] text-[#38bdf8] font-bold uppercase">[LOGISTICS UNCERTAINTY]</span>
           <h2 className="text-sm font-bold uppercase text-white mt-0.5">
             SHIPMENT ETA PROBABILISTIC DISTRIBUTIONS (P50 / P90 / P99)
@@ -331,11 +331,11 @@ export default function ForecastPage() {
           {shipments.map((shp) => (
             <div
               key={shp.id}
-              className="rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4 relative"
+              className="rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4 relative"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="rounded bg-[#00ff88]/20 border border-[#00ff88]/40 px-2 py-0.5 text-[9px] font-bold text-[#00ff88]">
+                  <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[9px] font-bold text-[#00e676]">
                     {shp.carrier}
                   </span>
                   <h3 className="text-base font-bold text-white mt-1.5">{shp.id}</h3>
@@ -344,7 +344,7 @@ export default function ForecastPage() {
                 <div className="text-right">
                   <span
                     className={`text-lg font-black ${
-                      shp.p_late > 0.6 ? 'text-red-400' : 'text-[#00ff88]'
+                      shp.p_late > 0.6 ? 'text-red-400' : 'text-[#00e676]'
                     }`}
                   >
                     {Math.round(shp.p_late * 100)}%
@@ -354,7 +354,7 @@ export default function ForecastPage() {
               </div>
 
               {/* Status & Chokepoint */}
-              <div className="text-xs bg-[#040806] p-3 rounded border border-[#143a22] space-y-1">
+              <div className="text-xs bg-[#000000] p-3 rounded border border-[#112818] space-y-1">
                 <div className="flex justify-between">
                   <span className="text-[#4e6e58]">Status:</span>
                   <span className="text-red-400 font-bold">{shp.current_status}</span>
@@ -369,15 +369,15 @@ export default function ForecastPage() {
               <div className="space-y-1.5">
                 <span className="text-[10px] text-[#4e6e58] uppercase">Quantile Arrival Forecast:</span>
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                     <span className="text-[9px] text-[#4e6e58]">P50 (Median)</span>
                     <div className="font-bold text-white mt-0.5">{shp.p50_eta}</div>
                   </div>
-                  <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                     <span className="text-[9px] text-amber-400">P90 (Worst 10%)</span>
                     <div className="font-bold text-amber-400 mt-0.5">{shp.p90_eta}</div>
                   </div>
-                  <div className="bg-[#040806] p-2 rounded border border-[#143a22]">
+                  <div className="bg-[#000000] p-2 rounded border border-[#112818]">
                     <span className="text-[9px] text-red-400">P99 (Extreme)</span>
                     <div className="font-bold text-red-400 mt-0.5">{shp.p99_eta}</div>
                   </div>
@@ -385,16 +385,16 @@ export default function ForecastPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between border-t border-[#143a22] pt-3 text-xs">
+              <div className="flex items-center justify-between border-t border-[#112818] pt-3 text-xs">
                 <Link
                   href="/command"
-                  className="text-xs text-[#00ff88] hover:underline"
+                  className="text-xs text-[#00e676] hover:underline"
                 >
                   TRACE ROUTE
                 </Link>
                 <Link
                   href="/scenarios"
-                  className="rounded border border-[#00ff88]/50 bg-[#00ff88]/15 px-3 py-1 text-xs text-[#00ff88] hover:bg-[#00ff88]/25 transition"
+                  className="rounded border border-[#00e676]/50 bg-[#00e676]/15 px-3 py-1 text-xs text-[#00e676] hover:bg-[#00e676]/25 transition"
                 >
                   EXPEDITE
                 </Link>

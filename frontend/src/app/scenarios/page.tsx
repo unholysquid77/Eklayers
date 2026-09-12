@@ -100,10 +100,10 @@ export default function ScenariosPage() {
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full font-mono">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#143a22] pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#112818] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded bg-[#00ff88]/20 border border-[#00ff88]/40 px-2 py-0.5 text-[10px] text-[#00ff88]">
+            <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[10px] text-[#00e676]">
               [SIMULATION & INTERVENTION]
             </span>
             <span className="text-xs text-[#4e6e58]">MONTE CARLO STRESS TESTING & ACTION OPTIMIZATION</span>
@@ -117,7 +117,7 @@ export default function ScenariosPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded bg-[#07140b] border border-[#143a22] px-3 py-1 text-xs text-[#87a894]">
+          <span className="rounded bg-[#020503] border border-[#112818] px-3 py-1 text-xs text-[#87a894]">
             ENGINE: MONTE CARLO N=10,000
           </span>
         </div>
@@ -126,10 +126,10 @@ export default function ScenariosPage() {
       {/* Row 1: Survival Clock Hero & Stress Test Sandbox (Section 37, 38, 40) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Interactive Failure Configurator (5 cols) */}
-        <div className="lg:col-span-5 rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4">
-          <div className="border-b border-[#143a22] pb-2 flex justify-between items-center">
+        <div className="lg:col-span-5 rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+          <div className="border-b border-[#112818] pb-2 flex justify-between items-center">
             <div>
-              <span className="text-[10px] text-[#00ff88] font-bold uppercase">[STEP 1 & 2]</span>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[STEP 1 & 2]</span>
               <h2 className="text-xs font-bold uppercase text-white mt-0.5">FAILURE SANDBOX SETUP</h2>
             </div>
             <span className="text-[10px] text-[#4e6e58]">CUSTOM CHOKEPOINT SHOCK</span>
@@ -145,8 +145,8 @@ export default function ScenariosPage() {
                     onClick={() => setTargetType(type)}
                     className={`rounded border py-1.5 uppercase font-bold transition text-xs ${
                       targetType === type
-                        ? 'border-[#00ff88] bg-[#00ff88]/20 text-[#00ff88]'
-                        : 'border-[#143a22] bg-[#040806] text-[#87a894] hover:text-white'
+                        ? 'border-[#00e676] bg-[#00e676]/20 text-[#00e676]'
+                        : 'border-[#112818] bg-[#000000] text-[#87a894] hover:text-white'
                     }`}
                   >
                     {type}
@@ -160,7 +160,7 @@ export default function ScenariosPage() {
               <select
                 value={targetId}
                 onChange={(e) => setTargetId(e.target.value)}
-                className="w-full rounded border border-[#143a22] bg-[#040806] px-3 py-2 text-xs text-white focus:border-[#00ff88] focus:outline-none"
+                className="w-full rounded border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
               >
                 <option value="port-singapore">Port of Singapore (Transshipment Hub)</option>
                 <option value="cp.strait_of_hormuz">Strait of Hormuz (Energy Corridor)</option>
@@ -181,7 +181,7 @@ export default function ScenariosPage() {
                   max={60}
                   value={durationDays}
                   onChange={(e) => setDurationDays(Number(e.target.value))}
-                  className="w-full accent-[#00ff88]"
+                  className="w-full accent-[#00e676]"
                 />
               </div>
 
@@ -195,7 +195,7 @@ export default function ScenariosPage() {
                   max={100}
                   value={severityPct}
                   onChange={(e) => setSeverityPct(Number(e.target.value))}
-                  className="w-full accent-[#00ff88]"
+                  className="w-full accent-[#00e676]"
                 />
               </div>
             </div>
@@ -204,7 +204,7 @@ export default function ScenariosPage() {
               <button
                 onClick={handleRunSimulation}
                 disabled={simulating}
-                className="flex w-full items-center justify-center gap-2 rounded border border-[#00ff88]/60 bg-[#00ff88]/20 py-3 text-xs font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition shadow-[0_0_20px_rgba(0,255,136,0.2)]"
+                className="flex w-full items-center justify-center gap-2 rounded border border-[#00e676]/60 bg-[#00e676]/20 py-3 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_20px_rgba(0,255,136,0.2)]"
               >
                 {simulating ? (
                   <>
@@ -213,7 +213,7 @@ export default function ScenariosPage() {
                   </>
                 ) : (
                   <>
-                    <Play className="w-3.5 h-3.5 fill-[#00ff88]" />
+                    <Play className="w-3.5 h-3.5 fill-[#00e676]" />
                     <span>RUN 10,000 FUTURES SIMULATION</span>
                   </>
                 )}
@@ -223,9 +223,9 @@ export default function ScenariosPage() {
         </div>
 
         {/* Right: Operational Survival Clock & Quantiles (Section 38 & 40) (7 cols) */}
-        <div className="lg:col-span-7 rounded-xl border border-red-500/40 bg-[#07140b] p-5 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+        <div className="lg:col-span-7 rounded-xl border border-red-500/40 bg-[#020503] p-5 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.1)]">
           {/* Survival Clock Header */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#143a22] pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
             <div>
               <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
                 [OPERATIONAL SURVIVAL CLOCK]
@@ -233,7 +233,7 @@ export default function ScenariosPage() {
               <div className="text-xs text-[#87a894] mt-0.5">TIME TO FIRST PRODUCTION STOCKOUT:</div>
             </div>
             {/* Visual Survival Clock Number */}
-            <div className="flex items-center gap-2 bg-[#040806] px-4 py-2 rounded-lg border border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.25)]">
+            <div className="flex items-center gap-2 bg-[#000000] px-4 py-2 rounded-lg border border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.25)]">
               <Clock className="w-4 h-4 text-red-400 animate-pulse" />
               <span className="text-xl sm:text-2xl font-black tracking-widest">
                 {stressResult.survival_clock_display}
@@ -242,7 +242,7 @@ export default function ScenariosPage() {
           </div>
 
           {/* Survival Comparison Breakdown (Section 40) */}
-          <div className="space-y-2 bg-[#040806] p-4 rounded-lg border border-[#143a22] text-xs">
+          <div className="space-y-2 bg-[#000000] p-4 rounded-lg border border-[#112818] text-xs">
             <div className="flex justify-between items-center text-[#87a894]">
               <span>WITHOUT MITIGATION (BASELINE):</span>
               <strong className="text-red-400">{stressResult.survival_unmitigated_days} DAYS</strong>
@@ -253,32 +253,32 @@ export default function ScenariosPage() {
             </div>
             <div className="flex justify-between items-center text-[#87a894]">
               <span>WITH AIR EXPEDITING:</span>
-              <strong className="text-[#00ff88]">{stressResult.survival_expedited_days} DAYS (+16d)</strong>
+              <strong className="text-[#00e676]">{stressResult.survival_expedited_days} DAYS (+16d)</strong>
             </div>
           </div>
 
           {/* Quantile Distributions (Section 38) */}
           <div className="grid grid-cols-4 gap-2 text-center text-xs">
-            <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P50 (Median)</span>
               <div className="font-bold text-white mt-1">{stressResult.operational_survival_p50_days} Days</div>
             </div>
-            <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P75</span>
               <div className="font-bold text-amber-400 mt-1">{stressResult.operational_survival_p75_days} Days</div>
             </div>
-            <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P90</span>
               <div className="font-bold text-red-400 mt-1">{stressResult.operational_survival_p90_days} Days</div>
             </div>
-            <div className="bg-[#040806] p-2.5 rounded border border-[#143a22]">
+            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P99</span>
               <div className="font-bold text-red-400 mt-1">{stressResult.operational_survival_p99_days} Days</div>
             </div>
           </div>
 
           {/* Consequence Metrics */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs border-t border-[#143a22] pt-3">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs border-t border-[#112818] pt-3">
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Stockouts</span>
               <div className="font-bold text-red-400 mt-0.5">{stressResult.stockout_skus_count} SKUs</div>
@@ -289,17 +289,17 @@ export default function ScenariosPage() {
             </div>
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Revenue Exposed</span>
-              <div className="font-bold text-[#00ff88] mt-0.5">{formatRupee(stressResult.revenue_exposed_inr)}</div>
+              <div className="font-bold text-[#00e676] mt-0.5">{formatRupee(stressResult.revenue_exposed_inr)}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Row 2: Mitigation Comparison Table (Section 35) */}
-      <div className="rounded-xl border border-[#143a22] bg-[#07140b] p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+      <div className="rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-[#112818] pb-2">
           <div>
-            <span className="text-[10px] text-[#00ff88] font-bold uppercase">[QUANTIFIED MITIGATION ENGINE]</span>
+            <span className="text-[10px] text-[#00e676] font-bold uppercase">[QUANTIFIED MITIGATION ENGINE]</span>
             <h2 className="text-sm font-bold uppercase text-white mt-0.5">
               COMPARE INTERVENTIONS ACROSS OUTCOMES & COSTS
             </h2>
@@ -310,7 +310,7 @@ export default function ScenariosPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#143a22] bg-[#040806] text-[#4e6e58] text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-[#112818] bg-[#000000] text-[#4e6e58] text-[10px] uppercase tracking-wider">
                 <th className="p-3 text-center">Include in Plan</th>
                 <th className="p-3">Intervention Action</th>
                 <th className="p-3 text-right">Cost</th>
@@ -329,7 +329,7 @@ export default function ScenariosPage() {
                     key={m.id}
                     onClick={() => togglePlanAction(m.id)}
                     className={`cursor-pointer transition ${
-                      isSelected ? 'bg-[#00ff88]/10' : 'hover:bg-[#00ff88]/5'
+                      isSelected ? 'bg-[#00e676]/10' : 'hover:bg-[#00e676]/5'
                     }`}
                   >
                     <td className="p-3 text-center">
@@ -337,14 +337,14 @@ export default function ScenariosPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => togglePlanAction(m.id)}
-                        className="accent-[#00ff88] w-4 h-4 cursor-pointer"
+                        className="accent-[#00e676] w-4 h-4 cursor-pointer"
                       />
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <strong className="text-white">{m.title}</strong>
                         {m.is_best_value && (
-                          <span className="rounded bg-[#00ff88]/20 border border-[#00ff88]/40 px-2 py-0.5 text-[9px] font-bold text-[#00ff88]">
+                          <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[9px] font-bold text-[#00e676]">
                             BEST VALUE
                           </span>
                         )}
@@ -354,14 +354,14 @@ export default function ScenariosPage() {
                       </p>
                     </td>
                     <td className="p-3 text-right font-bold text-white">{formatRupee(m.cost_inr)}</td>
-                    <td className="p-3 text-right text-[#00ff88] font-bold">
+                    <td className="p-3 text-right text-[#00e676] font-bold">
                       -{m.lead_time_improvement_days}d
                     </td>
-                    <td className="p-3 text-right font-bold text-[#00ff88]">
+                    <td className="p-3 text-right font-bold text-[#00e676]">
                       {Math.round(m.stockout_probability_after * 100)}%
                     </td>
                     <td className="p-3 text-right text-white font-bold">{m.orders_protected_count}</td>
-                    <td className="p-3 text-right text-[#00ff88] font-bold">
+                    <td className="p-3 text-right text-[#00e676] font-bold">
                       {formatRupee(m.revenue_protected_inr)}
                     </td>
                     <td className="p-3 text-center text-[#87a894] text-[10px]">{m.best_before_date}</td>
@@ -376,59 +376,59 @@ export default function ScenariosPage() {
       {/* Row 3: Planning Workspace & Cost of Inaction (Section 75, 76, 77, 100) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Planning Workspace Basket */}
-        <div className="rounded-xl border border-[#00ff88]/40 bg-[#07140b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+        <div className="rounded-xl border border-[#00e676]/40 bg-[#020503] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
-              <span className="text-[10px] text-[#00ff88] font-bold uppercase">[DECISION WORKSPACE]</span>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[DECISION WORKSPACE]</span>
               <h3 className="text-sm font-bold uppercase text-white mt-0.5">COMPOSED MITIGATION PLAN</h3>
             </div>
-            <span className="text-xs text-[#00ff88] font-bold">{selectedPlanIds.size} Actions Active</span>
+            <span className="text-xs text-[#00e676] font-bold">{selectedPlanIds.size} Actions Active</span>
           </div>
 
           <div className="space-y-2 text-xs">
             {mitigations.filter((m) => selectedPlanIds.has(m.id)).map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between bg-[#040806] p-2.5 rounded border border-[#143a22]"
+                className="flex items-center justify-between bg-[#000000] p-2.5 rounded border border-[#112818]"
               >
                 <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#00ff88]" />
+                  <Check className="w-4 h-4 text-[#00e676]" />
                   <span className="text-white font-bold">{m.title}</span>
                 </div>
-                <span className="text-[#00ff88] font-bold">{formatRupee(m.cost_inr)}</span>
+                <span className="text-[#00e676] font-bold">{formatRupee(m.cost_inr)}</span>
               </div>
             ))}
           </div>
 
           {/* Aggregated Outcome */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#040806] p-3 rounded border border-[#143a22]">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#000000] p-3 rounded border border-[#112818]">
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Total Cost</span>
               <div className="font-bold text-white mt-0.5">{formatRupee(planAggregates.totalCost)}</div>
             </div>
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Orders Protected</span>
-              <div className="font-bold text-[#00ff88] mt-0.5">{planAggregates.ordersProtected}</div>
+              <div className="font-bold text-[#00e676] mt-0.5">{planAggregates.ordersProtected}</div>
             </div>
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Residual Stockout P</span>
-              <div className="font-bold text-[#00ff88] mt-0.5">
+              <div className="font-bold text-[#00e676] mt-0.5">
                 {Math.round(planAggregates.residualStockout * 100)}%
               </div>
             </div>
           </div>
 
-          <div className="border-t border-[#143a22] pt-3 flex justify-between items-center">
+          <div className="border-t border-[#112818] pt-3 flex justify-between items-center">
             <span className="text-[11px] text-[#87a894]">Ready to apply to ERP schedule</span>
-            <button className="rounded border border-[#00ff88]/60 bg-[#00ff88]/20 px-4 py-2 text-xs font-bold text-[#00ff88] hover:bg-[#00ff88]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
+            <button className="rounded border border-[#00e676]/60 bg-[#00e676]/20 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
               COMMIT DECISION PLAN
             </button>
           </div>
         </div>
 
         {/* Cost of Inaction (Section 100 & 77) */}
-        <div className="rounded-xl border border-red-500/40 bg-[#07140b] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+        <div className="rounded-xl border border-red-500/40 bg-[#020503] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
               <span className="text-[10px] text-red-400 font-bold uppercase">[DECISION URGENCY]</span>
               <h3 className="text-sm font-bold uppercase text-white mt-0.5">COST OF INACTION (7-DAY DELAY)</h3>
@@ -441,11 +441,11 @@ export default function ScenariosPage() {
           </p>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-[#040806] p-3 rounded border border-[#143a22]">
-              <span className="text-[10px] text-[#00ff88] uppercase font-bold">ACT TODAY</span>
+            <div className="bg-[#000000] p-3 rounded border border-[#112818]">
+              <span className="text-[10px] text-[#00e676] uppercase font-bold">ACT TODAY</span>
               <div className="text-base font-bold text-white mt-1">₹11.8 L</div>
               <p className="text-[10px] text-[#87a894] mt-1 font-sans">Expedite SHP-8821 air charter</p>
-              <div className="mt-2 text-[#00ff88] text-[11px] font-bold">Stockout P: 8%</div>
+              <div className="mt-2 text-[#00e676] text-[11px] font-bold">Stockout P: 8%</div>
             </div>
 
             <div className="bg-red-500/10 p-3 rounded border border-red-500/40">
@@ -456,7 +456,7 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          <div className="rounded bg-[#040806] p-3 border border-[#143a22] text-[11px] text-[#87a894] space-y-1">
+          <div className="rounded bg-[#000000] p-3 border border-[#112818] text-[11px] text-[#87a894] space-y-1">
             <div className="flex justify-between">
               <span>Additional customer orders breached:</span>
               <span className="text-red-400 font-bold">+47 orders</span>

@@ -1,58 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Low-key Tactical Black with Green Tint */
-  --bg-void: #040806;
-  --bg-primary: #060d09;
-  --bg-secondary: #0a1710;
-  --bg-tertiary: #0f2217;
-  --bg-panel: rgba(7, 16, 11, 0.92);
-  --bg-panel-solid: #07130b;
+  /* Brutalist Void Black with subtle Green Hues */
+  --bg-void: #000000;
+  --bg-primary: #010402;
+  --bg-secondary: #030805;
+  --bg-tertiary: #060e09;
+  --bg-panel: rgba(1, 4, 2, 0.98);
+  --bg-panel-solid: #020503;
 
-  /* Tactical Phosphor / Neon Green Accents */
-  --green-primary: #00ff88;
-  --green-light: #44ffa2;
-  --green-dim: #059669;
-  --green-glow: rgba(0, 255, 136, 0.22);
+  /* Industrial Tactical Green (Disciplined, non-neon terminal green) */
+  --green-primary: #00e676;
+  --green-light: #22c55e;
+  --green-dim: #15803d;
+  --green-glow: rgba(0, 230, 118, 0.08);
 
-  /* Legacy cyan aliases mapped to tactical green for full compatibility */
-  --cyan-primary: #00ff88;
-  --cyan-light: #44ffa2;
-  --cyan-dim: #059669;
-  --cyan-glow: rgba(0, 255, 136, 0.22);
+  /* Legacy cyan aliases mapped to terminal green */
+  --cyan-primary: #00e676;
+  --cyan-light: #22c55e;
+  --cyan-dim: #15803d;
+  --cyan-glow: rgba(0, 230, 118, 0.08);
 
-  --gold-primary: #f59e0b;
-  --gold-light: #fcd34d;
-  --gold-glow: rgba(245, 158, 11, 0.22);
+  --gold-primary: #d97706;
+  --gold-light: #f59e0b;
+  --gold-glow: rgba(217, 119, 6, 0.12);
 
-  /* Selective Severity Alerts (Only on High/Critical stress) */
-  --alert-red: #ef4444;
-  --alert-orange: #f97316;
-  --alert-yellow: #eab308;
-  --alert-green: #00ff88;
-  --alert-blue: #10b981;
+  /* Selective Severity Alerts */
+  --alert-red: #dc2626;
+  --alert-orange: #ea580c;
+  --alert-yellow: #ca8a04;
+  --alert-green: #00e676;
+  --alert-blue: #0284c7;
 
-  --border-primary: rgba(22, 54, 32, 0.65);
-  --border-cyan: rgba(0, 255, 136, 0.30);
-  --border-green: rgba(0, 255, 136, 0.30);
-  --border-alert: rgba(239, 68, 68, 0.35);
+  --border-primary: #112818;
+  --border-cyan: #1a4226;
+  --border-green: #1a4226;
+  --border-alert: rgba(220, 38, 38, 0.45);
 
-  --text-primary: #e6f7ec;
-  --text-secondary: #87a894;
-  --text-muted: #4e6e58;
+  --text-primary: #e2ede5;
+  --text-secondary: #7f9f8c;
+  --text-muted: #3d5646;
 
   --font-hud: 'JetBrains Mono', monospace;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'JetBrains Mono', monospace;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.04); }
-}
-
-.pulse-glow {
-  animation: pulse-glow 2.5s infinite ease-in-out;
+/* ─────────────────────────────────────────────────────────────
+   BRUTALIST ARCHITECTURE: STRICTLY SQUARED BOXES GLOBALLY
+   ───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  border-radius: 0px !important;
 }
 
 body {
@@ -64,69 +62,65 @@ body {
 
 .hud-text {
   font-family: var(--font-hud);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .glass {
   background: var(--bg-panel);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-primary);
 }
 
 .glass-cyan, .glass-green {
-  background: rgba(0, 255, 136, 0.04);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 230, 118, 0.02);
   border: 1px solid var(--border-green);
 }
 
 .glass-alert {
-  background: rgba(239, 68, 68, 0.08);
-  backdrop-filter: blur(12px);
+  background: rgba(220, 38, 38, 0.06);
   border: 1px solid var(--border-alert);
 }
 
 .btn-tactical {
   font-family: var(--font-hud);
-  background: rgba(10, 24, 16, 0.9);
+  background: #000000;
   border: 1px solid var(--border-green);
   color: var(--green-light);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
 }
 
 .btn-tactical:hover {
-  background: rgba(0, 255, 136, 0.12);
-  box-shadow: 0 0 12px var(--green-glow);
-  color: #fff;
+  background: rgba(0, 230, 118, 0.10);
+  border-color: var(--green-primary);
+  color: #ffffff;
 }
 
 .btn-danger {
   font-family: var(--font-hud);
-  background: rgba(239, 68, 68, 0.12);
+  background: #000000;
   border: 1px solid var(--alert-red);
   color: #fca5a5;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
 }
 
 .btn-danger:hover {
-  background: rgba(239, 68, 68, 0.25);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
-  color: #fff;
+  background: rgba(220, 38, 38, 0.18);
+  border-color: #ef4444;
+  color: #ffffff;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Brutalist Sharp Square Track */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-void);
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-primary);
-  border-radius: 2px;
+  border-radius: 0px !important;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--green-dim);
@@ -134,25 +128,24 @@ body {
 
 .severity-critical {
   color: #fff;
-  background: rgba(239, 68, 68, 0.22);
+  background: rgba(220, 38, 38, 0.20);
   border: 1px solid var(--alert-red);
 }
 
 .severity-high {
   color: #fff;
-  background: rgba(249, 115, 22, 0.22);
+  background: rgba(234, 88, 12, 0.20);
   border: 1px solid var(--alert-orange);
 }
 
 .severity-medium {
   color: #fff;
-  background: rgba(234, 179, 8, 0.20);
+  background: rgba(202, 138, 4, 0.18);
   border: 1px solid var(--alert-yellow);
 }
 
 .severity-low {
   color: #fff;
-  background: rgba(0, 255, 136, 0.15);
+  background: rgba(0, 230, 118, 0.12);
   border: 1px solid var(--alert-green);
 }
-
