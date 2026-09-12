@@ -23,13 +23,13 @@ import { resetDemoState } from '@/lib/api';
 
 const NAV_ITEMS = [
   { label: 'GLOBE', href: '/command', icon: Globe2 },
+  { label: 'AI ANALYST', href: '/analyst', icon: Sparkles },
   { label: 'CONTROL TOWER', href: '/control-tower', icon: Activity },
+  { label: 'CONSOLE', href: '/console', icon: Terminal },
   { label: 'EXPOSURE', href: '/exposure', icon: Box },
   { label: 'FORECAST', href: '/forecast', icon: TrendingUp },
   { label: 'SUPPLIERS', href: '/suppliers', icon: Truck },
   { label: 'SCENARIOS', href: '/scenarios', icon: Layers },
-  { label: 'AI ANALYST', href: '/analyst', icon: Sparkles },
-  { label: 'CONSOLE', href: '/console', icon: Terminal },
 ];
 
 export default function TopNav() {

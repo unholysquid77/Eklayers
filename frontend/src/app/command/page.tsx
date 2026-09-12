@@ -175,7 +175,7 @@ export default function CommandPage() {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchStatusMsg, setResearchStatusMsg] = useState('');
   const [researchDossier, setResearchDossier] = useState<ChokepointResearchDossier | null>(null);
-  const [layersOpen, setLayersOpen] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(true);
   const [autoRotate, setAutoRotate] = useState(true);
   const [drillDownTarget, setDrillDownTarget] = useState<{
@@ -363,55 +363,56 @@ export default function CommandPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-3rem)] bg-[#000000] text-slate-100 overflow-hidden font-sans relative">
-      {/* ── Floating Top Command HUD Pill ── */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 rounded-full border border-[#112818] bg-[#000000]/90 px-4 py-1.5  backdrop-blur-md font-mono text-xs">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#00e676] animate-ping" />
-          <span className="text-[#00e676] font-bold">DISRUPTION COMMAND</span>
-        </div>
-        <div className="h-3.5 w-px bg-[#112818]" />
-        <button
-          onClick={() => setChokepointsTableOpen(true)}
-          className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-[#00e676] transition"
-          title="Open Tracked Chokepoints Table"
-        >
-          <Table className="w-3.5 h-3.5 text-[#00e676]" />
-          <span>CHOKEPOINTS ({cpCount})</span>
-        </button>
-        <div className="h-3.5 w-px bg-[#112818]" />
-        <button
-          onClick={() => setResearchOpen(true)}
-          className="flex items-center gap-1.5 text-xs text-[#22c55e] hover:text-white transition"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#00e676] animate-pulse" />
-          <span>AUTONOMOUS RESEARCH</span>
-        </button>
-        <div className="h-3.5 w-px bg-[#112818]" />
-        <ZuluClock />
-      </div>
-
-      {/* ── Live Market Benchmark Telemetry Ticker ── */}
+      {/* ── Fixed Sub-Header Telemetry Ticker (Full Width, Zero Collision) ── */}
       {marketTelemetry.length > 0 && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 rounded-full border border-[#112818] bg-[#000000]/90 px-4 py-1 font-mono text-[10px] backdrop-blur-md  overflow-x-auto max-w-[92vw]">
-          <span className="flex items-center gap-1.5 font-bold text-[#00e676] uppercase shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00e676] animate-pulse" />
-            BENCHMARKS:
-          </span>
-          {marketTelemetry.map((item) => (
-            <div key={item.symbol} className="flex items-center gap-1.5 shrink-0">
-              <span className="text-slate-400 font-bold">{item.label}:</span>
-              <span className="text-white font-bold">{item.price.toFixed(2)}</span>
-              <span className={`font-bold flex items-center ${item.change >= 0 ? 'text-[#00e676]' : 'text-red-400'}`}>
-                {item.change >= 0 ? '▲' : '▼'}{Math.abs(item.change_pct).toFixed(2)}%
-              </span>
-            </div>
-          ))}
-          <span className="text-[9px] text-[#87a894] font-bold shrink-0">[YFINANCE TELEMETRY]</span>
+        <div className="h-7 w-full border-b border-[#112818] bg-[#000000] px-4 flex items-center justify-between font-mono text-[10px] shrink-0 z-30 overflow-x-auto select-none">
+          <div className="flex items-center gap-4 shrink-0">
+            <span className="flex items-center gap-1.5 font-bold text-[#00e676] uppercase shrink-0">
+              <span className="w-1.5 h-1.5 bg-[#00e676] animate-pulse" />
+              LIVE BENCHMARKS:
+            </span>
+            {marketTelemetry.map((item) => (
+              <div key={item.symbol} className="flex items-center gap-1.5 shrink-0">
+                <span className="text-slate-400 font-medium">{item.label}:</span>
+                <span className="text-white font-bold">{item.price.toFixed(2)}</span>
+                <span className={`font-bold flex items-center text-[9px] ${item.change >= 0 ? 'text-[#00e676]' : 'text-red-400'}`}>
+                  {item.change >= 0 ? '▲' : '▼'}{Math.abs(item.change_pct).toFixed(2)}%
+                </span>
+              </div>
+            ))}
+          </div>
+          <span className="text-[9px] text-[#87a894] font-bold shrink-0 hidden lg:inline pl-4">[YFINANCE TELEMETRY]</span>
         </div>
       )}
 
       {/* ── Main Command Viewport ── */}
       <div className="flex flex-1 overflow-hidden relative w-full h-full">
+        {/* ── Floating Top Command HUD Pill ── */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 border border-[#112818] bg-[#000000]/95 px-4 py-1.5 backdrop-blur-md font-mono text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-[#00e676] animate-ping" />
+            <span className="text-[#00e676] font-bold">DISRUPTION COMMAND</span>
+          </div>
+          <div className="h-3.5 w-px bg-[#112818]" />
+          <button
+            onClick={() => setChokepointsTableOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-[#00e676] transition"
+            title="Open Tracked Chokepoints Table"
+          >
+            <Table className="w-3.5 h-3.5 text-[#00e676]" />
+            <span>CHOKEPOINTS ({cpCount})</span>
+          </button>
+          <div className="h-3.5 w-px bg-[#112818]" />
+          <button
+            onClick={() => setResearchOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-[#22c55e] hover:text-white transition"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#00e676] animate-pulse" />
+            <span>AUTONOMOUS RESEARCH</span>
+          </button>
+          <div className="h-3.5 w-px bg-[#112818]" />
+          <ZuluClock />
+        </div>
         {/* ── Floating Toggle for Left Sidebar (when collapsed) ── */}
         {!layersOpen && (
           <button
