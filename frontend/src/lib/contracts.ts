@@ -830,6 +830,8 @@ export interface DecisionStressTestResult {
   production_lines_halted: number;
   revenue_exposed_inr: number;
   most_vulnerable_skus: string[];
+  custom_mitigations?: MitigationComparisonItem[];
+  ai_rationale?: string;
 }
 
 export interface MitigationComparisonItem {

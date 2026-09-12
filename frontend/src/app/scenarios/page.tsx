@@ -16,10 +16,78 @@ import {
   RotateCcw,
   Zap,
   Info,
+  Plus,
+  X,
 } from 'lucide-react';
 import { runDecisionStressTest, getMitigationsComparison } from '@/lib/api';
 import type { MitigationComparisonItem, DecisionStressTestResult } from '@/lib/contracts';
 import { MOCK_MITIGATIONS, MOCK_DECISION_STRESS_TEST } from '@/lib/mock';
+
+interface ScenarioPreset {
+  id: string;
+  name: string;
+  tag: string;
+  targetType: string;
+  targetId: string;
+  customTargetName?: string;
+  scenario: string;
+  duration: number;
+  severity: number;
+}
+
+const SCENARIO_PRESETS: ScenarioPreset[] = [
+  {
+    id: 'hormuz-blackout',
+    name: 'Hormuz AIS Blackout & Tanker Halt',
+    tag: 'GEO-POLITICAL',
+    targetType: 'chokepoint',
+    targetId: 'cp.strait_of_hormuz',
+    scenario: 'Electronic warfare disabling maritime transponders; IRGC boardings halting 65% tanker and container movements through the Strait of Hormuz.',
+    duration: 30,
+    severity: 85,
+  },
+  {
+    id: 'redsea-bypass',
+    name: 'Red Sea 45d Bypass (Cape Route)',
+    tag: 'MARITIME CHOKE',
+    targetType: 'route',
+    targetId: 'cp.bab_el_mandeb',
+    scenario: 'Sustained anti-ship ballistic strikes forcing 100% Asia-Europe container traffic around the Cape of Good Hope, adding +14 to +18 days transit lead-time.',
+    duration: 45,
+    severity: 100,
+  },
+  {
+    id: 'taiwan-blockade',
+    name: 'Taiwan Strait Semiconductor Embargo',
+    tag: 'CRITICAL TECH',
+    targetType: 'supplier',
+    targetId: 'supplier-tsmc',
+    scenario: 'Joint naval exclusion zone surrounding Hsinchu & Kaohsiung ports, freezing export air/sea freight for 12nm automotive MCU wafers.',
+    duration: 21,
+    severity: 95,
+  },
+  {
+    id: 'novorossiysk-drone',
+    name: 'Novorossiysk Export Terminal Strike',
+    tag: 'CUSTOM PORT',
+    targetType: 'port',
+    targetId: 'custom',
+    customTargetName: 'Novorossiysk Export Terminal',
+    scenario: 'Explosive naval drone strike knocking out export gantries at berths 3 and 4, stranding titanium and specialty alloy raw material exports.',
+    duration: 28,
+    severity: 90,
+  },
+  {
+    id: 'singapore-megaport',
+    name: 'Singapore Megaport Berth Congestion',
+    tag: 'TRANSSHIPMENT',
+    targetType: 'port',
+    targetId: 'port-singapore',
+    scenario: 'Cascading container yard saturation reaching 98% density; transshipment container dwell time increases from 3.2 days to 16.8 days.',
+    duration: 30,
+    severity: 80,
+  },
+];
 
 export default function ScenariosPage() {
   const [mitigations, setMitigations] = useState<MitigationComparisonItem[]>(MOCK_MITIGATIONS);
@@ -28,12 +96,26 @@ export default function ScenariosPage() {
   // Stress test inputs
   const [targetType, setTargetType] = useState('port');
   const [targetId, setTargetId] = useState('port-singapore');
+  const [customTargetName, setCustomTargetName] = useState('');
+  const [customScenario, setCustomScenario] = useState('');
   const [durationDays, setDurationDays] = useState(30);
   const [severityPct, setSeverityPct] = useState(100);
   const [simulating, setSimulating] = useState(false);
 
   // Planning workspace state
   const [selectedPlanIds, setSelectedPlanIds] = useState<Set<string>>(new Set(['mit-expedite-01']));
+
+  // Custom intervention injection state
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [cTitle, setCTitle] = useState('');
+  const [cActionType, setCActionType] = useState('AIR_EXPEDITE');
+  const [cDesc, setCDesc] = useState('');
+  const [cCost, setCCost] = useState('1500000');
+  const [cLeadDays, setCLeadDays] = useState('14');
+  const [cStockoutProb, setCStockoutProb] = useState('12');
+  const [cOrders, setCOrders] = useState('195');
+  const [cRevenue, setCRevenue] = useState('28000000');
+  const [cBestBefore, setCBestBefore] = useState('24 Sep 2026');
 
   useEffect(() => {
     getMitigationsComparison().then((res) => {
@@ -44,18 +126,58 @@ export default function ScenariosPage() {
   const handleRunSimulation = async () => {
     setSimulating(true);
     try {
+      const resolvedTargetName =
+        targetId === 'custom'
+          ? (customTargetName.trim() || 'Custom Facility')
+          : undefined;
+
       const res = await runDecisionStressTest({
         target_type: targetType,
         target_id: targetId,
+        target_name: resolvedTargetName,
+        custom_scenario: customScenario.trim() || undefined,
         duration_days: durationDays,
         severity_pct: severityPct,
       });
+
       setStressResult(res);
+
+      if (res.custom_mitigations && res.custom_mitigations.length > 0) {
+        setMitigations(res.custom_mitigations);
+        const best = res.custom_mitigations.find((m) => m.is_best_value) || res.custom_mitigations[0];
+        setSelectedPlanIds(new Set([best.id]));
+      }
     } catch {
       setStressResult(MOCK_DECISION_STRESS_TEST);
     } finally {
       setSimulating(false);
     }
+  };
+
+  const handleAddCustomIntervention = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cTitle.trim()) return;
+
+    const newMit: MitigationComparisonItem = {
+      id: `mit-custom-${Date.now()}`,
+      action_type: cActionType,
+      title: cTitle.trim(),
+      description: cDesc.trim() || 'Planner-injected contingency intervention.',
+      cost_inr: Number(cCost) || 1200000,
+      lead_time_improvement_days: Number(cLeadDays) || 10,
+      stockout_probability_after: (Number(cStockoutProb) || 15) / 100,
+      orders_protected_count: Number(cOrders) || 150,
+      revenue_protected_inr: Number(cRevenue) || 20000000,
+      is_best_value: false,
+      decision_window_days: 7,
+      best_before_date: cBestBefore.trim() || '25 Sep 2026',
+    };
+
+    setMitigations((prev) => [newMit, ...prev]);
+    setSelectedPlanIds((prev) => new Set([...prev, newMit.id]));
+    setShowCustomModal(false);
+    setCTitle('');
+    setCDesc('');
   };
 
   const togglePlanAction = (id: string) => {
@@ -97,14 +219,19 @@ export default function ScenariosPage() {
     };
   })();
 
+  const activeTargetDisplayName =
+    targetId === 'custom'
+      ? (customTargetName || 'Custom Target Entity')
+      : stressResult.target_name || targetId;
+
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full font-mono">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#112818] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[10px] text-[#00e676]">
-              [SIMULATION & INTERVENTION]
+            <span className="bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[10px] text-[#00e676]">
+              [LLM SCENARIO ENGINE & SANDBOX]
             </span>
             <span className="text-xs text-[#4e6e58]">MONTE CARLO STRESS TESTING & ACTION OPTIMIZATION</span>
           </div>
@@ -112,21 +239,22 @@ export default function ScenariosPage() {
             SCENARIO SANDBOX & PLANNING WORKSPACE
           </h1>
           <p className="text-xs text-[#87a894] mt-0.5 font-sans">
-            Simulate 10,000 synthetic futures across catastrophic bottleneck failures, evaluate operational survival runways, and optimize interventions.
+            Simulate 10,000 synthetic futures across arbitrary global chokepoints, synthesize LLM-grounded interventions, and compose executable decision baskets.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded bg-[#020503] border border-[#112818] px-3 py-1 text-xs text-[#87a894]">
-            ENGINE: MONTE CARLO N=10,000
+          <span className="bg-[#000000] border border-[#112818] px-3 py-1 text-xs text-[#87a894] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#00e676]" />
+            <span>LLM INTERVENTION SYNTHESIS ACTIVE</span>
           </span>
         </div>
       </div>
 
-      {/* Row 1: Survival Clock Hero & Stress Test Sandbox (Section 37, 38, 40) */}
+      {/* Row 1: Interactive Failure Configurator & Survival Clock Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Interactive Failure Configurator (5 cols) */}
-        <div className="lg:col-span-5 rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
+        <div className="lg:col-span-5 border border-[#112818] bg-[#000000] p-5 space-y-4">
           <div className="border-b border-[#112818] pb-2 flex justify-between items-center">
             <div>
               <span className="text-[10px] text-[#00e676] font-bold uppercase">[STEP 1 & 2]</span>
@@ -138,15 +266,15 @@ export default function ScenariosPage() {
           <div className="space-y-3 text-xs">
             <div>
               <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Failure Domain:</label>
-              <div className="grid grid-cols-3 gap-2">
-                {['port', 'supplier', 'route'].map((type) => (
+              <div className="grid grid-cols-4 gap-1.5">
+                {['port', 'chokepoint', 'supplier', 'route'].map((type) => (
                   <button
                     key={type}
                     onClick={() => setTargetType(type)}
-                    className={`rounded border py-1.5 uppercase font-bold transition text-xs ${
+                    className={`border py-1.5 uppercase font-bold transition text-[11px] ${
                       targetType === type
                         ? 'border-[#00e676] bg-[#00e676]/20 text-[#00e676]'
-                        : 'border-[#112818] bg-[#000000] text-[#87a894] hover:text-white'
+                        : 'border-[#112818] bg-[#050805] text-[#87a894] hover:text-white'
                     }`}
                   >
                     {type}
@@ -160,17 +288,77 @@ export default function ScenariosPage() {
               <select
                 value={targetId}
                 onChange={(e) => setTargetId(e.target.value)}
-                className="w-full rounded border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
               >
                 <option value="port-singapore">Port of Singapore (Transshipment Hub)</option>
-                <option value="cp.strait_of_hormuz">Strait of Hormuz (Energy Corridor)</option>
-                <option value="sup-alpha">Supplier Alpha Components GmbH</option>
-                <option value="suez-canal">Suez Canal / Red Sea Trunk</option>
-                <option value="supplier-tsmc">TSMC Sub-Fab 14 (Hsinchu)</option>
+                <option value="cp.strait_of_hormuz">Strait of Hormuz (Energy & Feeder Corridor)</option>
+                <option value="cp.bab_el_mandeb">Bab-el-Mandeb / Red Sea (Trunk Route)</option>
+                <option value="cp.taiwan_strait">Taiwan Strait (Semiconductor Corridor)</option>
+                <option value="supplier-tsmc">TSMC Sub-Fab 14 (Hsinchu - Microcontrollers)</option>
+                <option value="sup-alpha">Supplier Alpha Components GmbH (Munich - Power ICs)</option>
+                <option value="port-jnpt">Jawaharlal Nehru Port (JNPT Mumbai Gateway)</option>
+                <option value="custom">[+ Enter Custom Target Entity...]</option>
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {targetId === 'custom' && (
+              <div>
+                <label className="text-[10px] text-[#00e676] uppercase block mb-1 flex items-center gap-1">
+                  <span>Custom Target Facility / Chokepoint:</span>
+                  <span className="text-[#4e6e58]">(Any Global Port / Supplier / Node)</span>
+                </label>
+                <input
+                  type="text"
+                  value={customTargetName}
+                  onChange={(e) => setCustomTargetName(e.target.value)}
+                  placeholder="e.g. Novorossiysk Terminal, Suwalki Gap, JNPT, or Bosch Fab..."
+                  className="w-full border border-[#00e676]/60 bg-[#050805] px-3 py-2 text-xs text-white placeholder:text-[#4e6e58] focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] text-[#4e6e58] uppercase block">
+                  Scenario Shock Hypothesis (Custom / Presets):
+                </label>
+                <span className="text-[9px] text-[#00e676]">LLM SYNTHESIS</span>
+              </div>
+              <textarea
+                rows={2}
+                value={customScenario}
+                onChange={(e) => setCustomScenario(e.target.value)}
+                placeholder="Describe disruption or pick a preset below (e.g., naval drone strike, AIS blackout, embargo)..."
+                className="w-full border border-[#112818] bg-[#050805] p-2 text-xs text-white placeholder:text-[#4e6e58] focus:border-[#00e676] focus:outline-none resize-none"
+              />
+
+              {/* Quick Presets */}
+              <div className="mt-2 space-y-1">
+                <div className="text-[9px] text-[#4e6e58] uppercase">Instant Presets:</div>
+                <div className="flex flex-wrap gap-1">
+                  {SCENARIO_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setTargetType(preset.targetType);
+                        setTargetId(preset.targetId);
+                        if (preset.customTargetName) setCustomTargetName(preset.customTargetName);
+                        setCustomScenario(preset.scenario);
+                        setDurationDays(preset.duration);
+                        setSeverityPct(preset.severity);
+                      }}
+                      className="border border-[#112818] bg-[#050805] px-2 py-1 text-[10px] text-[#87a894] hover:text-[#00e676] hover:border-[#00e676]/40 transition text-left"
+                    >
+                      <span className="text-[#00e676] mr-1">[{preset.tag}]</span>
+                      <span>{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">
                   Duration ({durationDays} Days):
@@ -204,17 +392,17 @@ export default function ScenariosPage() {
               <button
                 onClick={handleRunSimulation}
                 disabled={simulating}
-                className="flex w-full items-center justify-center gap-2 rounded border border-[#00e676]/60 bg-[#00e676]/20 py-3 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_20px_rgba(0,255,136,0.2)]"
+                className="flex w-full items-center justify-center gap-2 border border-[#00e676]/60 bg-[#00e676]/20 py-3 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_20px_rgba(0,255,136,0.2)]"
               >
                 {simulating ? (
                   <>
                     <span className="animate-spin text-sm">⟳</span>
-                    <span>RUNNING 10,000 MONTE CARLO FUTURES…</span>
+                    <span>SYNTHESIZING WITH LLM (10,000 RUNS)…</span>
                   </>
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5 fill-[#00e676]" />
-                    <span>RUN 10,000 FUTURES SIMULATION</span>
+                    <span>RUN 10,000 SIMULATION & LLM SYNTHESIS</span>
                   </>
                 )}
               </button>
@@ -222,18 +410,23 @@ export default function ScenariosPage() {
           </div>
         </div>
 
-        {/* Right: Operational Survival Clock & Quantiles (Section 38 & 40) (7 cols) */}
-        <div className="lg:col-span-7 rounded-xl border border-red-500/40 bg-[#020503] p-5 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+        {/* Right: Operational Survival Clock & Quantiles (7 cols) */}
+        <div className="lg:col-span-7 border border-red-500/40 bg-[#000000] p-5 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.1)]">
           {/* Survival Clock Header */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
             <div>
-              <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
-                [OPERATIONAL SURVIVAL CLOCK]
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider">
+                  [OPERATIONAL SURVIVAL CLOCK]
+                </span>
+                <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.2 border border-red-500/40">
+                  {activeTargetDisplayName.toUpperCase()}
+                </span>
+              </div>
               <div className="text-xs text-[#87a894] mt-0.5">TIME TO FIRST PRODUCTION STOCKOUT:</div>
             </div>
             {/* Visual Survival Clock Number */}
-            <div className="flex items-center gap-2 bg-[#000000] px-4 py-2 rounded-lg border border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.25)]">
+            <div className="flex items-center gap-2 bg-[#050805] px-4 py-2 border border-red-500/50 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.25)]">
               <Clock className="w-4 h-4 text-red-400 animate-pulse" />
               <span className="text-xl sm:text-2xl font-black tracking-widest">
                 {stressResult.survival_clock_display}
@@ -241,8 +434,8 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          {/* Survival Comparison Breakdown (Section 40) */}
-          <div className="space-y-2 bg-[#000000] p-4 rounded-lg border border-[#112818] text-xs">
+          {/* Survival Comparison Breakdown */}
+          <div className="space-y-2 bg-[#050805] p-4 border border-[#112818] text-xs">
             <div className="flex justify-between items-center text-[#87a894]">
               <span>WITHOUT MITIGATION (BASELINE):</span>
               <strong className="text-red-400">{stressResult.survival_unmitigated_days} DAYS</strong>
@@ -257,21 +450,21 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          {/* Quantile Distributions (Section 38) */}
+          {/* Quantile Distributions */}
           <div className="grid grid-cols-4 gap-2 text-center text-xs">
-            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
+            <div className="bg-[#050805] p-2.5 border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P50 (Median)</span>
               <div className="font-bold text-white mt-1">{stressResult.operational_survival_p50_days} Days</div>
             </div>
-            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
+            <div className="bg-[#050805] p-2.5 border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P75</span>
               <div className="font-bold text-amber-400 mt-1">{stressResult.operational_survival_p75_days} Days</div>
             </div>
-            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
+            <div className="bg-[#050805] p-2.5 border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P90</span>
               <div className="font-bold text-red-400 mt-1">{stressResult.operational_survival_p90_days} Days</div>
             </div>
-            <div className="bg-[#000000] p-2.5 rounded border border-[#112818]">
+            <div className="bg-[#050805] p-2.5 border border-[#112818]">
               <span className="text-[9px] text-[#4e6e58] uppercase">P99</span>
               <div className="font-bold text-red-400 mt-1">{stressResult.operational_survival_p99_days} Days</div>
             </div>
@@ -295,22 +488,49 @@ export default function ScenariosPage() {
         </div>
       </div>
 
-      {/* Row 2: Mitigation Comparison Table (Section 35) */}
-      <div className="rounded-xl border border-[#112818] bg-[#020503] p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#112818] pb-2">
+      {/* Row 2: Mitigation Comparison Table */}
+      <div className="border border-[#112818] bg-[#000000] p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#112818] pb-3">
           <div>
-            <span className="text-[10px] text-[#00e676] font-bold uppercase">[QUANTIFIED MITIGATION ENGINE]</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[QUANTIFIED MITIGATION ENGINE]</span>
+              <span className="text-[9px] bg-[#00e676]/20 text-[#00e676] px-1.5 py-0.2 border border-[#00e676]/40">
+                AI SYNTHESIZED
+              </span>
+            </div>
             <h2 className="text-sm font-bold uppercase text-white mt-0.5">
               COMPARE INTERVENTIONS ACROSS OUTCOMES & COSTS
             </h2>
           </div>
-          <span className="text-[10px] text-[#4e6e58]">SELECT ACTIONS TO COMPOSE YOUR PLAN</span>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCustomModal(true)}
+              className="border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>PROPOSE CUSTOM INTERVENTION</span>
+            </button>
+          </div>
         </div>
+
+        {/* AI Rationale Notice */}
+        {stressResult.ai_rationale && (
+          <div className="border border-[#00e676]/40 bg-[#00e676]/10 p-3 flex items-start gap-3">
+            <Sparkles className="w-4 h-4 text-[#00e676] shrink-0 mt-0.5" />
+            <div className="text-xs">
+              <div className="font-bold text-[#00e676] uppercase flex items-center gap-2">
+                <span>LLM OPERATIONAL RATIONALE FOR {activeTargetDisplayName.toUpperCase()}</span>
+              </div>
+              <p className="text-[#87a894] font-sans mt-0.5">{stressResult.ai_rationale}</p>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#112818] bg-[#000000] text-[#4e6e58] text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-[#112818] bg-[#050805] text-[#4e6e58] text-[10px] uppercase tracking-wider">
                 <th className="p-3 text-center">Include in Plan</th>
                 <th className="p-3">Intervention Action</th>
                 <th className="p-3 text-right">Cost</th>
@@ -344,10 +564,11 @@ export default function ScenariosPage() {
                       <div className="flex items-center gap-2">
                         <strong className="text-white">{m.title}</strong>
                         {m.is_best_value && (
-                          <span className="rounded bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[9px] font-bold text-[#00e676]">
+                          <span className="bg-[#00e676]/20 border border-[#00e676]/40 px-2 py-0.5 text-[9px] font-bold text-[#00e676]">
                             BEST VALUE
                           </span>
                         )}
+                        <span className="text-[9px] text-[#4e6e58] uppercase">[{m.action_type}]</span>
                       </div>
                       <p className="text-[10px] text-[#87a894] truncate max-w-sm mt-0.5">
                         {m.description}
@@ -373,10 +594,10 @@ export default function ScenariosPage() {
         </div>
       </div>
 
-      {/* Row 3: Planning Workspace & Cost of Inaction (Section 75, 76, 77, 100) */}
+      {/* Row 3: Planning Workspace & Cost of Inaction */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Planning Workspace Basket */}
-        <div className="rounded-xl border border-[#00e676]/40 bg-[#020503] p-5 space-y-4">
+        <div className="border border-[#00e676]/40 bg-[#000000] p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
               <span className="text-[10px] text-[#00e676] font-bold uppercase">[DECISION WORKSPACE]</span>
@@ -389,7 +610,7 @@ export default function ScenariosPage() {
             {mitigations.filter((m) => selectedPlanIds.has(m.id)).map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between bg-[#000000] p-2.5 rounded border border-[#112818]"
+                className="flex items-center justify-between bg-[#050805] p-2.5 border border-[#112818]"
               >
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-[#00e676]" />
@@ -401,7 +622,7 @@ export default function ScenariosPage() {
           </div>
 
           {/* Aggregated Outcome */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#000000] p-3 rounded border border-[#112818]">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs bg-[#050805] p-3 border border-[#112818]">
             <div>
               <span className="text-[9px] text-[#4e6e58] uppercase">Total Cost</span>
               <div className="font-bold text-white mt-0.5">{formatRupee(planAggregates.totalCost)}</div>
@@ -420,14 +641,14 @@ export default function ScenariosPage() {
 
           <div className="border-t border-[#112818] pt-3 flex justify-between items-center">
             <span className="text-[11px] text-[#87a894]">Ready to apply to ERP schedule</span>
-            <button className="rounded border border-[#00e676]/60 bg-[#00e676]/20 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
+            <button className="border border-[#00e676]/60 bg-[#00e676]/20 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
               COMMIT DECISION PLAN
             </button>
           </div>
         </div>
 
-        {/* Cost of Inaction (Section 100 & 77) */}
-        <div className="rounded-xl border border-red-500/40 bg-[#020503] p-5 space-y-4">
+        {/* Cost of Inaction */}
+        <div className="border border-red-500/40 bg-[#000000] p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-[#112818] pb-2">
             <div>
               <span className="text-[10px] text-red-400 font-bold uppercase">[DECISION URGENCY]</span>
@@ -441,14 +662,14 @@ export default function ScenariosPage() {
           </p>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-[#000000] p-3 rounded border border-[#112818]">
+            <div className="bg-[#050805] p-3 border border-[#112818]">
               <span className="text-[10px] text-[#00e676] uppercase font-bold">ACT TODAY</span>
               <div className="text-base font-bold text-white mt-1">₹11.8 L</div>
               <p className="text-[10px] text-[#87a894] mt-1 font-sans">Expedite SHP-8821 air charter</p>
               <div className="mt-2 text-[#00e676] text-[11px] font-bold">Stockout P: 8%</div>
             </div>
 
-            <div className="bg-red-500/10 p-3 rounded border border-red-500/40">
+            <div className="bg-red-500/10 p-3 border border-red-500/40">
               <span className="text-[10px] text-red-400 uppercase font-bold">WAIT 7 DAYS</span>
               <div className="text-base font-bold text-red-400 mt-1">+₹31.4 L</div>
               <p className="text-[10px] text-red-400/80 mt-1 font-sans">Compounded emergency premiums</p>
@@ -456,7 +677,7 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          <div className="rounded bg-[#000000] p-3 border border-[#112818] text-[11px] text-[#87a894] space-y-1">
+          <div className="bg-[#050805] p-3 border border-[#112818] text-[11px] text-[#87a894] space-y-1">
             <div className="flex justify-between">
               <span>Additional customer orders breached:</span>
               <span className="text-red-400 font-bold">+47 orders</span>
@@ -468,6 +689,143 @@ export default function ScenariosPage() {
           </div>
         </div>
       </div>
+
+      {/* Custom Intervention Modal */}
+      {showCustomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-xl border border-[#00e676] bg-[#000000] p-6 space-y-4 shadow-[0_0_50px_rgba(0,255,136,0.2)]">
+            <div className="flex items-center justify-between border-b border-[#112818] pb-3">
+              <div>
+                <span className="text-[10px] text-[#00e676] font-bold uppercase">[MANUAL INTERVENTION INJECTION]</span>
+                <h3 className="text-sm font-bold uppercase text-white mt-0.5">PROPOSE CUSTOM MITIGATION ACTION</h3>
+              </div>
+              <button
+                onClick={() => setShowCustomModal(false)}
+                className="text-[#87a894] hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCustomIntervention} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Action Title:</label>
+                  <input
+                    type="text"
+                    required
+                    value={cTitle}
+                    onChange={(e) => setCTitle(e.target.value)}
+                    placeholder="e.g. Air Charter via Muscat Hub"
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white placeholder:text-[#4e6e58] focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Action Type:</label>
+                  <select
+                    value={cActionType}
+                    onChange={(e) => setCActionType(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  >
+                    <option value="AIR_EXPEDITE">AIR EXPEDITE</option>
+                    <option value="ALTERNATIVE_SUPPLIER">ALTERNATIVE SUPPLIER</option>
+                    <option value="BUFFER_REALLOCATION">BUFFER REALLOCATION</option>
+                    <option value="DEMAND_RATIONING">DEMAND RATIONING</option>
+                    <option value="INTERMODAL_REROUTE">INTERMODAL REROUTE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Description:</label>
+                <textarea
+                  rows={2}
+                  value={cDesc}
+                  onChange={(e) => setCDesc(e.target.value)}
+                  placeholder="e.g. Charter 2x Boeing 777F carrying 140T critical semiconductor trays directly into Mumbai BOM..."
+                  className="w-full border border-[#112818] bg-[#050805] p-2 text-xs text-white placeholder:text-[#4e6e58] focus:border-[#00e676] focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Cost (INR):</label>
+                  <input
+                    type="number"
+                    value={cCost}
+                    onChange={(e) => setCCost(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Lead Time Gain (Days):</label>
+                  <input
+                    type="number"
+                    value={cLeadDays}
+                    onChange={(e) => setCLeadDays(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Residual Stockout (%):</label>
+                  <input
+                    type="number"
+                    value={cStockoutProb}
+                    onChange={(e) => setCStockoutProb(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Orders Protected:</label>
+                  <input
+                    type="number"
+                    value={cOrders}
+                    onChange={(e) => setCOrders(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Revenue Protected (INR):</label>
+                  <input
+                    type="number"
+                    value={cRevenue}
+                    onChange={(e) => setCRevenue(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#4e6e58] uppercase block mb-1">Decision Deadline:</label>
+                  <input
+                    type="text"
+                    value={cBestBefore}
+                    onChange={(e) => setCBestBefore(e.target.value)}
+                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#112818] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomModal(false)}
+                  className="border border-[#112818] bg-[#050805] px-4 py-2 text-xs font-bold text-[#87a894] hover:text-white transition"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  className="border border-[#00e676] bg-[#00e676]/20 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_15px_rgba(0,255,136,0.2)]"
+                >
+                  INJECT INTERVENTION INTO PLAN MATRIX
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

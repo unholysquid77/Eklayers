@@ -271,11 +271,33 @@ export const getSuppliersProfiles = () =>
 export const getSignalsReliability = () =>
   _get<FalseAlarmControl>('/v1/signals/reliability').catch(() => MOCK_RELIABILITY);
 
-export const runDecisionStressTest = (req: { target_type?: string; target_id?: string; duration_days?: number; severity_pct?: number; demand_scenario?: string }) =>
-  _post<DecisionStressTestResult>('/v1/scenarios/stress-test', req).catch(() => MOCK_DECISION_STRESS_TEST);
+export const runDecisionStressTest = (req: {
+  target_type?: string;
+  target_id?: string;
+  target_name?: string;
+  custom_scenario?: string;
+  duration_days?: number;
+  severity_pct?: number;
+  demand_scenario?: string;
+}) => _post<DecisionStressTestResult>('/v1/scenarios/stress-test', req).catch(() => MOCK_DECISION_STRESS_TEST);
 
-export const getMitigationsComparison = () =>
-  _get<MitigationComparisonItem[]>('/v1/mitigations/compare').catch(() => MOCK_MITIGATIONS);
+export const getMitigationsComparison = (params?: { target_entity?: string; custom_scenario?: string }) => {
+  const query = params
+    ? '?' +
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null && v !== '')
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v as string)}`)
+        .join('&')
+    : '';
+  return _get<MitigationComparisonItem[]>(`/v1/mitigations/compare${query}`).catch(() => MOCK_MITIGATIONS);
+};
+
+export const compareMitigationsCustom = (body: {
+  target_entity?: string;
+  target_type?: string;
+  severity_pct?: number;
+  custom_scenario?: string;
+}) => _post<MitigationComparisonItem[]>('/v1/mitigations/compare', body).catch(() => MOCK_MITIGATIONS);
 
 export const queryAIAnalyst = (question: string, context_entity_id?: string) =>
   _post<AIQueryResponse>('/v1/ai/query', { question, context_entity_id }).catch(() => MOCK_AI_RESPONSE);
