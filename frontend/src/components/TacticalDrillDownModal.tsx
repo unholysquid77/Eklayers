@@ -243,7 +243,9 @@ export default function TacticalDrillDownModal({
       // Scale-Adaptive Range Rings Function (15 km harbor buffer, 35 km seaway perimeter)
       // Adapts visual diameter when zoomed out so rings never vanish into sub-pixel specks
       const renderBufferRings = (curZoom: number) => {
-        lgRings.clear();
+        if (lgRings && typeof lgRings.clearLayers === 'function') {
+          lgRings.clearLayers();
+        }
 
         const scaleFactor = curZoom >= 8 ? 1 : Math.pow(2, 8 - curZoom);
         const rInner = 15000 * scaleFactor;
