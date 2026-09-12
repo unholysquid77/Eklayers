@@ -18,6 +18,10 @@ Implements all decision-support endpoints for Polish Spec v1:
 from __future__ import annotations
 
 import math
+import os
+import json
+import re
+import requests
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
@@ -800,30 +804,78 @@ def get_signals_reliability():
 # Live Agentic AI Engine & Dynamic Simulation
 # ============================================================================
 
+def _load_env_keys():
+    """Ensures environment variables from .env files are loaded into os.environ."""
+    import os
+    candidates = ['.env', 'backend/.env', '../.env']
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                with open(c, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            k, v = line.split('=', 1)
+                            k = k.strip()
+                            v = v.strip().strip('"').strip("'")
+                            if k and not os.environ.get(k):
+                                os.environ[k] = v
+            except Exception:
+                pass
+
+_load_env_keys()
+
+
 def _call_llm_agent(prompt: str, system_prompt: str) -> Optional[dict[str, Any]]:
-    """Calls Gemini or OpenRouter LLM using available environment or admin keys."""
-    import os, json
-    from urllib.request import Request, urlopen
+    """Calls live LLM Agent via OpenRouter or Gemini using available environment or admin keys.
+    
+    Includes automatic multi-model failover for free tier rate-limits, requests library for fast
+    connection pooling and Windows proxy avoidance, and robust multi-stage JSON parsing.
+    """
+    _load_env_keys()
 
     api_key = (
-        os.getenv("GEMINI_API_KEY") or
         os.getenv("OPENROUTER_API_KEY") or
+        os.getenv("GEMINI_API_KEY") or
         os.getenv("OPENAI_API_KEY") or ""
     )
     
-    # Also check enterprise admin credentials if stored in memory
+    # Check enterprise admin credentials
     try:
         from .app import _ENTERPRISE_CONFIG
         admin_keys = _ENTERPRISE_CONFIG.get("api_credentials", {})
         if not api_key:
-            api_key = admin_keys.get("gemini_api_key") or admin_keys.get("openrouter_api_key") or ""
+            api_key = admin_keys.get("openrouter_api_key") or admin_keys.get("gemini_api_key") or ""
     except Exception:
         pass
 
-    if not api_key:
+
+    # Helper to extract JSON from model string
+    def _extract_json(raw_text: str) -> Optional[dict]:
+        if not raw_text or not isinstance(raw_text, str):
+            return None
+        cleaned = raw_text.strip()
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            pass
+        # Try matching markdown code block
+        match = re.search(r'```(?:json)?\s*(\{[\s\S]*?\})\s*```', cleaned)
+        if match:
+            try:
+                return json.loads(match.group(1).strip())
+            except Exception:
+                pass
+        # Try matching first balanced curly braces
+        match2 = re.search(r'(\{[\s\S]*\})', cleaned)
+        if match2:
+            try:
+                return json.loads(match2.group(1).strip())
+            except Exception:
+                pass
         return None
 
-    # Determine endpoint: if Google Gemini API key
+    # If Google Gemini native key
     if api_key.startswith("AIza"):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         payload = {
@@ -833,104 +885,60 @@ def _call_llm_agent(prompt: str, system_prompt: str) -> Optional[dict[str, Any]]
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
         }
         try:
-            req = Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
-            with urlopen(req, timeout=12) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+            resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=12)
+            if resp.status_code == 200:
+                data = resp.json()
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(text)
+                parsed = _extract_json(text)
+                if parsed and isinstance(parsed, dict) and "answer" in parsed:
+                    return parsed
         except Exception:
-            return None
-    else:
-        # OpenRouter / OpenAI compatible endpoint
-        base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
-        model = os.getenv("LLM_MODEL", "google/gemini-2.5-flash")
+            pass
+
+    # OpenRouter endpoint with multi-model fallback cascade
+    base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+    configured_model = os.getenv("LLM_MODEL", "nex-agi/nex-n2.5-mini:free")
+
+    # Fast, free, reliable model cascade on OpenRouter
+    models_to_try = [
+        configured_model,
+        "nex-agi/nex-n2.5-mini:free",
+        "nvidia/nemotron-3.5-lightning:free",
+        "inclusionai/ling-3.0-flash-vl:free",
+        "liquid/lfm-2.5-2.6b:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+    ]
+    seen = set()
+    deduped_models = [m for m in models_to_try if m and not (m in seen or seen.add(m))]
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sarvadarshi.intel",
+        "X-Title": "Sarvadarshi AI Analyst"
+    }
+
+    for model_name in deduped_models:
         payload = {
-            "model": model,
+            "model": model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"}
+            "temperature": 0.2
         }
         try:
-            req = Request(
-                f"{base_url}/chat/completions",
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                method="POST"
-            )
-            with urlopen(req, timeout=12) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                content = data["choices"][0]["message"]["content"]
-                return json.loads(content)
+            resp = requests.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=12)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_content = data.get("choices", [{}])[0].get("message", {}).get("content")
+                parsed = _extract_json(raw_content)
+                if parsed and isinstance(parsed, dict) and "answer" in parsed:
+                    return parsed
         except Exception:
-            return None
+            continue
 
-
-@router.post("/scenarios/stress-test", response_model=StressTestResult, summary="Run Monte Carlo Failure Sandbox & AI Synthesis")
-def run_stress_test(req: StressTestRequest):
-    import random
-    
-    # 1. Calculate stochastic failure distributions based on requested target & duration
-    target = req.target_id.lower()
-    dur = max(7, min(180, req.duration_days))
-    sev = req.severity_pct / 100.0
-
-    # Base operational runway hours based on severity
-    base_runway_days = max(4.0, 22.0 - (sev * 12.0) - (dur * 0.05))
-    unmitigated_days = round(base_runway_days, 1)
-    reallocated_days = round(unmitigated_days + 8.5, 1)
-    expedited_days = round(unmitigated_days + 16.0, 1)
-
-    hours = int(unmitigated_days * 24)
-    mins = random.randint(10, 55)
-    clock_disp = f"{int(unmitigated_days)}d {hours % 24:02d}h {mins:02d}m"
-
-    # Exposed revenue based on target
-    rev_base = 48000000.0 if "singapore" in target else 36000000.0 if "suez" in target else 24000000.0
-    rev_exposed = round(rev_base * (0.6 + sev * 0.6), 2)
-    orders_exposed = int(184 * (0.7 + sev * 0.5))
-
-    target_title = (
-        "Port of Singapore (Transshipment Hub)" if "singapore" in target else
-        "Suez Canal Transit Corridor" if "suez" in target else
-        "Strait of Malacca (Oil/Container Route)" if "malacca" in target else
-        req.target_id.replace("-", " ").title()
-    )
-
-    # 2. Try AI synthesis for scenario description and key drivers
-    sys_prompt = (
-        "You are the Sarvadarshi Supply Chain Stress Simulation AI. Given a disruption scenario, "
-        "synthesize operational impact and respond ONLY with JSON containing: "
-        '{"executive_summary": string, "vulnerability_drivers": [string], "actionable_mitigation": string}'
-    )
-    user_prompt = f"Target: {target_title}\nDuration: {dur} days\nSeverity: {req.severity_pct}%\nDemand: {req.demand_scenario}"
-    llm_out = _call_llm_agent(user_prompt, sys_prompt)
-
-    return StressTestResult(
-        target_name=target_title,
-        simulations_count=10000,
-        survival_clock_hours=round(unmitigated_days * 24.0, 1),
-        survival_clock_display=clock_disp,
-        operational_survival_p50_days=round(unmitigated_days + 7.5, 1),
-        operational_survival_p75_days=round(unmitigated_days + 11.2, 1),
-        operational_survival_p90_days=round(unmitigated_days + 16.0, 1),
-        operational_survival_p99_days=round(unmitigated_days + 24.0, 1),
-        survival_unmitigated_days=unmitigated_days,
-        survival_reallocated_days=reallocated_days,
-        survival_expedited_days=expedited_days,
-        stockout_skus_count=max(2, int(7 * sev)),
-        orders_exposed_count=orders_exposed,
-        production_lines_halted=3 if sev > 0.6 else 2 if sev > 0.3 else 1,
-        revenue_exposed_inr=rev_exposed,
-        most_vulnerable_skus=[
-            "SKU-441 (Power Controller)",
-            "SKU-782 (Battery Mgmt Unit)",
-            "SKU-109 (Telematics Gateway)",
-            "SKU-312 (High-Voltage Inverter)"
-        ][:max(2, int(4 * sev))]
-    )
+    return None
 
 
 @router.post("/ai/query", response_model=AIQueryResponse, summary="Agentic Supply Chain AI Analyst")
@@ -941,19 +949,128 @@ def query_ai_analyst(req: AIQueryRequest):
     # Collect real state across chokepoints, suppliers, skus, and active alerts
     context_data = {
         "active_disruptions": [
-            {"target": "port-singapore", "name": "Port of Singapore", "type": "PORT_CONGESTION", "posterior_risk": "82%", "dwell_spike": "+4.2 days"},
-            {"target": "suez-canal", "name": "Suez Canal", "type": "ROUTE_DISRUPTION", "posterior_risk": "79%", "lead_time_delay": "+12 days"},
-            {"target": "strait-of-malacca", "name": "Strait of Malacca", "type": "CONGESTION_ANOMALY", "posterior_risk": "71%", "tankers_loitering": 14}
+            {
+                "target": "strait-of-hormuz",
+                "name": "Strait of Hormuz",
+                "type": "MILITARY_SECURITY_ESCALATION",
+                "posterior_risk": "95%",
+                "petroleum_impact": "20% global crude transit at risk; high freight/insurance surcharges across Gulf of Oman",
+                "affected_semis": "Indirect risk to specialized polymer substrates and direct transit disruption for SiC MOSFETs routing to India"
+            },
+            {
+                "target": "port-singapore",
+                "name": "Port of Singapore",
+                "type": "PORT_CONGESTION",
+                "posterior_risk": "82%",
+                "dwell_spike": "+4.2 days",
+                "container_backlog": "High feeder vessel delay across ASEAN shipping lanes"
+            },
+            {
+                "target": "taiwan-strait",
+                "name": "Taiwan Strait Fab Corridor",
+                "type": "GEOPOLITICAL_TENSION",
+                "posterior_risk": "71%",
+                "fab_exposure": "TSMC Sub-Fab 14 (Hsinchu) microcontrollers and foundry capacity"
+            },
+            {
+                "target": "suez-canal",
+                "name": "Suez Canal / Red Sea (Bab el-Mandeb)",
+                "type": "ROUTE_DISRUPTION",
+                "posterior_risk": "79%",
+                "lead_time_delay": "+12 days (Cape of Good Hope detour)"
+            },
+            {
+                "target": "strait-of-malacca",
+                "name": "Strait of Malacca",
+                "type": "CONGESTION_ANOMALY",
+                "posterior_risk": "71%",
+                "tankers_loitering": 14
+            }
         ],
         "top_exposed_skus": [
-            {"id": "SKU-441", "name": "Power Controller", "runway_days": 11, "daily_demand": 125, "stockout_prob": "78%", "revenue_exposed_inr": 18400000.0},
-            {"id": "SKU-312", "name": "High-Voltage Inverter", "runway_days": 19, "daily_demand": 45, "stockout_prob": "42%", "revenue_exposed_inr": 12200000.0}
+            {
+                "id": "SKU-108",
+                "name": "SiC Power MOSFET Module",
+                "runway_days": 17,
+                "daily_demand": 70,
+                "stockout_prob": "42%",
+                "revenue_exposed_inr": 3100000.0,
+                "transit_hub": "Strait of Hormuz / Gulf of Oman",
+                "supplier": "Alpha Components GmbH",
+                "destination_corridor": "Pune Automotive & Electronics Cluster via JNPT Nhava Sheva"
+            },
+            {
+                "id": "SKU-441",
+                "name": "High-Density Dual Core MCU Assembly (Power Controller)",
+                "runway_days": 11,
+                "daily_demand": 125,
+                "stockout_prob": "78%",
+                "revenue_exposed_inr": 18400000.0,
+                "transit_hub": "Port of Singapore",
+                "supplier": "Alpha Components GmbH",
+                "destination_corridor": "Pune Automotive Hub"
+            },
+            {
+                "id": "SKU-205",
+                "name": "High-Voltage Inverter Module",
+                "runway_days": 14,
+                "daily_demand": 60,
+                "stockout_prob": "64%",
+                "revenue_exposed_inr": 9200000.0,
+                "root_cause": "Strait of Hormuz Security Escalation",
+                "supplier": "Alpha Components GmbH"
+            },
+            {
+                "id": "SKU-312",
+                "name": "Optoelectronic LiDAR Sensor Unit",
+                "runway_days": 21,
+                "daily_demand": 20,
+                "stockout_prob": "31%",
+                "revenue_exposed_inr": 4200000.0,
+                "supplier": "Beta Precision KK"
+            }
         ],
         "critical_suppliers": [
-            {"id": "sup-alpha", "name": "Alpha Components GmbH", "risk_score": 67, "hhi_concentration": 0.57, "part": "MCU-441", "tier2_dependence": "TSMC Sub-Fab 14"}
+            {
+                "id": "sup-alpha",
+                "name": "Alpha Components GmbH",
+                "risk_score": 67,
+                "hhi_concentration": 0.57,
+                "parts": ["MCU-441", "SiC Power MOSFET Module"],
+                "tier2_dependence": "TSMC Sub-Fab 14 (Hsinchu)"
+            },
+            {
+                "id": "sup-beta",
+                "name": "Beta Precision KK",
+                "risk_score": 28,
+                "hhi_concentration": 0.29,
+                "parts": ["905nm Pulsed Laser Diode"]
+            }
         ],
         "active_shipments": [
-            {"id": "SHP-8821", "sku": "SKU-441", "origin": "Singapore", "dest": "JNPT Nhava Sheva", "status": "DELAYED (+6.4d)"}
+            {
+                "id": "SHP-8821",
+                "sku": "SKU-441",
+                "origin": "Taipei",
+                "dest": "JNPT Nhava Sheva (Pune Corridor)",
+                "status": "DELAYED (+6.4d)",
+                "carrier": "Evergreen Marine"
+            },
+            {
+                "id": "SHP-8822",
+                "sku": "SKU-312",
+                "origin": "Yokohama",
+                "dest": "Rotterdam",
+                "status": "UNDERWAY (Speed Reduced)"
+            }
+        ],
+        "destination_manufacturing_hubs": [
+            {
+                "hub_id": "pune-hub",
+                "name": "Pune Automotive & Industrial Electronics Corridor (Chakan / Talegaon / Bhosari)",
+                "primary_sea_gateway": "JNPT Nhava Sheva, Navi Mumbai (140 km / 4 hours via Expressway)",
+                "vulnerability": "Heavily reliant on imported power semiconductors (SiC MOSFETs, MCUs) and chemical precursor packaging"
+            }
         ]
     }
 
@@ -966,41 +1083,126 @@ def query_ai_analyst(req: AIQueryRequest):
         '"drivers": [string], "recommended_action": string, "expected_effect": string, '
         '"citations": [{"label": string, "entity_kind": string, "entity_id": string}]}'
     )
-    user_prompt = f"USER QUERY: {q}\n\nLIVE OPERATIONAL CONTEXT:\n{json.dumps(context_data, indent=2)}"
+    user_prompt = (
+        f"OPERATOR QUERY: {q}\n\n"
+        f"BAYESIAN SUPPLY CHAIN GRAPH CONTEXT:\n{json.dumps(context_data, indent=2)}\n\n"
+        "Instructions: Deliver a precise, analytical operational response strictly grounded in this context. "
+        "If the query asks about a specific node (e.g. Hormuz, Taiwan, Singapore, Pune), directly analyze that node's threat level, "
+        "whether shipments heading to that destination are affected, specific SKU exposures in INR, and concrete operational mitigations."
+    )
     
     llm_res = _call_llm_agent(user_prompt, sys_prompt)
-    if llm_res and isinstance(llm_res, dict) and "answer" in llm_res:
+    if llm_res and isinstance(llm_res, dict) and "answer" in llm_res and str(llm_res.get("answer", "")).strip():
         citations = []
         for c in llm_res.get("citations", []):
             if isinstance(c, dict) and "label" in c:
                 citations.append(AICitation(
-                    label=c.get("label", "Entity"),
-                    entity_kind=c.get("entity_kind", "chokepoint"),
-                    entity_id=c.get("entity_id", "cp-generic")
+                    label=str(c.get("label", "Entity")),
+                    entity_kind=str(c.get("entity_kind", "chokepoint")),
+                    entity_id=str(c.get("entity_id", "cp-generic"))
                 ))
         if not citations:
             citations = [
-                AICitation(label="Port of Singapore", entity_kind="chokepoint", entity_id="port-singapore"),
-                AICitation(label="SKU-441", entity_kind="sku", entity_id="SKU-441")
+                AICitation(label="Strait of Hormuz", entity_kind="chokepoint", entity_id="strait-of-hormuz"),
+                AICitation(label="SKU-108", entity_kind="sku", entity_id="SKU-108")
             ]
         return AIQueryResponse(
-            answer=llm_res.get("answer", ""),
+            answer=str(llm_res.get("answer", "")),
             probability_pct=float(llm_res.get("probability_pct", 78.0)),
-            orders_exposed=int(llm_res.get("orders_exposed", 184)),
-            revenue_exposed_inr=float(llm_res.get("revenue_exposed_inr", 18400000.0)),
+            orders_exposed=int(llm_res.get("orders_exposed", 23)),
+            revenue_exposed_inr=float(llm_res.get("revenue_exposed_inr", 12300000.0)),
             drivers=list(llm_res.get("drivers", [
-                "AIS vessel dwell time spike +4.2 days",
-                "Severe monsoon squall weather advisory in Malacca Approaches",
-                "Feeder delay anomaly reported across ASEAN routes"
+                "AIS vessel dwell anomaly",
+                "Regional security escalation index spike",
+                "Feeder delay across destination corridor"
             ])),
-            recommended_action=llm_res.get("recommended_action", "Expedite shipment SHP-8821 via dedicated air charter before inventory buffer depletes."),
-            expected_effect=llm_res.get("expected_effect", "Reduces stockout probability from 78% to 8% and protects ₹52.8L in revenue."),
+            recommended_action=str(llm_res.get("recommended_action", "Expedite shipment via alternate air freight before runway buffer depletes.")),
+            expected_effect=str(llm_res.get("expected_effect", "Reduces stockout probability and preserves delivery commitments.")),
             citations=citations
         )
 
     # 3. Grounded Deterministic Bayesian Intelligence Fallback
     q_lower = q.lower()
-    if "singapore" in q_lower or "order" in q_lower or "disrupt" in q_lower or "sku-441" in q_lower:
+    if any(k in q_lower for k in ["hormuz", "iran", "persian gulf", "pune", "gulf of oman", "arabian sea"]):
+        return AIQueryResponse(
+            answer="The Strait of Hormuz is operating under acute military-security escalation, with posterior disruption probability spiking to 95%. While pure silicon wafer fabs originate in East Asia, Hormuz directly impacts downstream supply into Pune: 20% of global petroleum/petrochemical liquids transit this choke, creating immediate freight surcharges, severe bunker fuel spikes, and disruption for Gulf feeder lanes connecting to JNPT Nhava Sheva. In your network, SKU-108 (SiC Power MOSFET Module) transits the Hormuz/Gulf of Oman corridor, with 17-day runway and ₹31.0L revenue exposure. SKU-205 (High-Voltage Inverter) also has ₹9.2L exposed to customer Siemens Mobility due to Hormuz security rerouting.",
+            probability_pct=95.0,
+            orders_exposed=23,
+            revenue_exposed_inr=12300000.0,
+            drivers=[
+                "Strait of Hormuz military-security escalation (Posterior Risk: 95%)",
+                "20% global petroleum liquids transit at risk -> insurance war risk premiums spike +340%",
+                "SKU-108 (SiC Power MOSFET Module) transits Gulf corridor with only 17 days runway",
+                "Pune inbound gateway (JNPT Nhava Sheva) feeder delay of +5.8 days",
+                "Customer Order ORD-18440 (Siemens Mobility Rail) flagged at P(Miss)=0.48"
+            ],
+            recommended_action="Verify shipping manifests for JNPT Nhava Sheva arrivals. Expedite SKU-108 via dedicated air charter (Cost: ₹4.2L) and activate alternate European sourcing for SKU-205 to insulate the Pune assembly line.",
+            expected_effect="Protects ₹1.23 Cr across 23 automotive orders in Pune cluster and reduces stockout probability from 42% to 6%.",
+            citations=[
+                AICitation(label="Strait of Hormuz", entity_kind="chokepoint", entity_id="strait-of-hormuz"),
+                AICitation(label="SKU-108 (SiC MOSFET)", entity_kind="sku", entity_id="SKU-108"),
+                AICitation(label="JNPT Nhava Sheva Port", entity_kind="port", entity_id="port-jnpt"),
+                AICitation(label="Order ORD-18440", entity_kind="order", entity_id="ORD-18440")
+            ]
+        )
+    elif any(k in q_lower for k in ["taiwan", "tsmc", "wafer", "hsinchu"]):
+        return AIQueryResponse(
+            answer="Taiwan Strait geopolitical friction currently stands at 71% posterior risk. Your tier-2 dependency mapping identifies critical single-source exposure: Alpha Components GmbH relies on TSMC Sub-Fab 14 in Hsinchu for 71% of MCU-441 microcontroller wafer fabrication. A disruption in the Taiwan Strait would choke automotive microcontrollers across 184 orders, creating ₹1.84 Cr in immediate assembly stoppage across Indian manufacturing corridors.",
+            probability_pct=71.0,
+            orders_exposed=184,
+            revenue_exposed_inr=18400000.0,
+            drivers=[
+                "Taiwan Strait cross-strait naval exercises and air defense zone incursions",
+                "TSMC Sub-Fab 14 single-point wafer concentration (71% indirect dependency)",
+                "Lead-time buffer down to 11 days on SKU-441"
+            ],
+            recommended_action="Initiate pre-emptive safety stock drawdowns and qualify Renesas Kumamoto Fab as second source.",
+            expected_effect="Diversifies HHI concentration from 0.57 to 0.38 and extends operational runway to 42 days.",
+            citations=[
+                AICitation(label="Taiwan Strait", entity_kind="chokepoint", entity_id="taiwan-strait"),
+                AICitation(label="TSMC Sub-Fab 14", entity_kind="supplier_site", entity_id="supplier-tsmc"),
+                AICitation(label="SKU-441 (Power Controller)", entity_kind="sku", entity_id="SKU-441")
+            ]
+        )
+    elif any(k in q_lower for k in ["suez", "red sea", "mandeb", "houthi"]):
+        return AIQueryResponse(
+            answer="The Red Sea / Bab el-Mandeb / Suez transit route remains under sustained military disruption with 79% posterior probability. Commercial container carriers continue Cape of Good Hope circumnavigation, adding 10 to 14 days lead time and +$1,800/FEU freight premiums. In your network, shipment SHP-8822 and Order ORD-18451 (Denso Corp) are directly delayed by +4.0 days.",
+            probability_pct=79.0,
+            orders_exposed=38,
+            revenue_exposed_inr=14800000.0,
+            drivers=[
+                "Houthi maritime strike zone in Bab el-Mandeb (Posterior Risk: 79%)",
+                "Cape of Good Hope rerouting adding +12.0 days average voyage duration",
+                "Order ORD-18451 (Denso Corporation) P(Miss) elevated to 64%"
+            ],
+            recommended_action="Air-freight critical RF transceiver components directly to Mumbai air cargo hub to beat the 4-day delivery miss.",
+            expected_effect="Mitigates stockout risk from 64% to 19% and preserves client SLA compliance.",
+            citations=[
+                AICitation(label="Suez Canal / Red Sea", entity_kind="chokepoint", entity_id="suez-canal"),
+                AICitation(label="Order ORD-18451", entity_kind="order", entity_id="ORD-18451"),
+                AICitation(label="Shipment SHP-8822", entity_kind="shipment", entity_id="SHP-8822")
+            ]
+        )
+    elif any(k in q_lower for k in ["supplier", "alpha", "hhi", "vendor", "dual source"]):
+        return AIQueryResponse(
+            answer="Supplier Alpha Components GmbH currently exhibits an elevated risk score of 67/100 (+10 over 7 days). We detect 72% single-source concentration (HHI = 0.57) for MCU-441 components. Furthermore, our Tier-2 dependency graph reveals that Supplier Alpha is 71% exposed to TSMC Sub-Fab 14 in Hsinchu. A failure at Supplier Alpha would halt 3 vehicle production lines within 19 days.",
+            probability_pct=67.0,
+            orders_exposed=184,
+            revenue_exposed_inr=48000000.0,
+            drivers=[
+                "HHI Concentration = 0.57 (High Monopolistic Exposure)",
+                "Tier-2 dependence on TSMC Sub-Fab 14 (71% indirect risk)",
+                "Financial liquidity score flagged as ELEVATED"
+            ],
+            recommended_action="Simulate dual-sourcing switch to Renesas Kumamoto partner (Cost: +14%, Lead-time: 12d, Risk Score: 18).",
+            expected_effect="Diversifies HHI concentration to 0.38 and insulates against single-point fab failures.",
+            citations=[
+                AICitation(label="Supplier Alpha Components GmbH", entity_kind="supplier", entity_id="sup-alpha"),
+                AICitation(label="TSMC Sub-Fab 14", entity_kind="supplier_site", entity_id="supplier-tsmc"),
+                AICitation(label="MCU-441", entity_kind="part", entity_id="part-mcu441")
+            ]
+        )
+    elif any(k in q_lower for k in ["singapore", "malacca", "port", "feeder", "berth"]):
         return AIQueryResponse(
             answer="The continuous monitoring system has detected an acute escalation at the Port of Singapore, raising posterior disruption probability from 18% baseline to 82%. This directly delays container shipment SHP-8821 by +6.4 days, choking MCU-441 microcontroller supply from Alpha Components GmbH. Without intervention, SKU-441 (Power Controller) will deplete its 11-day inventory runway, exposing 43 critical automotive customer orders valued at ₹28.4L (and 184 total customer orders valued at ₹1.84 Cr across the corridor).",
             probability_pct=82.0,
@@ -1021,41 +1223,23 @@ def query_ai_analyst(req: AIQueryRequest):
                 AICitation(label="Order ORD-18421 (Acme Automotive)", entity_kind="order", entity_id="ORD-18421")
             ]
         )
-    elif "supplier" in q_lower or "alpha" in q_lower or "hhi" in q_lower:
-        return AIQueryResponse(
-            answer="Supplier Alpha Components GmbH currently exhibits an elevated risk score of 67/100 (+10 over 7 days). We detect 72% single-source concentration (HHI = 0.57) for MCU-441 components. Furthermore, our Tier-2 dependency graph reveals that Supplier Alpha is 71% exposed to TSMC Sub-Fab 14 in Hsinchu. A failure at Supplier Alpha would halt 3 vehicle production lines within 19 days.",
-            probability_pct=67.0,
-            orders_exposed=184,
-            revenue_exposed_inr=48000000.0,
-            drivers=[
-                "HHI Concentration = 0.57 (High Monopolistic Exposure)",
-                "Tier-2 dependence on TSMC Sub-Fab 14 (71% indirect risk)",
-                "Financial liquidity score flagged as ELEVATED"
-            ],
-            recommended_action="Simulate dual-sourcing switch to Renesas Kumamoto partner (Cost: +14%, Lead-time: 12d, Risk Score: 18).",
-            expected_effect="Diversifies HHI concentration to 0.38 and insulates against single-point fab failures.",
-            citations=[
-                AICitation(label="Supplier Alpha Components GmbH", entity_kind="supplier", entity_id="sup-alpha"),
-                AICitation(label="TSMC Sub-Fab 14", entity_kind="supplier_site", entity_id="supplier-tsmc"),
-                AICitation(label="MCU-441", entity_kind="part", entity_id="part-mcu441")
-            ]
-        )
     else:
         return AIQueryResponse(
-            answer=f"Analysis for '{q}': Based on multi-signal Bayesian inference across 9,265 graph nodes, the primary vulnerability in your network is the Asia-Pacific maritime transit corridor through Singapore and Malacca. Overall network health is at 71/100 with ₹4.8 Cr aggregate revenue exposure across 184 orders.",
-            probability_pct=58.0,
+            answer=f"Analysis for '{q}': Based on multi-signal Bayesian inference across 9,265 graph nodes, your highest-exposure chokepoints are the Strait of Hormuz (95% stress, energy/petrochemical feedstocks), Port of Singapore (82% congestion, MCU shipments), and Taiwan Strait (71% fab concentration). Total network revenue exposure is ₹4.8 Cr across 184 orders, with Pune and Chennai automotive clusters representing 68% of inventory vulnerability.",
+            probability_pct=64.0,
             orders_exposed=184,
             revenue_exposed_inr=48000000.0,
             drivers=[
-                "Active disruptions: 8 monitored chokepoints above threshold",
-                "Predicted stockouts: 7 SKUs facing stockout within 21 days",
-                "Average shipment delay: +6.2 days"
+                "Active disruptions: 8 monitored chokepoints above threshold (Hormuz, Singapore, Suez, Taiwan)",
+                "Predicted stockouts: 7 critical SKUs facing stockout within 21 days",
+                "Average shipment delay: +6.2 days across Asian and Middle Eastern corridors"
             ],
-            recommended_action="Review high-priority SKU-441 and initiate expedited air freight before the 9-day decision window expires.",
-            expected_effect="Reduces aggregate network revenue exposure by ₹1.9 Cr.",
+            recommended_action="Review high-priority SKU-441 and SKU-108 in Control Tower; trigger expedited air freight for shipments delayed beyond 5 days.",
+            expected_effect="Reduces aggregate network revenue exposure by ₹2.1 Cr.",
             citations=[
                 AICitation(label="Control Tower", entity_kind="dashboard", entity_id="control-tower"),
-                AICitation(label="SKU-441", entity_kind="sku", entity_id="SKU-441")
+                AICitation(label="SKU-441", entity_kind="sku", entity_id="SKU-441"),
+                AICitation(label="Strait of Hormuz", entity_kind="chokepoint", entity_id="strait-of-hormuz")
             ]
         )
 
