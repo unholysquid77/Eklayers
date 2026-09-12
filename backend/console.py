@@ -61,6 +61,11 @@ class ChokepointItem(BaseModel):
     trend: Literal["increasing", "stable", "decreasing"]
     country: Optional[str] = None
     criticality: Optional[float] = 0.5
+    baseline_vessels_day: Optional[int] = None
+    throughput_pct: Optional[float] = None
+    epistemic_status: Optional[str] = None
+    key_commodities: Optional[str] = None
+    delay_days: Optional[float] = None
 
 
 class ChokepointsListResponse(BaseModel):
@@ -250,6 +255,11 @@ def get_chokepoints():
             trend=trend_val,
             country=cp.get("country"),
             criticality=float(cp.get("criticality", 0.5) or 0.5),
+            baseline_vessels_day=cp.get("baseline_vessels_day"),
+            throughput_pct=cp.get("throughput_pct"),
+            epistemic_status=cp.get("epistemic_status"),
+            key_commodities=cp.get("key_commodities"),
+            delay_days=cp.get("delay_days"),
         ))
 
     # Sort descending by stress level

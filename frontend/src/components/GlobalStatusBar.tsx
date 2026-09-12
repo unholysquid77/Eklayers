@@ -10,11 +10,29 @@ export default function GlobalStatusBar() {
   const [status, setStatus] = useState<SystemStatusResponse>(MOCK_SYSTEM_STATUS);
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [zuluTime, setZuluTime] = useState('');
+  const [modelAge, setModelAge] = useState(14);
+  const [forecastCountdown, setForecastCountdown] = useState(46);
+
+  const fetchStatus = () => {
+    getSystemStatus().then((s) => {
+      setStatus(s);
+      if (s.model_updated_seconds_ago !== undefined) setModelAge(s.model_updated_seconds_ago);
+      if (s.forecast_next_refresh_seconds !== undefined) setForecastCountdown(s.forecast_next_refresh_seconds);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
-    getSystemStatus().then(setStatus).catch(() => {});
+    fetchStatus();
     const interval = setInterval(() => {
       setZuluTime(new Date().toISOString().replace('T', ' ').slice(0, 19) + 'Z');
+      setModelAge((prev) => prev + 1);
+      setForecastCountdown((prev) => {
+        if (prev <= 1) {
+          fetchStatus();
+          return 60;
+        }
+        return prev - 1;
+      });
     }, 1000);
     setZuluTime(new Date().toISOString().replace('T', ' ').slice(0, 19) + 'Z');
     return () => clearInterval(interval);
@@ -44,17 +62,17 @@ export default function GlobalStatusBar() {
 
           <div className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
             <span className="text-[#4e6e58]">MODEL:</span>
-            <span className="text-[#d1fae5]">Updated {status.model_updated_seconds_ago}s ago</span>
+            <span className="text-[#d1fae5]">Updated {modelAge}s ago</span>
           </div>
 
           <div className="hidden lg:flex items-center gap-1.5 whitespace-nowrap">
             <span className="text-[#4e6e58]">GRAPH:</span>
-            <span className="text-[#d1fae5]">{status.graph_nodes_count.toLocaleString()} nodes · {status.graph_relations_count.toLocaleString()} edges</span>
+            <span className="text-[#d1fae5]">{(status.graph_nodes_count || 136).toLocaleString()} nodes · {(status.graph_relations_count || 385).toLocaleString()} edges</span>
           </div>
 
           <div className="flex items-center gap-1.5 whitespace-nowrap">
             <span className="text-[#4e6e58]">FORECAST:</span>
-            <span className="text-[#38bdf8]">Next refresh in {status.forecast_next_refresh_seconds}s</span>
+            <span className="text-[#38bdf8]">Next refresh in {forecastCountdown}s</span>
           </div>
         </div>
 

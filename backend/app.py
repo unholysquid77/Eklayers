@@ -853,9 +853,9 @@ def get_globe_cascade_map():
             if n.id in seen_ids:
                 continue
             seen_ids.add(n.id)
+            props = n.properties if hasattr(n, "properties") and isinstance(n.properties, dict) else {}
             stress = float(n.chokepoint_score or 0.35)
-            if hasattr(n, "properties") and isinstance(n.properties, dict):
-                stress = float(n.properties.get("stress_level", stress) or stress)
+            stress = float(props.get("stress_level", stress) or stress)
             chokepoints.append({
                 "id": n.id,
                 "name": n.name or n.id,
@@ -863,9 +863,14 @@ def get_globe_cascade_map():
                 "latitude": float(n.lat),
                 "longitude": float(n.lon),
                 "stress_level": round(stress, 3),
-                "baseline": round(float(n.properties.get("baseline_stress", 0.10) or 0.10), 3) if hasattr(n, "properties") and isinstance(n.properties, dict) else 0.10,
+                "baseline": round(float(props.get("baseline_stress", 0.10) or 0.10), 3),
                 "criticality": round(float(n.criticality or 0.5), 3),
-                "country": n.properties.get("country", "") if hasattr(n, "properties") and isinstance(n.properties, dict) else "",
+                "country": props.get("country", ""),
+                "baseline_vessels_day": props.get("baseline_vessels_day"),
+                "throughput_pct": props.get("throughput_pct"),
+                "epistemic_status": props.get("epistemic_status"),
+                "key_commodities": props.get("key_commodities"),
+                "delay_days": props.get("delay_days"),
             })
     
     # 2. Events (from Paqshi archive seed + live signals)

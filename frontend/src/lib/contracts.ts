@@ -234,6 +234,9 @@ export interface GlobeChokepoint {
   criticality: number;
   confidence?: number;
   country?: string;
+  epistemic_status?: string;
+  key_commodities?: string;
+  delay_days?: number;
 }
 
 export interface GlobeEvent {
@@ -491,6 +494,13 @@ export interface ConsoleChokepoint {
   name: string;
   current_stress: number;
   trend: 'increasing' | 'stable' | 'decreasing';
+  country?: string;
+  criticality?: number;
+  baseline_vessels_day?: number;
+  throughput_pct?: number;
+  epistemic_status?: string;
+  key_commodities?: string;
+  delay_days?: number;
 }
 
 export interface ChokepointsResponse {

@@ -1152,6 +1152,19 @@ def build_ontology_graph(
                 if not cid:
                     continue
                 node = g.node(cid)
+                props = {
+                    "category": cp.get("category"),
+                    "subcategory": cp.get("subcategory"),
+                    "country": cp.get("country"),
+                    "baseline_stress": cp.get("baseline_stress"),
+                    "baseline_vessels_day": cp.get("baseline_vessels_day"),
+                    "throughput_pct": cp.get("throughput_pct"),
+                    "epistemic_status": cp.get("epistemic_status"),
+                    "key_commodities": cp.get("key_commodities"),
+                    "delay_days": cp.get("delay_days"),
+                    "stress_level": cp.get("stress_level"),
+                    "source": "paqshi_archive",
+                }
                 if not node:
                     g.add_node(OntologyNode(
                         id=cid,
@@ -1162,20 +1175,20 @@ def build_ontology_graph(
                         lon=cp.get("longitude"),
                         is_chokepoint=True,
                         chokepoint_score=float(cp.get("stress_level") or 0.35),
-                        properties={
-                            "category": cp.get("category"),
-                            "subcategory": cp.get("subcategory"),
-                            "country": cp.get("country"),
-                            "baseline_stress": cp.get("baseline_stress"),
-                            "source": "paqshi_archive",
-                        },
+                        properties=props,
                     ))
                 else:
                     node.is_chokepoint = True
-                    node.chokepoint_score = max(node.chokepoint_score, float(cp.get("stress_level") or 0.35))
+                    if cp.get("stress_level") is not None:
+                        node.chokepoint_score = float(cp.get("stress_level"))
+                    if cp.get("criticality") is not None:
+                        node.criticality = float(cp.get("criticality"))
                     if cp.get("latitude") and not node.lat:
                         node.lat = cp.get("latitude")
                         node.lon = cp.get("longitude")
+                    if not isinstance(node.properties, dict):
+                        node.properties = {}
+                    node.properties.update({k: v for k, v in props.items() if v is not None})
 
             # Add top relations
             for rel in pdata.get("relations", []):

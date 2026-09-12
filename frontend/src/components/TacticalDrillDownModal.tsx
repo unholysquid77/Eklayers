@@ -440,13 +440,13 @@ export default function TacticalDrillDownModal({
               subtitle: 'Maritime Transit Node [STRATEGIC]',
               lat: cpLat,
               lon: cpLon,
-              status: stressVal > 0.6 ? 'SEVERE CONGESTION' : stressVal > 0.4 ? 'ELEVATED STRESS' : 'NORMAL TRANSIT',
+              status: cp.epistemic_status || (stressVal > 0.6 ? 'SEVERE CONGESTION' : stressVal > 0.4 ? 'ELEVATED STRESS' : 'NORMAL TRANSIT'),
               stress: stressVal,
               metrics: [
                 { label: 'Current Stress', value: `${Math.round(stressVal * 100)}%`, highlight: stressVal > 0.5 },
-                { label: 'Throughput Pct', value: `${Math.round((cp.throughput_pct || 0.8) * 100)}%` },
-                { label: 'Baseline Vessels/day', value: `${cp.baseline_vessels_day || 120} vessels` },
-                { label: 'Confidence Score', value: `${Math.round((cp.confidence || 0.9) * 100)}%` },
+                { label: 'Throughput Pct', value: `${Math.round((cp.throughput_pct !== undefined ? cp.throughput_pct : Math.max(0.34, 1.0 - stressVal * 0.58)) * 100)}%` },
+                { label: 'Baseline Vessels/day', value: `${cp.baseline_vessels_day || Math.round(45 + (cp.criticality || 0.7) * 110)} vessels` },
+                { label: 'Confidence Score', value: `${Math.round((cp.confidence || 0.94) * 100)}%` },
               ],
               raw: cp,
             });
