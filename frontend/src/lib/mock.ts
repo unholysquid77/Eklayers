@@ -1590,15 +1590,153 @@ export const MOCK_SHIPPING: GeoFeatureCollection = {
         type: "LineString",
         coordinates: [
           [103.840, 1.264],
-          [101.500, 2.500],
-          [32.300, 30.500],
-          [4.479, 51.922],
+          [101.250, 4.110],
+          [99.650, 5.510],
+          [95.000, 5.800],
+          [92.500, 6.800],
+          [80.500, 5.750],
+          [76.500, 7.800],
+          [65.000, 14.000],
+          [55.000, 12.500],
+          [48.000, 12.500],
+          [43.330, 12.580],
+          [41.000, 16.000],
+          [38.500, 20.000],
+          [36.000, 24.000],
+          [33.500, 27.800],
+          [32.600, 29.600],
+          [32.290, 31.240],
+          [26.000, 34.500],
+          [18.000, 36.500],
+          [12.000, 36.800],
+          [8.000, 38.200],
+          [1.000, 37.800],
+          [-5.600, 35.950],
+          [-9.200, 36.800],
+          [-9.500, 43.200],
+          [-6.000, 46.500],
+          [-5.200, 48.800],
+          [-0.500, 50.200],
+          [1.500, 51.100],
+          [4.140, 51.950]
         ]
       },
-      properties: { name: "Asia-Europe Mainline", stress: 0.78, traffic: "Heavy" }
+      properties: { name: "Asia-Europe Maritime Mainline", stress: 0.78, traffic: "Heavy" }
+    },
+    {
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [50.200, 26.650],
+          [55.000, 26.300],
+          [56.250, 26.560],
+          [58.500, 24.500],
+          [60.000, 22.500],
+          [55.000, 12.500],
+          [48.000, 12.500],
+          [43.330, 12.580],
+          [38.500, 20.000],
+          [32.290, 31.240],
+          [12.000, 36.800],
+          [-5.600, 35.950],
+          [-9.500, 43.200],
+          [-5.200, 48.800],
+          [4.140, 51.950]
+        ]
+      },
+      properties: { name: "Persian Gulf - North Sea Crude Trunk", stress: 0.84, traffic: "Very High" }
     }
   ]
 };
+
+export const MOCK_CUSTOM_SUPPLY_CHAINS = [
+  {
+    id: "chain-apex-tsmc-pune",
+    name: "Taiwan Semi -> Pune Gigafactory (Automotive MCU Pipeline)",
+    priority: "CRITICAL",
+    partner_3pl: "Maersk Line / Ocean Network Express (ONE)",
+    origin: { name: "TSMC Fab 14, Hsinchu, Taiwan", lat: 24.77, lon: 121.01 },
+    intermediate_hubs: [
+      { name: "Port of Kaohsiung Departure", lat: 22.61, lon: 120.28 },
+      { name: "Luzon Strait Passage", lat: 20.00, lon: 119.00 },
+      { name: "South China Sea Deepwater Corridor", lat: 13.50, lon: 113.50 },
+      { name: "Natuna Islands Waypoint", lat: 4.50, lon: 108.00 },
+      { name: "Singapore East Approach (Horsburgh)", lat: 1.34, lon: 104.40 },
+      { name: "Singapore TSS / Malacca Chokepoint", lat: 1.25, lon: 103.82 },
+      { name: "Malacca Strait North Exit (One Fathom Bank)", lat: 3.00, lon: 101.00 },
+      { name: "Weh Island / Andaman Sea Gate", lat: 5.80, lon: 95.00 },
+      { name: "Great Nicobar Channel", lat: 6.80, lon: 92.50 },
+      { name: "Dondra Head / South Sri Lanka Rounding", lat: 5.75, lon: 80.50 },
+      { name: "Colombo Port Offshore Fairway", lat: 6.95, lon: 79.75 },
+      { name: "Cape Comorin Outer Fairway", lat: 7.80, lon: 76.50 },
+      { name: "Lakshadweep Sea Maritime Route", lat: 13.00, lon: 73.20 },
+      { name: "Port of Nhava Sheva (JNPT Mumbai)", lat: 18.95, lon: 72.95 }
+    ],
+    destination: { name: "Apex Gigafactory Pune, India", lat: 18.52, lon: 73.85 },
+    transit_days: 18.5,
+    sku_carried: "SKU-441 (Power Controller)",
+    status: "AT_RISK",
+    stress_score: 0.82
+  },
+  {
+    id: "chain-mideast-rotterdam-crude",
+    name: "Ras Tanura Crude -> Rotterdam Distripark",
+    priority: "HIGH",
+    partner_3pl: "Frontline VLCC Fleet / Euronav",
+    origin: { name: "Ras Tanura Terminal, Saudi Arabia", lat: 26.64, lon: 50.16 },
+    intermediate_hubs: [
+      { name: "Persian Gulf Central Tanker Fairway", lat: 26.20, lon: 53.00 },
+      { name: "Strait of Hormuz Inbound Lane", lat: 26.56, lon: 56.25 },
+      { name: "Gulf of Oman Sea Route", lat: 24.50, lon: 58.50 },
+      { name: "Ras al Hadd Offshore Turning Point", lat: 22.50, lon: 60.00 },
+      { name: "Arabian Sea Southbound TSS", lat: 16.50, lon: 54.50 },
+      { name: "Gulf of Aden Western Corridor", lat: 12.80, lon: 48.00 },
+      { name: "Bab el-Mandeb Strait Gate", lat: 12.58, lon: 43.33 },
+      { name: "Red Sea Central Channel (Hanish Islands)", lat: 15.00, lon: 41.50 },
+      { name: "Red Sea North Corridor", lat: 22.00, lon: 38.00 },
+      { name: "Gulf of Suez Entrance", lat: 27.80, lon: 34.00 },
+      { name: "Suez Canal Transit (Port Said Exit)", lat: 31.25, lon: 32.30 },
+      { name: "Eastern Mediterranean (South of Crete)", lat: 34.20, lon: 25.00 },
+      { name: "Strait of Sicily / Pantelleria Channel", lat: 36.80, lon: 12.00 },
+      { name: "Western Mediterranean (South of Sardinia)", lat: 38.20, lon: 8.00 },
+      { name: "South Balearic Fairway", lat: 37.80, lon: 1.00 },
+      { name: "Strait of Gibraltar (Tarifa Point)", lat: 35.95, lon: -5.60 },
+      { name: "Cape St. Vincent Offshore TSS", lat: 36.80, lon: -9.20 },
+      { name: "Cape Finisterre Traffic Separation", lat: 43.20, lon: -9.50 },
+      { name: "Bay of Biscay Crossing", lat: 46.50, lon: -6.00 },
+      { name: "English Channel West Gate (Ushant)", lat: 48.80, lon: -5.20 },
+      { name: "Strait of Dover", lat: 51.10, lon: 1.50 }
+    ],
+    destination: { name: "Port of Rotterdam Terminal", lat: 51.95, lon: 4.14 },
+    transit_days: 24.0,
+    sku_carried: "Industrial Fuel & Petrochem Feedstock",
+    status: "ELEVATED_RISK",
+    stress_score: 0.76
+  },
+  {
+    id: "chain-shanghai-lax-auto",
+    name: "East China Electronics -> LA Inland Empire",
+    priority: "HIGH",
+    partner_3pl: "Kuehne+Nagel / CMA CGM",
+    origin: { name: "Shanghai Waigaoqiao FTZ", lat: 31.33, lon: 121.60 },
+    intermediate_hubs: [
+      { name: "Yangtze Estuary Deepwater Channel", lat: 31.20, lon: 122.50 },
+      { name: "East China Sea Offshore Fairway", lat: 30.50, lon: 126.00 },
+      { name: "Osumi Strait Pass (Japan)", lat: 30.80, lon: 131.50 },
+      { name: "Honshu South Offshore Corridor", lat: 33.50, lon: 138.00 },
+      { name: "Tokyo Bay Outer Fairway", lat: 34.80, lon: 140.50 },
+      { name: "California Coastal Approach", lat: 34.50, lon: -121.50 },
+      { name: "San Pedro Bay Traffic Lane", lat: 33.65, lon: -118.30 },
+      { name: "Port of Los Angeles Berth", lat: 33.74, lon: -118.26 }
+    ],
+    destination: { name: "LA Inland Empire DC", lat: 33.82, lon: -117.90 },
+    transit_days: 16.0,
+    sku_carried: "SKU-808 (Telematics Gateway)",
+    status: "NORMAL",
+    stress_score: 0.28
+  }
+];
 
 // ---------------------------------------------------------------------------
 // Console Mocks

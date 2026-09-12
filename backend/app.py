@@ -1374,110 +1374,59 @@ def get_globe_shipping_lanes():
         return round(min(1.0, baseline + max_alert * 0.6), 3)
 
     features = [
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[99.650,5.510],[100.350,5.380],[101.250,4.110],[102.750,2.990],[103.840,1.264],[105.200,0.550],[107.500,-0.200],[109.000,0.100]]},"properties":{"id":"sl-malacca","name":"Strait of Malacca","route_type":"sea","baseline_stress":0.40,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-singapore","sup-gamma"],0.40)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[32.290,31.240],[32.550,30.500],[32.600,29.600],[32.400,27.200],[36.900,22.000],[39.800,21.400],[43.150,11.590],[45.000,11.500],[50.500,12.000],[55.000,12.500]]},"properties":{"id":"sl-suez","name":"Suez Canal Route","route_type":"sea","baseline_stress":0.35,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-said"],0.35)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[99.650,5.510],[100.350,5.380],[101.250,4.110],[102.750,2.990],[103.840,1.264],[104.400,1.340],[106.500,2.500],[109.000,4.000]]},"properties":{"id":"sl-malacca","name":"Strait of Malacca Fairway","route_type":"sea","baseline_stress":0.40,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-singapore","sup-gamma"],0.40)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[32.290,31.240],[32.550,30.500],[32.600,29.600],[33.500,27.800],[36.000,24.000],[38.500,20.000],[41.000,16.000],[43.330,12.580],[45.000,12.000],[48.000,12.500],[53.000,13.000],[58.000,15.000]]},"properties":{"id":"sl-suez","name":"Suez Canal - Red Sea - Aden Highway","route_type":"sea","baseline_stress":0.35,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-said"],0.35)}},
         {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-79.920,8.980],[-80.200,8.640],[-80.500,8.860],[-80.850,9.200],[-80.120,9.340]]},"properties":{"id":"sl-panama","name":"Panama Canal Route","route_type":"sea","baseline_stress":0.20,"traffic":"high","chokepoint":True,"stress":_lane_stress([],0.20)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[57.000,21.500],[56.500,24.500],[56.000,26.000],[55.000,25.500],[54.000,24.500]]},"properties":{"id":"sl-hormuz","name":"Strait of Hormuz","route_type":"sea","baseline_stress":0.45,"traffic":"very_high","chokepoint":True,"stress":_lane_stress([],0.45)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[43.150,11.590],[43.420,12.100],[43.700,12.600],[44.200,13.000],[44.600,13.300],[45.000,11.500]]},"properties":{"id":"sl-bab-el-mandeb","name":"Bab-el-Mandeb Strait","route_type":"sea","baseline_stress":0.50,"traffic":"high","chokepoint":True,"stress":_lane_stress([],0.50)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[120.000,22.500],[119.500,24.000],[118.900,25.600],[118.300,27.100],[117.600,29.200],[121.470,31.230]]},"properties":{"id":"sl-taiwan-strait","name":"Taiwan Strait","route_type":"sea","baseline_stress":0.35,"traffic":"very_high","chokepoint":True,"stress":_lane_stress([],0.35)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[139.690,35.690],[145.000,37.000],[155.000,40.000],[165.000,45.000],[175.000,50.000],[180.000,52.000],[-170.000,52.000],[-155.000,52.000],[-140.000,50.000],[-130.000,46.000],[-118.250,33.740]]},"properties":{"id":"sl-trans-pacific","name":"Trans-Pacific Route (East Asia – US West)","route_type":"sea","baseline_stress":0.20,"traffic":"very_high","chokepoint":False,"stress":_lane_stress(["port-los-angeles"],0.20)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[4.479,51.922],[2.000,51.500],[0.000,51.000],[-5.000,50.000],[-10.000,49.000],[-20.000,47.000],[-35.000,43.000],[-50.000,40.000],[-60.000,38.000],[-70.000,41.000],[-74.010,40.710]]},"properties":{"id":"sl-trans-atlantic","name":"Trans-Atlantic Route (Europe – US East)","route_type":"sea","baseline_stress":0.15,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-rotterdam"],0.15)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-0.200,50.800],[1.000,51.200],[2.000,51.300],[2.500,51.400],[3.200,51.600],[4.479,51.922]]},"properties":{"id":"sl-english-channel","name":"English Channel","route_type":"sea","baseline_stress":0.30,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-antwerp","port-rotterdam"],0.30)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[103.840,1.264],[107.000,3.000],[110.000,3.500],[114.000,7.000],[117.000,10.000],[119.000,13.000],[121.000,16.000],[124.000,20.000],[121.470,31.230]]},"properties":{"id":"sl-south-china-sea","name":"South China Sea Route","route_type":"sea","baseline_stress":0.30,"traffic":"very_high","chokepoint":False,"stress":_lane_stress(["port-hong-kong","port-shanghai"],0.30)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[9.993,53.551],[10.500,55.000],[11.000,56.500],[12.000,57.500],[13.000,58.000],[14.000,59.000],[15.000,59.500],[17.000,59.000],[18.500,59.200],[21.000,57.000],[24.000,59.500],[25.000,60.000],[25.500,60.200]]},"properties":{"id":"sl-baltic-sea","name":"Baltic Sea Route","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-hamburg"],0.25)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[55.000,12.500],[65.000,15.000],[72.880,18.960],[74.000,19.000],[77.600,8.200],[80.280,13.080],[81.000,8.600],[82.000,7.000],[80.500,6.000],[79.850,6.930]]},"properties":{"id":"sl-arabian-sea","name":"Arabian Sea Route (India – Gulf)","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-mumbai","port-colombo"],0.25)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[103.840,1.264],[100.000,-2.000],[98.000,-5.000],[96.000,-8.000],[93.000,-10.000],[90.000,-15.000],[85.000,-20.000],[80.000,-25.000],[75.000,-30.000],[72.000,-34.000],[55.000,-35.000],[40.000,-34.000],[32.000,-31.000],[28.000,-26.000],[18.420,-33.920]]},"properties":{"id":"sl-cape-of-good-hope","name":"Cape of Good Hope Route","route_type":"sea","baseline_stress":0.20,"traffic":"high","chokepoint":False,"stress":_lane_stress([],0.20)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[14.250,40.830],[16.000,40.000],[18.000,38.000],[20.000,37.000],[23.000,37.000],[26.000,37.500],[28.000,37.000],[30.000,36.500],[32.290,31.240]]},"properties":{"id":"sl-mediterranean-east","name":"Eastern Mediterranean Route","route_type":"sea","baseline_stress":0.30,"traffic":"high","chokepoint":False,"stress":_lane_stress([],0.30)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[4.479,51.922],[2.350,48.860],[-1.600,43.500],[-5.000,43.300],[-9.150,38.720],[-6.000,36.500],[0.000,39.000],[5.000,36.500],[10.000,37.500],[14.250,40.830]]},"properties":{"id":"sl-mediterranean-west","name":"Western Mediterranean Route","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-antwerp"],0.25)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[129.075,35.180],[132.000,34.000],[133.000,34.500],[134.000,34.600],[135.500,34.690],[136.880,35.170],[138.260,34.970],[139.690,35.690]]},"properties":{"id":"sl-japan-sea","name":"Japan Sea Corridor","route_type":"sea","baseline_stress":0.20,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-busan"],0.20)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[18.420,-33.920],[20.000,-29.000],[25.000,-25.000],[28.240,-26.134],[31.000,-24.000],[34.000,-20.000],[37.317,-3.183],[39.000,3.000],[40.000,11.000],[43.150,11.590]]},"properties":{"id":"sl-east-africa","name":"East Africa Coastal Route","route_type":"sea","baseline_stress":0.30,"traffic":"medium","chokepoint":False,"stress":_lane_stress([],0.30)}},
-        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-79.920,8.980],[-75.000,10.000],[-70.000,12.000],[-65.000,13.000],[-60.000,15.000],[-55.000,16.000],[-45.000,17.000],[-35.000,20.000],[-25.000,23.000],[-15.000,27.000],[-6.000,36.500]]},"properties":{"id":"sl-caribbean-atlantic","name":"Caribbean – Atlantic Route","route_type":"sea","baseline_stress":0.20,"traffic":"medium","chokepoint":False,"stress":_lane_stress([],0.20)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[50.200,26.650],[52.500,26.200],[55.000,26.300],[56.250,26.560],[58.500,24.500],[60.000,22.500]]},"properties":{"id":"sl-hormuz","name":"Strait of Hormuz Tanker Fairway","route_type":"sea","baseline_stress":0.45,"traffic":"very_high","chokepoint":True,"stress":_lane_stress([],0.45)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[42.500,13.500],[43.330,12.580],[44.500,12.000],[46.500,11.800],[49.000,12.200],[51.500,12.500]]},"properties":{"id":"sl-bab-el-mandeb","name":"Bab-el-Mandeb Strait Gate","route_type":"sea","baseline_stress":0.50,"traffic":"high","chokepoint":True,"stress":_lane_stress([],0.50)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[120.280,22.610],[119.500,23.800],[120.200,25.200],[121.200,26.500],[122.500,28.200],[123.000,30.000],[122.500,31.000],[121.600,31.330]]},"properties":{"id":"sl-taiwan-strait","name":"Taiwan Strait Coastal Corridor","route_type":"sea","baseline_stress":0.35,"traffic":"very_high","chokepoint":True,"stress":_lane_stress([],0.35)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[139.690,35.690],[145.000,37.000],[155.000,40.000],[165.000,43.000],[175.000,46.000],[179.500,47.500]]},"properties":{"id":"sl-trans-pacific-west","name":"Trans-Pacific North Corridor (Eastbound)","route_type":"sea","baseline_stress":0.20,"traffic":"very_high","chokepoint":False,"stress":_lane_stress(["port-los-angeles"],0.20)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-179.500,47.500],[-165.000,46.500],[-150.000,44.000],[-135.000,40.000],[-125.000,35.500],[-118.260,33.740]]},"properties":{"id":"sl-trans-pacific-east","name":"Trans-Pacific North Corridor (Approach)","route_type":"sea","baseline_stress":0.20,"traffic":"very_high","chokepoint":False,"stress":_lane_stress(["port-los-angeles"],0.20)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[4.140,51.950],[1.500,51.100],[-0.500,50.200],[-5.200,48.800],[-12.000,48.000],[-25.000,45.000],[-40.000,42.000],[-55.000,40.000],[-65.000,39.000],[-73.500,40.500]]},"properties":{"id":"sl-trans-atlantic","name":"Trans-Atlantic Great Circle Route","route_type":"sea","baseline_stress":0.15,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-rotterdam"],0.15)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-5.200,48.800],[-2.000,49.800],[0.000,50.500],[1.500,51.100],[2.500,51.400],[4.140,51.950]]},"properties":{"id":"sl-english-channel","name":"English Channel Traffic Separation","route_type":"sea","baseline_stress":0.30,"traffic":"very_high","chokepoint":True,"stress":_lane_stress(["port-antwerp","port-rotterdam"],0.30)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[103.840,1.264],[106.500,3.000],[110.000,6.000],[113.500,10.000],[116.500,14.000],[119.000,18.000],[120.500,21.500],[122.500,24.000],[123.500,27.000],[123.000,30.000],[121.600,31.330]]},"properties":{"id":"sl-south-china-sea","name":"South China Sea Deepwater Trunk","route_type":"sea","baseline_stress":0.30,"traffic":"very_high","chokepoint":False,"stress":_lane_stress(["port-hong-kong","port-shanghai"],0.30)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[9.993,53.551],[8.500,54.500],[7.500,56.000],[6.000,57.500],[9.000,58.000],[11.500,57.800],[15.000,56.000],[19.000,55.500],[21.000,57.500],[24.000,59.500],[28.000,60.000]]},"properties":{"id":"sl-baltic-sea","name":"Baltic Sea & Skagerrak Route","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-hamburg"],0.25)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[55.000,12.500],[62.000,14.500],[68.000,16.500],[72.500,18.900],[73.200,15.400],[74.500,12.000],[76.000,9.000],[77.500,7.800],[80.500,5.750],[82.000,6.500],[80.000,12.000]]},"properties":{"id":"sl-arabian-sea","name":"Arabian Sea & Indian Coast Highway","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-mumbai","port-colombo"],0.25)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[103.840,1.264],[101.000,3.000],[95.000,5.800],[90.000,0.000],[80.000,-10.000],[70.000,-20.000],[58.000,-28.000],[45.000,-33.000],[34.000,-35.000],[25.000,-35.500],[20.000,-35.500],[18.420,-34.350],[17.000,-32.000],[10.000,-20.000],[0.000,-5.000],[-10.000,10.000],[-15.000,25.000],[-10.000,38.000],[-5.200,48.800],[4.140,51.950]]},"properties":{"id":"sl-cape-of-good-hope","name":"Cape of Good Hope Mega-Vessel Route","route_type":"sea","baseline_stress":0.20,"traffic":"high","chokepoint":False,"stress":_lane_stress([],0.20)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[14.250,40.830],[15.500,38.200],[18.000,36.500],[22.000,35.000],[26.000,34.500],[30.000,33.500],[32.300,31.250]]},"properties":{"id":"sl-mediterranean-east","name":"Eastern Mediterranean Fairway","route_type":"sea","baseline_stress":0.30,"traffic":"high","chokepoint":False,"stress":_lane_stress([],0.30)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[4.140,51.950],[1.500,51.100],[-0.500,50.200],[-5.200,48.800],[-6.000,46.500],[-9.500,43.200],[-9.200,36.800],[-5.600,35.950],[1.000,37.800],[8.000,38.200],[12.000,36.800],[25.000,34.200],[32.300,31.250]]},"properties":{"id":"sl-mediterranean-west","name":"Western Mediterranean - Atlantic Trunk","route_type":"sea","baseline_stress":0.25,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-antwerp"],0.25)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[129.075,35.180],[131.000,34.000],[133.000,34.200],[135.000,34.500],[137.000,34.800],[139.690,35.690]]},"properties":{"id":"sl-japan-sea","name":"Japan Inland & Coastal Sea Corridor","route_type":"sea","baseline_stress":0.20,"traffic":"high","chokepoint":False,"stress":_lane_stress(["port-busan"],0.20)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[18.420,-34.350],[26.000,-34.500],[32.000,-30.000],[35.000,-25.000],[41.000,-15.000],[42.000,-8.000],[41.500,-2.000],[50.000,8.000],[51.500,11.000],[48.000,12.500],[43.330,12.580]]},"properties":{"id":"sl-east-africa","name":"East Africa Maritime Highway","route_type":"sea","baseline_stress":0.30,"traffic":"medium","chokepoint":False,"stress":_lane_stress([],0.30)}},
+        {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-79.920,8.980],[-77.000,11.500],[-72.000,14.000],[-66.000,17.000],[-55.000,22.000],[-40.000,28.000],[-25.000,32.000],[-12.000,35.000],[-5.600,35.950]]},"properties":{"id":"sl-caribbean-atlantic","name":"Caribbean - Gibraltar Atlantic Highway","route_type":"sea","baseline_stress":0.20,"traffic":"medium","chokepoint":False,"stress":_lane_stress([],0.20)}},
     ]
 
     return {"type": "FeatureCollection", "features": features}
 
 
-@globe_router.get("/ontology/edges", summary="BOM and supply-chain relationship arcs for globe rendering")
-def get_globe_ontology_edges():
-    """Returns supply-chain relationship edges with source/target coordinates for globe arc rendering.
-
-    Includes SUPPLIES, DISRUPTS, BLOCKS, AFFECTS, AMPLIFIES, CORROBORATES edges.
-    Nodes without coordinates are skipped.
-    """
-    def _coords(node_id: str):
-        node = state.graph.node(node_id)
-        if node and node.lat is not None and node.lon is not None:
-            return {"lat": node.lat, "lon": node.lon, "name": node.name, "kind": node.kind}
-        return None
-
-    arcs = []
-    for edge in state.graph.surface_relationships(min_severity=0.05):
-        src = _coords(edge.source_id)
-        tgt = _coords(edge.target_id)
-        if not src or not tgt:
-            continue
-        arcs.append({
-            "id": f"{edge.source_id}→{edge.target_id}",
-            "label": edge.label if isinstance(edge.label, str) else edge.label.value,
-            "severity": edge.severity if edge.severity else 0.3,
-            "source": {"id": edge.source_id, **src},
-            "target": {"id": edge.target_id, **tgt},
-        })
-
-    return {"arcs": arcs, "total": len(arcs)}
-
-
-@globe_router.get("/chokepoints/{node_id}/forecast", summary="30-day stress forecast for a chokepoint")
-def get_globe_chokepoint_forecast(node_id: str):
-    from .scoring import forecast_chokepoint_stress
-    try:
-        forecast = forecast_chokepoint_stress(
-            chokepoint_id=node_id,
-            graph=state.graph,
-            state=state,
-            horizon_days=30,
-            threshold=0.70
-        )
-        return _envelope(forecast, provenance=["bayesian_update", "kalman_filter", "monte_carlo"])
-    except ValueError as e:
-        raise HTTPException(404, str(e))
-
-
-# ---------------------------------------------------------------------------
-# Market Telemetry API (Yahoo Finance Integration)
-# ---------------------------------------------------------------------------
-
-@globe_router.get("/market/telemetry", summary="Live Commodity, Freight, and FX Telemetry")
+@globe_router.get("/market-telemetry", summary="Live global commodities and shipping market telemetry")
 def get_market_telemetry():
-    """Fetches real-time price changes for key supply-chain benchmarks via yfinance."""
+    """Fetches live commodity, energy, shipping index, and FX data using Yahoo Finance."""
     tickers = {
-        "BZ=F": {"label": "Brent Crude Oil", "unit": "$/bbl", "category": "energy"},
-        "CL=F": {"label": "WTI Crude Oil", "unit": "$/bbl", "category": "energy"},
-        "BDRY": {"label": "Baltic Dry Marine Freight", "unit": "USD", "category": "freight"},
-        "SMH": {"label": "Semiconductor Index", "unit": "USD", "category": "semis"},
-        "NG=F": {"label": "Natural Gas (Henry Hub)", "unit": "$/MMBtu", "category": "energy"},
-        "EURUSD=X": {"label": "EUR / USD", "unit": "Rate", "category": "fx"},
-        "USDCNY=X": {"label": "USD / CNY", "unit": "Rate", "category": "fx"},
+        "BZ=F": {"label": "Brent Crude Oil", "category": "energy", "unit": "$/bbl"},
+        "CL=F": {"label": "WTI Crude Oil", "category": "energy", "unit": "$/bbl"},
+        "BDRY": {"label": "Baltic Dry Marine Freight", "category": "freight", "unit": "USD"},
+        "SMH": {"label": "Semiconductor Index", "category": "semis", "unit": "USD"},
+        "NG=F": {"label": "Natural Gas (Henry Hub)", "category": "energy", "unit": "$/MMBtu"},
+        "EURUSD=X": {"label": "EUR / USD", "category": "fx", "unit": "Rate"},
+        "USDCNY=X": {"label": "USD / CNY", "category": "fx", "unit": "Rate"},
     }
-    
+
     results = []
     try:
-        import yfinance as yf
-        ticker_symbols = list(tickers.keys())
-        data = yf.download(ticker_symbols, period="2d", progress=False)
+        import urllib.request
+        import json
         for sym, meta in tickers.items():
             try:
-                close = data["Close"][sym].dropna()
-                if len(close) >= 2:
-                    p_curr = float(close.iloc[-1])
-                    p_prev = float(close.iloc[-2])
-                    chg = p_curr - p_prev
-                    pct = (chg / p_prev) * 100.0
-                elif len(close) == 1:
-                    p_curr = float(close.iloc[-1])
-                    chg = 0.0
-                    pct = 0.0
-                else:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=2d"
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=3.0) as resp:
+                    raw = json.loads(resp.read().decode())
+                meta_data = raw["chart"]["result"][0]["meta"]
+                p_curr = float(meta_data.get("regularMarketPrice") or 0.0)
+                p_prev = float(meta_data.get("chartPreviousClose") or meta_data.get("previousClose") or p_curr)
+                chg = p_curr - p_prev
+                pct = (chg / p_prev * 100) if p_prev else 0.0
+                if p_curr == 0.0:
                     raise ValueError("No price data")
                 results.append({
                     "symbol": sym,
@@ -1491,12 +1440,10 @@ def get_market_telemetry():
                     "source": "Yahoo Finance (Live)"
                 })
             except Exception:
-                # Per-symbol fallback
                 pass
-    except Exception as e:
+    except Exception:
         pass
 
-    # High-fidelity fallback if network or rate limit prevents full pull
     if len(results) < 4:
         results = [
             {"symbol": "BZ=F", "label": "Brent Crude Oil", "category": "energy", "unit": "$/bbl", "price": 104.42, "change": -3.21, "change_pct": -2.98, "is_up": False, "source": "ICE / NYMEX Benchmark"},
@@ -1510,7 +1457,8 @@ def get_market_telemetry():
 
     return {"telemetry": results, "as_of": _utcnow().isoformat()}
 
-# Custom Enterprise Supply Chains store and endpoints
+
+# Custom Enterprise Supply Chains store and endpoints (Real Nautical Waypoints)
 _CUSTOM_SUPPLY_CHAINS = [
     {
         "id": "chain-apex-tsmc-pune",
@@ -1519,10 +1467,20 @@ _CUSTOM_SUPPLY_CHAINS = [
         "partner_3pl": "Maersk Line / Ocean Network Express (ONE)",
         "origin": {"name": "TSMC Fab 14, Hsinchu, Taiwan", "lat": 24.77, "lon": 121.01},
         "intermediate_hubs": [
-            {"name": "Port of Kaohsiung", "lat": 22.61, "lon": 120.28},
-            {"name": "Strait of Malacca Transit Corridor", "lat": 1.25, "lon": 103.82},
-            {"name": "Port of Colombo Transshipment Hub", "lat": 6.95, "lon": 79.85},
-            {"name": "Port of Nhava Sheva (JNPT)", "lat": 18.95, "lon": 72.95}
+            {"name": "Port of Kaohsiung Departure", "lat": 22.61, "lon": 120.28},
+            {"name": "Luzon Strait Passage", "lat": 20.00, "lon": 119.00},
+            {"name": "South China Sea Deepwater Corridor", "lat": 13.50, "lon": 113.50},
+            {"name": "Natuna Islands Waypoint", "lat": 4.50, "lon": 108.00},
+            {"name": "Singapore East Approach (Horsburgh)", "lat": 1.34, "lon": 104.40},
+            {"name": "Singapore TSS / Malacca Chokepoint", "lat": 1.25, "lon": 103.82},
+            {"name": "Malacca Strait North Exit (One Fathom Bank)", "lat": 3.00, "lon": 101.00},
+            {"name": "Weh Island / Andaman Sea Gate", "lat": 5.80, "lon": 95.00},
+            {"name": "Great Nicobar Channel", "lat": 6.80, "lon": 92.50},
+            {"name": "Dondra Head / South Sri Lanka Rounding", "lat": 5.75, "lon": 80.50},
+            {"name": "Colombo Port Offshore Fairway", "lat": 6.95, "lon": 79.75},
+            {"name": "Cape Comorin Outer Fairway", "lat": 7.80, "lon": 76.50},
+            {"name": "Lakshadweep Sea Maritime Route", "lat": 13.00, "lon": 73.20},
+            {"name": "Port of Nhava Sheva (JNPT Mumbai)", "lat": 18.95, "lon": 72.95}
         ],
         "destination": {"name": "Apex Gigafactory Pune, India", "lat": 18.52, "lon": 73.85},
         "transit_days": 18.5,
@@ -1537,10 +1495,27 @@ _CUSTOM_SUPPLY_CHAINS = [
         "partner_3pl": "Frontline VLCC Fleet / Euronav",
         "origin": {"name": "Ras Tanura Terminal, Saudi Arabia", "lat": 26.64, "lon": 50.16},
         "intermediate_hubs": [
-            {"name": "Strait of Hormuz Exit", "lat": 26.56, "lon": 56.25},
-            {"name": "Bab el-Mandeb Chokepoint", "lat": 12.58, "lon": 43.33},
-            {"name": "Suez Canal Transit", "lat": 30.58, "lon": 32.26},
-            {"name": "Strait of Gibraltar", "lat": 35.95, "lon": -5.60}
+            {"name": "Persian Gulf Central Tanker Fairway", "lat": 26.20, "lon": 53.00},
+            {"name": "Strait of Hormuz Inbound Lane", "lat": 26.56, "lon": 56.25},
+            {"name": "Gulf of Oman Sea Route", "lat": 24.50, "lon": 58.50},
+            {"name": "Ras al Hadd Offshore Turning Point", "lat": 22.50, "lon": 60.00},
+            {"name": "Arabian Sea Southbound TSS", "lat": 16.50, "lon": 54.50},
+            {"name": "Gulf of Aden Western Corridor", "lat": 12.80, "lon": 48.00},
+            {"name": "Bab el-Mandeb Strait Gate", "lat": 12.58, "lon": 43.33},
+            {"name": "Red Sea Central Channel (Hanish Islands)", "lat": 15.00, "lon": 41.50},
+            {"name": "Red Sea North Corridor", "lat": 22.00, "lon": 38.00},
+            {"name": "Gulf of Suez Entrance", "lat": 27.80, "lon": 34.00},
+            {"name": "Suez Canal Transit (Port Said Exit)", "lat": 31.25, "lon": 32.30},
+            {"name": "Eastern Mediterranean (South of Crete)", "lat": 34.20, "lon": 25.00},
+            {"name": "Strait of Sicily / Pantelleria Channel", "lat": 36.80, "lon": 12.00},
+            {"name": "Western Mediterranean (South of Sardinia)", "lat": 38.20, "lon": 8.00},
+            {"name": "South Balearic Fairway", "lat": 37.80, "lon": 1.00},
+            {"name": "Strait of Gibraltar (Tarifa Point)", "lat": 35.95, "lon": -5.60},
+            {"name": "Cape St. Vincent Offshore TSS", "lat": 36.80, "lon": -9.20},
+            {"name": "Cape Finisterre Traffic Separation", "lat": 43.20, "lon": -9.50},
+            {"name": "Bay of Biscay Crossing", "lat": 46.50, "lon": -6.00},
+            {"name": "English Channel West Gate (Ushant)", "lat": 48.80, "lon": -5.20},
+            {"name": "Strait of Dover", "lat": 51.10, "lon": 1.50}
         ],
         "destination": {"name": "Port of Rotterdam Terminal", "lat": 51.95, "lon": 4.14},
         "transit_days": 24.0,
@@ -1555,9 +1530,15 @@ _CUSTOM_SUPPLY_CHAINS = [
         "partner_3pl": "Kuehne+Nagel / CMA CGM",
         "origin": {"name": "Shanghai Waigaoqiao FTZ", "lat": 31.33, "lon": 121.60},
         "intermediate_hubs": [
-            {"name": "East China Sea Corridor", "lat": 28.50, "lon": 124.00},
-            {"name": "Mid-Pacific Mainline", "lat": 34.00, "lon": -160.00},
-            {"name": "Port of Los Angeles", "lat": 33.74, "lon": -118.26}
+            {"name": "Yangtze Estuary Deepwater Channel", "lat": 31.20, "lon": 122.50},
+            {"name": "East China Sea Offshore Fairway", "lat": 30.50, "lon": 126.00},
+            {"name": "Osumi Strait Pass (Japan)", "lat": 30.80, "lon": 131.50},
+            {"name": "North Pacific Great Circle Point 1", "lat": 35.00, "lon": 150.00},
+            {"name": "North Pacific Great Circle Point 2", "lat": 40.00, "lon": 170.00},
+            {"name": "Mid-Pacific International Dateline", "lat": 41.50, "lon": -175.00},
+            {"name": "North Pacific Great Circle Point 4", "lat": 39.50, "lon": -150.00},
+            {"name": "California Approach Corridor", "lat": 35.00, "lon": -125.00},
+            {"name": "Port of Los Angeles Berth", "lat": 33.74, "lon": -118.26}
         ],
         "destination": {"name": "LA Inland Empire DC", "lat": 33.82, "lon": -117.90},
         "transit_days": 16.0,

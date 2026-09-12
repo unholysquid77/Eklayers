@@ -63,7 +63,7 @@ import {
   getChokepointForecast,
   researchChokepoint,
 } from '@/lib/api';
-import { MOCK_ALERTS, MOCK_CASCADE, MOCK_SHIPPING } from '@/lib/mock';
+import { MOCK_ALERTS, MOCK_CASCADE, MOCK_SHIPPING, MOCK_CUSTOM_SUPPLY_CHAINS } from '@/lib/mock';
 
 const SarvadarshiGlobe = dynamic(() => import('@/components/SarvadarshiGlobe'), {
   ssr: false,
@@ -159,7 +159,7 @@ export default function CommandPage() {
   const [bomArcs, setBomArcs] = useState<RelationArc[]>([]);
   const [infraLayers, setInfraLayers] = useState<Partial<Record<string, GeoFeatureCollection>>>({});
   const [marketTelemetry, setMarketTelemetry] = useState<MarketTelemetryItem[]>([]);
-  const [customSupplyChains, setCustomSupplyChains] = useState<any[]>([]);
+  const [customSupplyChains, setCustomSupplyChains] = useState<any[]>(MOCK_CUSTOM_SUPPLY_CHAINS);
   const [chokepointsTableOpen, setChokepointsTableOpen] = useState(false);
   const [chokepointsSearch, setChokepointsSearch] = useState('');
 
@@ -205,7 +205,7 @@ export default function CommandPage() {
         getGlobeFlights(1500).catch(() => ({ flights: [], stale: false })),
         getGlobeEarthquakes().catch(() => null),
         getMarketTelemetry().catch(() => ({ telemetry: [], as_of: '' })),
-        getCustomSupplyChains().catch(() => ({ supply_chains: [], total: 0 })),
+        getCustomSupplyChains().catch(() => ({ supply_chains: MOCK_CUSTOM_SUPPLY_CHAINS, total: MOCK_CUSTOM_SUPPLY_CHAINS.length })),
       ]);
       if (al.status === 'fulfilled') setAlerts(al.value && al.value.length ? al.value : MOCK_ALERTS);
       if (cd.status === 'fulfilled' && cd.value && cd.value.chokepoints && cd.value.chokepoints.length > 0) {
@@ -220,7 +220,7 @@ export default function CommandPage() {
       if (fl.status === 'fulfilled' && fl.value?.flights) setFlights(fl.value.flights);
       if (eq.status === 'fulfilled' && eq.value) setEarthquakes(eq.value);
       if (mkt.status === 'fulfilled' && mkt.value?.telemetry) setMarketTelemetry(mkt.value.telemetry);
-      if (csc.status === 'fulfilled' && csc.value?.supply_chains) setCustomSupplyChains(csc.value.supply_chains);
+      if (csc.status === 'fulfilled' && csc.value?.supply_chains && csc.value.supply_chains.length > 0) { setCustomSupplyChains(csc.value.supply_chains); } else { setCustomSupplyChains(MOCK_CUSTOM_SUPPLY_CHAINS); }
     } finally {
       setLoading(false);
     }
@@ -521,6 +521,7 @@ export default function CommandPage() {
             flights={flights}
             earthquakes={earthquakes}
             shippingLanes={shippingLanes}
+            customSupplyChains={customSupplyChains}
             bomArcs={bomArcs}
             infraLayers={infraLayers as Record<string, GeoFeatureCollection>}
             activeLayers={layers}

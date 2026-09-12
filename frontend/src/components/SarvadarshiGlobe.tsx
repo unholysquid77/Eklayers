@@ -70,6 +70,28 @@ function buildElevationSafeArc(src: THREE.Vector3, tgt: THREE.Vector3, severity:
   return curve.getPoints(50);
 }
 
+function interpolateGreatCircle(v1: THREE.Vector3, v2: THREE.Vector3, numPoints = 10, r = R * 1.004): THREE.Vector3[] {
+  const pts: THREE.Vector3[] = [];
+  const n1 = v1.clone().normalize();
+  const n2 = v2.clone().normalize();
+  const dot = Math.max(-1, Math.min(1, n1.dot(n2)));
+  const omega = Math.acos(dot);
+  if (omega < 0.001) return [v1.clone()];
+  const sinOmega = Math.sin(omega);
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints;
+    const s1 = Math.sin((1 - t) * omega) / sinOmega;
+    const s2 = Math.sin(t * omega) / sinOmega;
+    const pt = new THREE.Vector3()
+      .addScaledVector(n1, s1)
+      .addScaledVector(n2, s2)
+      .normalize()
+      .multiplyScalar(r);
+    pts.push(pt);
+  }
+  return pts;
+}
+
 // ---------------------------------------------------------------------------
 // Types & Props
 // ---------------------------------------------------------------------------
@@ -95,6 +117,7 @@ export interface SarvadarshiGlobeProps {
   earthquakes?: GeoFeatureCollection | null;
   infraLayers?: Partial<Record<string, GeoFeatureCollection>>;
   shippingLanes?: { type: string; features: ShippingLane[] } | null;
+  customSupplyChains?: any[];
   bomArcs?: RelationArc[];
   activeLayers: LayerVisibility;
   autoRotate?: boolean;
@@ -115,6 +138,7 @@ export default function SarvadarshiGlobe({
   earthquakes,
   infraLayers = {},
   shippingLanes,
+  customSupplyChains = [],
   bomArcs = [],
   activeLayers,
   autoRotate = true,
@@ -760,22 +784,73 @@ export default function SarvadarshiGlobe({
       }
     }
 
-    // Render Shipping Lanes
+    // Render Shipping Lanes with smooth spherical surface curvature
     if (activeLayers.shippingLanes && shippingLanes && shippingLanes.features) {
       const laneMat = new THREE.LineBasicMaterial({
-        color: 0x059669,
-        opacity: 0.50,
+        color: 0x00e676,
+        opacity: 0.60,
         transparent: true,
         depthWrite: false,
       });
       for (const f of shippingLanes.features) {
         if (!f.geometry || f.geometry.type !== 'LineString') continue;
         const coords = f.geometry.coordinates as [number, number][];
-        const pts = coords.map(([lon, lat]) => latLonToVec3(lat, lon, R * 1.003));
-        lnGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), laneMat));
+        if (coords.length < 2) continue;
+        const allPts: THREE.Vector3[] = [];
+        for (let i = 0; i < coords.length - 1; i++) {
+          const v1 = latLonToVec3(coords[i][1], coords[i][0], R * 1.003);
+          const v2 = latLonToVec3(coords[i + 1][1], coords[i + 1][0], R * 1.003);
+          const subPts = interpolateGreatCircle(v1, v2, 8, R * 1.003);
+          allPts.push(...subPts);
+        }
+        lnGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(allPts), laneMat));
       }
     }
-  }, [infraLayers, shippingLanes, activeLayers]);
+
+    // Render Custom 3PL Enterprise Supply Chains (Glowing Cyan Arcs & Waypoint Hubs)
+    if (customSupplyChains && customSupplyChains.length > 0) {
+      const chainMat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        opacity: 0.90,
+        transparent: true,
+        depthWrite: false,
+      });
+
+      for (const chain of customSupplyChains) {
+        const waypoints: { lat: number; lon: number; name?: string }[] = [];
+        if (chain.origin && chain.origin.lat) waypoints.push(chain.origin);
+        if (chain.intermediate_hubs) {
+          chain.intermediate_hubs.forEach((h: any) => {
+            if (h.lat && h.lon) waypoints.push(h);
+          });
+        }
+        if (chain.destination && chain.destination.lat) waypoints.push(chain.destination);
+
+        if (waypoints.length > 1) {
+          const chainPts: THREE.Vector3[] = [];
+          for (let i = 0; i < waypoints.length - 1; i++) {
+            const v1 = latLonToVec3(waypoints[i].lat, waypoints[i].lon, R * 1.005);
+            const v2 = latLonToVec3(waypoints[i + 1].lat, waypoints[i + 1].lon, R * 1.005);
+            const subPts = interpolateGreatCircle(v1, v2, 10, R * 1.005);
+            chainPts.push(...subPts);
+          }
+          lnGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(chainPts), chainMat));
+
+          // Terminal & Hub Waypoint Markers
+          waypoints.forEach((wp, idx) => {
+            const pos = latLonToVec3(wp.lat, wp.lon, R * 1.007);
+            const isTerminus = idx === 0 || idx === waypoints.length - 1;
+            const wpMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(isTerminus ? 0.007 : 0.004, 8, 8),
+              new THREE.MeshBasicMaterial({ color: isTerminus ? 0x00e676 : 0x38bdf8 })
+            );
+            wpMesh.position.copy(pos);
+            lnGroup.add(wpMesh);
+          });
+        }
+      }
+    }
+  }, [infraLayers, shippingLanes, customSupplyChains, activeLayers]);
 
   // ------------------------------------------------------------------
   // Render Live Sensor Feeds (Vessels, Flights, Earthquakes)
