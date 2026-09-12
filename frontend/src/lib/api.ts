@@ -382,3 +382,10 @@ export const deleteEnterpriseRoute = (routeId: string) =>
 export const validateApiKey = (provider: string, key: string) =>
   _post<{ valid: boolean; provider: string; message: string }>('/v1/admin/api-keys/validate', { provider, key });
 
+export const loadDemoProfile = () =>
+  _post<{ status: string; message: string; data: EnterpriseData }>('/v1/admin/demo-profile/load', {});
+
+export const clearDemoProfile = () =>
+  _post<{ status: string; message: string; data: EnterpriseData }>('/v1/admin/demo-profile/clear', {});
+
+

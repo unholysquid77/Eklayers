@@ -83,9 +83,11 @@ class AppState:
     """
 
     def __init__(self) -> None:
-        self.reset()
+        from .pipeline import SignalStore
+        self.store = SignalStore("data/sarvadarshi.db")
+        self.reset(load_persisted_signals=True)
 
-    def reset(self) -> None:
+    def reset(self, load_persisted_signals: bool = False) -> None:
         # Operational entities
         self.suppliers    = {s.id: s for s in SEED_SUPPLIERS}
         self.parts        = {p.id: p for p in SEED_PARTS}
@@ -99,6 +101,24 @@ class AppState:
         # Signal state
         self.signals: list[RiskSignal] = []
         self.signal_hashes: set[str] = set()
+
+        if load_persisted_signals:
+            persisted_raw = self.store.load_all_signals(limit=2000)
+            for raw in persisted_raw:
+                try:
+                    sig = RiskSignal(**raw)
+                    self.signals.append(sig)
+                    if sig.raw_payload_hash:
+                        self.signal_hashes.add(sig.raw_payload_hash)
+                except Exception:
+                    pass
+
+            # Reload saved enterprise configuration from persistent database if present
+            saved_cfg = self.store.load_enterprise_config()
+            if saved_cfg and isinstance(saved_cfg, dict) and "_ENTERPRISE_CONFIG" in globals():
+                _ENTERPRISE_CONFIG.clear()
+                _ENTERPRISE_CONFIG.update(saved_cfg)
+
         # Derived (rebuilt on every ingestion event)
         self.graph: SupplyGraph = self._rebuild_graph()
         self.alerts: list[AlertCard] = []
@@ -278,6 +298,7 @@ def get_exposure(alert_id: str = Query(...)):
 
     downstream = state.graph.downstream_nodes(alert.subject_id, max_hops=5)
     exposures: list[dict] = []
+    cfg_orders = _ENTERPRISE_CONFIG.get("customer_orders", [])
 
     for node_id, hop in downstream:
         node = state.graph.node(node_id)
@@ -285,18 +306,46 @@ def get_exposure(alert_id: str = Query(...)):
             continue
         inv = state.inventory.get(node_id)
         decay = 0.85 ** hop
+        p_miss = round(min(1.0, alert.posterior * decay), 4)
+        delay_days = round((alert.p50_days or 4.0) * (0.75 ** hop), 2)
+
+        # Compute mathematically grounded revenue exposure
+        expected_loss = 0.0
+        # 1. Direct match with operational order
+        ord_obj = state.orders.get(node_id)
+        if ord_obj:
+            o_val = getattr(ord_obj, "price", 0.0) or getattr(ord_obj, "order_value_inr", 0.0) or 750000.0
+            penalty_d = getattr(ord_obj, "late_penalty_daily_inr", 20000.0)
+            expected_loss = (o_val * p_miss) + (penalty_d * delay_days * p_miss)
+
+        # 2. Match with enterprise customer orders
+        matched_cfg = [o for o in cfg_orders if o.get("order_id") == node_id or o.get("sku_id") == node_id]
+        if matched_cfg:
+            for o in matched_cfg:
+                o_val = float(o.get("order_value_inr", 1000000.0))
+                penalty_d = float(o.get("late_penalty_daily_inr", 25000.0))
+                expected_loss += (o_val * p_miss) + (penalty_d * delay_days * p_miss)
+        elif expected_loss == 0.0:
+            # 3. Downstream SKU/Part/Supplier BOM exposure
+            days_cover = inv.days_cover if inv else 14.0
+            crit = getattr(node, "criticality", 0.6) or 0.6
+            base_contract_val = 1450000.0 * crit
+            buffer_deficit = max(0.15, (21.0 - days_cover) / 21.0)
+            expected_loss = round(base_contract_val * p_miss * buffer_deficit, 2)
+
         exposures.append(Exposure(
             alert_id=alert_id,
             entity_type=node.kind,
             entity_id=node_id,
             hop=hop,
-            probability=round(alert.posterior * decay, 4),
-            expected_delay_days=round((alert.p50_days or 0.0) * (0.70 ** hop), 2),
+            probability=p_miss,
+            expected_delay_days=delay_days,
             inventory_days_cover=inv.days_cover if inv else None,
-            expected_loss=0.0,
+            expected_loss=round(expected_loss, 2),
             explanation=[
                 f"Hop {hop} downstream from {alert.subject_id}",
                 f"Propagation decay factor: 0.85^{hop} = {decay:.3f}",
+                f"Computed revenue exposure: \u20b9{expected_loss:,.2f} based on contract value & SLA late penalties",
             ],
         ).model_dump())
 
@@ -1585,90 +1634,21 @@ from pydantic import BaseModel, Field
 
 admin_router = APIRouter(prefix="/v1/admin", tags=["Enterprise Admin"])
 
-# In-memory enterprise configuration store
+# In-memory enterprise configuration store (clean operator onboarding slate)
 _ENTERPRISE_CONFIG = {
     "org_profile": {
-        "company_name": "Apex Industrial Electronics Ltd.",
-        "primary_plant": "Pune Gigafactory, India",
-        "primary_port": "Port of Nhava Sheva (JNPT)",
-        "currency": "INR",
-        "annual_volume_units": 450000,
+        "company_name": "",
+        "primary_plant": "",
+        "primary_port": "",
+        "currency": "INR (₹)",
+        "annual_volume_units": 0,
         "critical_order_threshold_inr": 1000000,
     },
-    "custom_suppliers": [
-        {"id": "SUP-001", "name": "Alpha Microelectronics Co.", "country": "Singapore", "part_sku": "MCU-441", "lead_time_days": 18, "single_source": True, "spend_inr": 14200000},
-        {"id": "SUP-002", "name": "Beta Semiconductor Fab", "country": "Taiwan", "part_sku": "MCU-441", "lead_time_days": 24, "single_source": False, "spend_inr": 8500000},
-        {"id": "SUP-003", "name": "Delta Micro Sensors", "country": "Germany", "part_sku": "SEN-882", "lead_time_days": 14, "single_source": False, "spend_inr": 6200000},
-        {"id": "SUP-004", "name": "Kyoto Precision Passives", "country": "Japan", "part_sku": "CAP-104", "lead_time_days": 12, "single_source": False, "spend_inr": 3400000},
-    ],
-    "custom_skus": [
-        {"sku_id": "SKU-441", "name": "Industrial Motor Controller v4", "current_stock_units": 1420, "daily_burn_units": 125, "runway_days": 11, "safety_buffer_days": 21, "critical_part": "MCU-441"},
-        {"sku_id": "SKU-312", "name": "High-Voltage Power Inverter", "current_stock_units": 860, "daily_burn_units": 45, "runway_days": 19, "safety_buffer_days": 15, "critical_part": "IGBT-312"},
-        {"sku_id": "SKU-808", "name": "Automotive Telematics Gateway", "current_stock_units": 2400, "daily_burn_units": 160, "runway_days": 15, "safety_buffer_days": 20, "critical_part": "RF-808"},
-        {"sku_id": "SKU-105", "name": "Smart Grid Diagnostic Sensor", "current_stock_units": 3100, "daily_burn_units": 110, "runway_days": 28, "safety_buffer_days": 14, "critical_part": "SEN-105"},
-    ],
-    "customer_orders": [
-        {"order_id": "ORD-18421", "customer_name": "Acme Automotive Global", "sku_id": "SKU-441", "units": 450, "order_value_inr": 1420000, "promised_delivery_date": "2026-09-24", "late_penalty_daily_inr": 25000, "priority": "CRITICAL"},
-        {"order_id": "ORD-18425", "customer_name": "Siemens Mobility India", "sku_id": "SKU-441", "units": 300, "order_value_inr": 950000, "promised_delivery_date": "2026-09-25", "late_penalty_daily_inr": 18000, "priority": "HIGH"},
-        {"order_id": "ORD-18432", "customer_name": "Schneider Electric Solutions", "sku_id": "SKU-441", "units": 200, "order_value_inr": 630000, "promised_delivery_date": "2026-09-27", "late_penalty_daily_inr": 12000, "priority": "MEDIUM"},
-        {"order_id": "ORD-18440", "customer_name": "ABB Industrial Systems", "sku_id": "SKU-312", "units": 180, "order_value_inr": 1800000, "promised_delivery_date": "2026-10-02", "late_penalty_daily_inr": 30000, "priority": "HIGH"},
-    ],
-    "routes": [
-        {
-            "id": "RTE-001",
-            "name": "Taiwan Semi Fab -> Pune Automotive Assembly Line",
-            "transport_mode": "MARITIME_FEEDER",
-            "carrier": "Evergreen Marine / Maersk",
-            "origin": "Kaohsiung / Hsinchu, Taiwan",
-            "destination": "JNPT Nhava Sheva -> Pune Plant",
-            "transit_days": 18,
-            "critical_sku": "SKU-441 (Power Controller)",
-            "chokepoints_traversed": ["Taiwan Strait", "Strait of Malacca", "Arabian Sea Corridor"],
-            "risk_level": "CRITICAL"
-        },
-        {
-            "id": "RTE-002",
-            "name": "Singapore Substrate Hub -> JNPT Air & Maritime Gateway",
-            "transport_mode": "MULTIMODAL_AIR_SEA",
-            "carrier": "DHL Global Forwarding",
-            "origin": "Port of Singapore",
-            "destination": "Pune Gigafactory, India",
-            "transit_days": 11,
-            "critical_sku": "SKU-108 (SiC MOSFET)",
-            "chokepoints_traversed": ["Strait of Malacca"],
-            "risk_level": "HIGH"
-        },
-        {
-            "id": "RTE-003",
-            "name": "Munich Semiconductor Fab -> Pune Air Charter",
-            "transport_mode": "AIR_CARGO",
-            "carrier": "Lufthansa Cargo / Air India",
-            "origin": "Munich MUC, Germany",
-            "destination": "Mumbai BOM Air Freight -> Pune",
-            "transit_days": 4,
-            "critical_sku": "SKU-205 (High-Voltage Inverter)",
-            "chokepoints_traversed": ["Middle East Air Corridor"],
-            "risk_level": "MEDIUM"
-        }
-    ],
-    "plants": [
-        {
-            "id": "PLANT-01",
-            "name": "Pune Gigafactory (Chakan Industrial Zone)",
-            "location": "Pune, Maharashtra, India",
-            "capacity_units_day": 1500,
-            "critical_lines": "Line A (Motor Controllers), Line B (Inverters)",
-            "status": "OPERATIONAL"
-        },
-        {
-            "id": "PLANT-02",
-            "name": "Bengaluru Advanced R&D & Pilot Assembly",
-            "location": "Electronic City, Bengaluru, India",
-            "capacity_units_day": 300,
-            "critical_lines": "Pilot Line (Sensors & Gateways)",
-            "status": "OPERATIONAL"
-        }
-    ],
+    "plants": [],
+    "custom_suppliers": [],
+    "custom_skus": [],
+    "customer_orders": [],
+    "routes": [],
     "api_credentials": {
         "openrouter_api_key": "",
         "gemini_api_key": "",
@@ -1704,15 +1684,15 @@ def update_enterprise_data(payload: EnterpriseDataPayload):
     import os
     if payload.org_profile:
         _ENTERPRISE_CONFIG["org_profile"].update(payload.org_profile)
-    if payload.custom_suppliers:
+    if payload.custom_suppliers is not None:
         _ENTERPRISE_CONFIG["custom_suppliers"] = payload.custom_suppliers
-    if payload.custom_skus:
+    if payload.custom_skus is not None:
         _ENTERPRISE_CONFIG["custom_skus"] = payload.custom_skus
-    if payload.customer_orders:
+    if payload.customer_orders is not None:
         _ENTERPRISE_CONFIG["customer_orders"] = payload.customer_orders
-    if payload.routes:
+    if payload.routes is not None:
         _ENTERPRISE_CONFIG["routes"] = payload.routes
-    if payload.plants:
+    if payload.plants is not None:
         _ENTERPRISE_CONFIG["plants"] = payload.plants
     if payload.api_credentials:
         _ENTERPRISE_CONFIG["api_credentials"].update(payload.api_credentials)
@@ -1722,7 +1702,44 @@ def update_enterprise_data(payload: EnterpriseDataPayload):
         gem_key = payload.api_credentials.get("gemini_api_key")
         if gem_key and str(gem_key).strip():
             os.environ["GEMINI_API_KEY"] = str(gem_key).strip()
-    return {"status": "success", "message": "Enterprise parameters updated and applied to Bayesian engine"}
+
+    if hasattr(state, "store") and state.store:
+        state.store.save_enterprise_config(_ENTERPRISE_CONFIG)
+    state._refresh_derived()
+    return {"status": "success", "message": "Enterprise parameters updated and persisted to SQLite"}
+
+@admin_router.post("/demo-profile/load", summary="Load 3PL contractor demo profile")
+def load_demo_profile():
+    from .demo_profile import get_3pl_contractor_profile
+    profile = get_3pl_contractor_profile()
+    _ENTERPRISE_CONFIG.clear()
+    _ENTERPRISE_CONFIG.update(profile)
+    if hasattr(state, "store") and state.store:
+        state.store.save_enterprise_config(_ENTERPRISE_CONFIG)
+    state._refresh_derived()
+    return {"status": "success", "message": "3PL contractor demo scenario loaded into active network", "data": _ENTERPRISE_CONFIG}
+
+@admin_router.post("/demo-profile/clear", summary="Clear operator enterprise state to clean slate")
+def clear_demo_profile():
+    from .demo_profile import CLEAN_STATE
+    import copy
+    clean = copy.deepcopy(CLEAN_STATE)
+    _ENTERPRISE_CONFIG.clear()
+    _ENTERPRISE_CONFIG.update(clean)
+    if hasattr(state, "store") and state.store:
+        state.store.save_enterprise_config(_ENTERPRISE_CONFIG)
+    state._refresh_derived()
+    return {"status": "success", "message": "Enterprise parameters reset to clean onboarding slate", "data": _ENTERPRISE_CONFIG}
+
+@admin_router.get("/demo-profile", summary="List available demo profiles")
+def list_demo_profiles():
+    return [
+        {
+            "id": "3pl_contractor",
+            "name": "Nexis Global 3PL & Semiconductor Logistics",
+            "description": "Comprehensive 3PL contractor logistics scenario connecting Hsinchu, Singapore, and Europe fabs to Pune, Bengaluru, and Chennai automotive manufacturing clusters."
+        }
+    ]
 
 @admin_router.get("/routes", summary="Retrieve enterprise routes and corridors")
 def get_enterprise_routes():
@@ -1738,6 +1755,8 @@ def save_enterprise_route(route: dict):
         routes[existing_idx] = route
     else:
         routes.append(route)
+    if hasattr(state, "store") and state.store:
+        state.store.save_enterprise_config(_ENTERPRISE_CONFIG)
     return {"status": "success", "route": route}
 
 @admin_router.delete("/routes/{route_id}", summary="Delete enterprise route")

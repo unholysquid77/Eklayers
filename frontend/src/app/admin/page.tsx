@@ -12,7 +12,8 @@ import {
   validateApiKey,
   getCustomSupplyChains,
   addCustomSupplyChain,
-  getDataHealth,
+  loadDemoProfile,
+  clearDemoProfile,
 } from '@/lib/api';
 import type {
   EnterpriseData,
@@ -26,8 +27,6 @@ import type {
 } from '@/lib/contracts';
 import {
   Share2,
-  Compass,
-  ShieldAlert,
   Building2,
   Truck,
   Box,
@@ -35,22 +34,18 @@ import {
   Zap,
   Key,
   Save,
-  RotateCcw,
   Plus,
   Trash2,
   CheckCircle2,
   AlertTriangle,
-  ArrowRight,
-  Activity,
-  Database,
   Lock,
-  Edit2,
-  Check,
   Eye,
   EyeOff,
-  Radio,
   Layers,
   MapPin,
+  Sparkles,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -61,95 +56,23 @@ export default function AdminPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [injectStatus, setInjectStatus] = useState<string | null>(null);
   const [injectLoading, setInjectLoading] = useState(false);
+  const [demoActionLoading, setDemoActionLoading] = useState(false);
 
   // Enterprise Configuration State
   const [orgProfile, setOrgProfile] = useState<EnterpriseOrgProfile>({
-    company_name: 'Apex Industrial Electronics Ltd.',
-    primary_plant: 'Pune Gigafactory, India',
-    primary_port: 'Port of Nhava Sheva (JNPT)',
+    company_name: '',
+    primary_plant: '',
+    primary_port: '',
     currency: 'INR (₹)',
-    annual_volume_units: 450000,
+    annual_volume_units: 0,
     critical_order_threshold_inr: 1000000,
   });
 
-  const [plants, setPlants] = useState<EnterprisePlant[]>([
-    {
-      id: 'PLANT-01',
-      name: 'Pune Gigafactory (Chakan Industrial Zone)',
-      location: 'Pune, Maharashtra, India',
-      capacity_units_day: 1500,
-      critical_lines: 'Line A (Motor Controllers), Line B (Inverters)',
-      status: 'OPERATIONAL',
-    },
-    {
-      id: 'PLANT-02',
-      name: 'Bengaluru Advanced R&D & Pilot Assembly',
-      location: 'Electronic City, Bengaluru, India',
-      capacity_units_day: 300,
-      critical_lines: 'Pilot Line (Sensors & Gateways)',
-      status: 'OPERATIONAL',
-    },
-  ]);
-
-  const [suppliers, setSuppliers] = useState<EnterpriseSupplier[]>([
-    { id: 'SUP-001', name: 'Alpha Microelectronics Co.', country: 'Singapore', part_sku: 'MCU-441', lead_time_days: 18, single_source: true, spend_inr: 14200000 },
-    { id: 'SUP-002', name: 'Beta Semiconductor Fab', country: 'Taiwan', part_sku: 'MCU-441', lead_time_days: 24, single_source: false, spend_inr: 8500000 },
-    { id: 'SUP-003', name: 'Delta Micro Sensors', country: 'Germany', part_sku: 'SEN-882', lead_time_days: 14, single_source: false, spend_inr: 6200000 },
-    { id: 'SUP-004', name: 'Kyoto Precision Passives', country: 'Japan', part_sku: 'CAP-104', lead_time_days: 12, single_source: false, spend_inr: 3400000 },
-  ]);
-
-  const [skus, setSkus] = useState<EnterpriseSKU[]>([
-    { sku_id: 'SKU-441', name: 'Industrial Motor Controller v4', current_stock_units: 1420, daily_burn_units: 125, runway_days: 11, safety_buffer_days: 21, critical_part: 'MCU-441' },
-    { sku_id: 'SKU-312', name: 'High-Voltage Power Inverter', current_stock_units: 860, daily_burn_units: 45, runway_days: 19, safety_buffer_days: 15, critical_part: 'IGBT-312' },
-    { sku_id: 'SKU-808', name: 'Automotive Telematics Gateway', current_stock_units: 2400, daily_burn_units: 160, runway_days: 15, safety_buffer_days: 20, critical_part: 'RF-808' },
-    { sku_id: 'SKU-105', name: 'Smart Grid Diagnostic Sensor', current_stock_units: 3100, daily_burn_units: 110, runway_days: 28, safety_buffer_days: 14, critical_part: 'SEN-105' },
-  ]);
-
-  const [orders, setOrders] = useState<EnterpriseOrder[]>([
-    { order_id: 'ORD-18421', customer_name: 'Acme Automotive Global', sku_id: 'SKU-441', units: 450, order_value_inr: 1420000, promised_delivery_date: '2026-09-24', late_penalty_daily_inr: 25000, priority: 'CRITICAL' },
-    { order_id: 'ORD-18425', customer_name: 'Siemens Mobility India', sku_id: 'SKU-441', units: 300, order_value_inr: 950000, promised_delivery_date: '2026-09-25', late_penalty_daily_inr: 18000, priority: 'HIGH' },
-    { order_id: 'ORD-18432', customer_name: 'Schneider Electric Solutions', sku_id: 'SKU-441', units: 200, order_value_inr: 630000, promised_delivery_date: '2026-09-27', late_penalty_daily_inr: 12000, priority: 'MEDIUM' },
-    { order_id: 'ORD-18440', customer_name: 'ABB Industrial Systems', sku_id: 'SKU-312', units: 180, order_value_inr: 1800000, promised_delivery_date: '2026-10-02', late_penalty_daily_inr: 30000, priority: 'HIGH' },
-  ]);
-
-  const [routes, setRoutes] = useState<EnterpriseRoute[]>([
-    {
-      id: 'RTE-001',
-      name: 'Taiwan Semi Fab -> Pune Automotive Line',
-      transport_mode: 'MARITIME_FEEDER',
-      carrier: 'Evergreen Marine / Maersk',
-      origin: 'Kaohsiung / Hsinchu, Taiwan',
-      destination: 'JNPT Nhava Sheva -> Pune Plant',
-      transit_days: 18,
-      critical_sku: 'SKU-441 (Power Controller)',
-      chokepoints_traversed: ['Taiwan Strait', 'Strait of Malacca', 'Arabian Sea Corridor'],
-      risk_level: 'CRITICAL',
-    },
-    {
-      id: 'RTE-002',
-      name: 'Singapore Substrate Hub -> JNPT Gateway',
-      transport_mode: 'MULTIMODAL_AIR_SEA',
-      carrier: 'DHL Global Forwarding',
-      origin: 'Port of Singapore',
-      destination: 'Pune Gigafactory, India',
-      transit_days: 11,
-      critical_sku: 'SKU-108 (SiC MOSFET)',
-      chokepoints_traversed: ['Strait of Malacca'],
-      risk_level: 'HIGH',
-    },
-    {
-      id: 'RTE-003',
-      name: 'Munich Semi Fab -> Mumbai BOM Air Freight',
-      transport_mode: 'AIR_CARGO',
-      carrier: 'Lufthansa Cargo / Air India',
-      origin: 'Munich MUC, Germany',
-      destination: 'Mumbai BOM Air Freight -> Pune',
-      transit_days: 4,
-      critical_sku: 'SKU-205 (High-Voltage Inverter)',
-      chokepoints_traversed: ['Middle East Air Corridor'],
-      risk_level: 'MEDIUM',
-    },
-  ]);
+  const [plants, setPlants] = useState<EnterprisePlant[]>([]);
+  const [suppliers, setSuppliers] = useState<EnterpriseSupplier[]>([]);
+  const [skus, setSkus] = useState<EnterpriseSKU[]>([]);
+  const [orders, setOrders] = useState<EnterpriseOrder[]>([]);
+  const [routes, setRoutes] = useState<EnterpriseRoute[]>([]);
 
   // API Credentials State
   const [apiCredentials, setApiCredentials] = useState<EnterpriseApiCredentials>({
@@ -186,17 +109,74 @@ export default function AdminPage() {
   const [injectIntensity, setInjectIntensity] = useState(0.85);
   const [injectEventType, setInjectEventType] = useState('PORT_CONGESTION');
 
+  // Modal Dialog States
+  const [modalType, setModalType] = useState<'supplier' | 'plant' | 'sku' | 'order' | 'route' | null>(null);
+
+  // New Record Form States
+  const [newSup, setNewSup] = useState<EnterpriseSupplier>({
+    id: 'SUP-001',
+    name: '',
+    country: 'Taiwan',
+    part_sku: 'MCU-441',
+    lead_time_days: 18,
+    single_source: false,
+    spend_inr: 5000000,
+  });
+
+  const [newPlant, setNewPlant] = useState<EnterprisePlant>({
+    id: 'PLANT-01',
+    name: '',
+    location: 'Pune, Maharashtra, India',
+    capacity_units_day: 1000,
+    critical_lines: 'Main Assembly Line 1',
+    status: 'OPERATIONAL',
+  });
+
+  const [newSku, setNewSku] = useState<EnterpriseSKU>({
+    sku_id: 'SKU-001',
+    name: '',
+    current_stock_units: 1000,
+    daily_burn_units: 100,
+    runway_days: 14,
+    safety_buffer_days: 20,
+    critical_part: 'MCU-441',
+  });
+
+  const [newOrder, setNewOrder] = useState<EnterpriseOrder>({
+    order_id: 'ORD-10001',
+    customer_name: '',
+    sku_id: 'SKU-001',
+    units: 250,
+    order_value_inr: 1200000,
+    promised_delivery_date: '2026-10-01',
+    late_penalty_daily_inr: 25000,
+    priority: 'HIGH',
+  });
+
+  const [newRoute, setNewRoute] = useState<EnterpriseRoute>({
+    id: 'RTE-001',
+    name: '',
+    transport_mode: 'MARITIME_FEEDER',
+    carrier: 'Maersk Line',
+    origin: 'Kaohsiung, Taiwan',
+    destination: 'Port of Nhava Sheva (JNPT)',
+    transit_days: 18,
+    critical_sku: 'SKU-441',
+    chokepoints_traversed: ['Taiwan Strait', 'Strait of Malacca'],
+    risk_level: 'HIGH',
+  });
+
   // Load from backend on mount
   useEffect(() => {
     getEnterpriseData()
       .then((d) => {
         if (d) {
           if (d.org_profile) setOrgProfile(d.org_profile);
-          if (d.custom_suppliers && d.custom_suppliers.length) setSuppliers(d.custom_suppliers);
-          if (d.custom_skus && d.custom_skus.length) setSkus(d.custom_skus);
-          if (d.customer_orders && d.customer_orders.length) setOrders(d.customer_orders);
-          if (d.routes && d.routes.length) setRoutes(d.routes);
-          if (d.plants && d.plants.length) setPlants(d.plants);
+          if (d.custom_suppliers) setSuppliers(d.custom_suppliers);
+          if (d.custom_skus) setSkus(d.custom_skus);
+          if (d.customer_orders) setOrders(d.customer_orders);
+          if (d.routes) setRoutes(d.routes);
+          if (d.plants) setPlants(d.plants);
           if (d.api_credentials) setApiCredentials((prev) => ({ ...prev, ...d.api_credentials }));
         }
       })
@@ -211,7 +191,7 @@ export default function AdminPage() {
 
   const handleSaveAll = async () => {
     setSaveLoading(true);
-    setSaveStatus('SYNCHRONIZING WITH GRAPH ENGINE & DECISION PIPELINE...');
+    setSaveStatus('SYNCHRONIZING WITH GRAPH ENGINE & PERSISTENT SQLITE...');
     try {
       const payload: Partial<EnterpriseData> = {
         org_profile: orgProfile,
@@ -224,7 +204,7 @@ export default function AdminPage() {
       };
       const res = await updateEnterpriseData(payload);
       if (res && res.status === 'success') {
-        setSaveStatus('COMMITTED TO GRAPH, LLM ENGINE, AND EXPOSURE MODELS');
+        setSaveStatus('COMMITTED TO GRAPH, LLM ENGINE, AND SQLITE PERSISTENCE');
       } else {
         setSaveStatus('COMMITTED TO SESSION (BASELINE ACTIVE)');
       }
@@ -232,6 +212,59 @@ export default function AdminPage() {
       setSaveStatus('COMMITTED TO SESSION (LOCAL PERSISTENCE ACTIVE)');
     } finally {
       setSaveLoading(false);
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
+  };
+
+  const handleLoadDemoProfile = async () => {
+    setDemoActionLoading(true);
+    setSaveStatus('LOADING 3PL CONTRACTOR PROFILE FROM MOCK_DATA.DB...');
+    try {
+      const res = await loadDemoProfile();
+      if (res && res.data) {
+        const d = res.data;
+        if (d.org_profile) setOrgProfile(d.org_profile);
+        if (d.custom_suppliers) setSuppliers(d.custom_suppliers);
+        if (d.custom_skus) setSkus(d.custom_skus);
+        if (d.customer_orders) setOrders(d.customer_orders);
+        if (d.routes) setRoutes(d.routes);
+        if (d.plants) setPlants(d.plants);
+        setSaveStatus('3PL CONTRACTOR SCENARIO LOADED INTO NETWORK & SAVED');
+      }
+    } catch {
+      setSaveStatus('FAILED TO LOAD DEMO PROFILE');
+    } finally {
+      setDemoActionLoading(false);
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
+  };
+
+  const handleClearSlate = async () => {
+    setDemoActionLoading(true);
+    setSaveStatus('RESETTING OPERATOR DATA TO CLEAN ONBOARDING SLATE...');
+    try {
+      const res = await clearDemoProfile();
+      if (res && res.data) {
+        const d = res.data;
+        setOrgProfile(d.org_profile || {
+          company_name: '',
+          primary_plant: '',
+          primary_port: '',
+          currency: 'INR (₹)',
+          annual_volume_units: 0,
+          critical_order_threshold_inr: 1000000,
+        });
+        setSuppliers([]);
+        setSkus([]);
+        setOrders([]);
+        setRoutes([]);
+        setPlants([]);
+        setSaveStatus('CLEARED: ALL OPERATOR RECORDS RESET TO CLEAN SLATE');
+      }
+    } catch {
+      setSaveStatus('CLEARED LOCALLY');
+    } finally {
+      setDemoActionLoading(false);
       setTimeout(() => setSaveStatus(null), 5000);
     }
   };
@@ -296,7 +329,7 @@ export default function AdminPage() {
       await addCustomSupplyChain(payload);
       const updated = await getCustomSupplyChains();
       if (updated && updated.supply_chains) setCustomChains(updated.supply_chains);
-      setChainStatus(`CHAIN REGISTERED: "${newChainName}" mapped onto 3D Globe & Tactical Drill-Down.`);
+      setChainStatus(`CHAIN REGISTERED: "${newChainName}" mapped onto 3D Globe.`);
     } catch {
       setChainStatus('CHAIN REGISTERED: Saved in active session.');
     } finally {
@@ -304,15 +337,71 @@ export default function AdminPage() {
     }
   };
 
-  const formatRupee = (amt: number) => {
-    if (amt >= 10000000) return `₹${(amt / 10000000).toFixed(2)} Cr`;
-    if (amt >= 100000) return `₹${(amt / 100000).toFixed(1)} L`;
-    return `₹${amt.toLocaleString('en-IN')}`;
+  const handleModalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modalType === 'supplier') {
+      setSuppliers([...suppliers, newSup]);
+      setNewSup({
+        id: `SUP-00${suppliers.length + 2}`,
+        name: '',
+        country: 'Taiwan',
+        part_sku: 'MCU-441',
+        lead_time_days: 18,
+        single_source: false,
+        spend_inr: 5000000,
+      });
+    } else if (modalType === 'plant') {
+      setPlants([...plants, newPlant]);
+      setNewPlant({
+        id: `PLANT-0${plants.length + 2}`,
+        name: '',
+        location: 'Pune, Maharashtra, India',
+        capacity_units_day: 1000,
+        critical_lines: 'Assembly Line 1',
+        status: 'OPERATIONAL',
+      });
+    } else if (modalType === 'sku') {
+      setSkus([...skus, newSku]);
+      setNewSku({
+        sku_id: `SKU-${Math.floor(Math.random() * 800 + 100)}`,
+        name: '',
+        current_stock_units: 1000,
+        daily_burn_units: 100,
+        runway_days: 14,
+        safety_buffer_days: 20,
+        critical_part: 'MCU-441',
+      });
+    } else if (modalType === 'order') {
+      setOrders([...orders, newOrder]);
+      setNewOrder({
+        order_id: `ORD-${Math.floor(Math.random() * 8000 + 10000)}`,
+        customer_name: '',
+        sku_id: skus[0]?.sku_id || 'SKU-001',
+        units: 250,
+        order_value_inr: 1200000,
+        promised_delivery_date: '2026-10-01',
+        late_penalty_daily_inr: 25000,
+        priority: 'HIGH',
+      });
+    } else if (modalType === 'route') {
+      setRoutes([...routes, newRoute]);
+      setNewRoute({
+        id: `RTE-00${routes.length + 2}`,
+        name: '',
+        transport_mode: 'MARITIME_FEEDER',
+        carrier: 'Maersk Line',
+        origin: 'Kaohsiung, Taiwan',
+        destination: 'Port of Nhava Sheva (JNPT)',
+        transit_days: 18,
+        critical_sku: skus[0]?.sku_id || 'SKU-441',
+        chokepoints_traversed: ['Taiwan Strait', 'Strait of Malacca'],
+        risk_level: 'HIGH',
+      });
+    }
+    setModalType(null);
   };
 
-  // Single source risk count
   const singleSourceCount = suppliers.filter((s) => s.single_source).length;
-  // Under-buffered SKUs
   const underBufferedSkus = skus.filter((s) => s.runway_days < s.safety_buffer_days).length;
 
   return (
@@ -331,30 +420,54 @@ export default function AdminPage() {
                   RESTRICTED PORTAL
                 </span>
                 <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[9px] font-bold text-[#00e676]">
-                  LIVE ONTOLOGY INGESTION
+                  PERSISTED IN SQLITE
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-[#87a894] font-sans">
-                Master enterprise configuration: Plants, Tier-1/2 suppliers, finished SKUs, customer SLAs, multimodal routes, and LLM credentials.
+                Master enterprise registry: Facilities, Suppliers, SKUs, Customer SLAs, Multimodal Corridors, and Scenario Controls.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Load 3PL Demo Profile Button */}
+          <button
+            onClick={handleLoadDemoProfile}
+            disabled={demoActionLoading}
+            className="flex items-center gap-1.5 border border-cyan-500/60 bg-cyan-500/15 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/25 transition disabled:opacity-50"
+            title="Populate network with rich 3PL contractor logistics data from mock_data.db"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>LOAD 3PL PROFILE</span>
+          </button>
+
+          {/* Clear to Empty Slate Button */}
+          <button
+            onClick={handleClearSlate}
+            disabled={demoActionLoading}
+            className="flex items-center gap-1.5 border border-[#112818] bg-[#050805] px-3 py-1.5 text-xs text-[#87a894] hover:text-white hover:border-red-500/60 transition disabled:opacity-50"
+            title="Clear all records to start fresh as a new enterprise operator"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>CLEAR SLATE</span>
+          </button>
+
+          {/* Save and Sync to Graph Button */}
           <button
             onClick={handleSaveAll}
             disabled={saveLoading}
-            className="flex items-center gap-2 border border-[#00e676] bg-[#00e676]/25 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/40 transition-all shadow-[0_0_15px_rgba(0,255,136,0.2)] disabled:opacity-50"
+            className="flex items-center gap-2 border border-[#00e676] bg-[#00e676]/25 px-4 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/40 transition-all shadow-[0_0_15px_rgba(0,255,136,0.2)] disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            <span>{saveLoading ? 'COMMITTING TO GRAPH...' : 'SAVE & SYNC TO GRAPH'}</span>
+            <span>{saveLoading ? 'SAVING...' : 'SAVE & SYNC'}</span>
           </button>
+
           <Link
             href="/command"
-            className="flex items-center gap-1.5 border border-[#112818] bg-[#050805] px-3.5 py-2 text-xs text-[#87a894] hover:text-white hover:border-[#00e676]/40 transition-colors"
+            className="flex items-center gap-1.5 border border-[#112818] bg-[#050805] px-3.5 py-1.5 text-xs text-[#87a894] hover:text-white hover:border-[#00e676]/40 transition-colors"
           >
-            <span>&larr; COMMAND GLOBE</span>
+            <span>&larr; GLOBE</span>
           </Link>
         </div>
       </div>
@@ -367,10 +480,9 @@ export default function AdminPage() {
             <span className="font-bold">{saveStatus}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[10px] text-[#87a894]">
-            <span className="border border-[#00e676]/40 px-1 py-0.2">GRAPH</span>
-            <span className="border border-[#00e676]/40 px-1 py-0.2">LLM AGENT</span>
-            <span className="border border-[#00e676]/40 px-1 py-0.2">EXPOSURE</span>
-            <span className="border border-[#00e676]/40 px-1 py-0.2">SIMULATION</span>
+            <span className="border border-[#00e676]/40 px-1 py-0.2">SQLITE DBR</span>
+            <span className="border border-[#00e676]/40 px-1 py-0.2">GRAPH REBUILD</span>
+            <span className="border border-[#00e676]/40 px-1 py-0.2">BAYESIAN ALERTS</span>
           </div>
         </div>
       )}
@@ -381,14 +493,14 @@ export default function AdminPage() {
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
             <span>
-              <strong>RISK VULNERABILITY AUDIT:</strong> {singleSourceCount} single-source supplier(s) detected. {underBufferedSkus} SKU(s) have inventory runway shorter than safety buffers.
+              <strong>RISK VULNERABILITY AUDIT:</strong> {singleSourceCount} single-source supplier(s) active. {underBufferedSkus} SKU(s) operating below safety buffer runway.
             </span>
           </div>
           <button
             onClick={() => setActiveTab('suppliers')}
             className="border border-amber-500/60 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400 hover:bg-amber-500/30 shrink-0"
           >
-            REVIEW &rarr;
+            AUDIT &rarr;
           </button>
         </div>
       )}
@@ -425,128 +537,146 @@ export default function AdminPage() {
         })}
       </div>
 
-      {/* Tab Contents */}
-      <div className="space-y-6">
-        {/* Tab 1: Org Profile */}
-        {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border border-[#112818] bg-[#000000] p-6">
-            <div className="space-y-4">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[ENTERPRISE IDENTITY]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Enterprise Legal Entity & Inbound Anchors</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  The primary production and maritime anchor nodes against which inbound lead times and multi-echelon risk propagation are calculated.
-                </p>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Company / Organization Legal Entity</label>
-                  <input
-                    type="text"
-                    value={orgProfile.company_name}
-                    onChange={(e) => setOrgProfile({ ...orgProfile, company_name: e.target.value })}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Primary Manufacturing Gigafactory / Assembly Plant</label>
-                  <input
-                    type="text"
-                    value={orgProfile.primary_plant}
-                    onChange={(e) => setOrgProfile({ ...orgProfile, primary_plant: e.target.value })}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Primary Inbound Import Port / Maritime Terminal</label>
-                  <input
-                    type="text"
-                    value={orgProfile.primary_port}
-                    onChange={(e) => setOrgProfile({ ...orgProfile, primary_port: e.target.value })}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-              </div>
+      {/* Tab 1: Org Profile */}
+      {activeTab === 'profile' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border border-[#112818] bg-[#000000] p-6">
+          <div className="space-y-4">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[ENTERPRISE IDENTITY]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Enterprise Legal Entity & Anchor Facilities</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                The primary manufacturing and maritime import anchors used for lead-time computations and downstream BOM exposure.
+              </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 text-xs">
               <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[OPERATIONAL SCALE]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Throughput Volumes & Financial Thresholds</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Thresholds for disruption alert escalation and automated Bayesian scenario stress testing.
-                </p>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Company / Operator Legal Name</label>
+                <input
+                  type="text"
+                  value={orgProfile.company_name}
+                  onChange={(e) => setOrgProfile({ ...orgProfile, company_name: e.target.value })}
+                  placeholder="e.g. Nexis Global 3PL & Semiconductor Logistics"
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
               </div>
-
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Base Currency</label>
-                  <input
-                    type="text"
-                    value={orgProfile.currency}
-                    disabled
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-gray-500 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Annual Production Throughput (Units)</label>
-                  <input
-                    type="number"
-                    value={orgProfile.annual_volume_units}
-                    onChange={(e) => setOrgProfile({ ...orgProfile, annual_volume_units: Number(e.target.value) })}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Critical Customer Order Value Threshold (INR)</label>
-                  <input
-                    type="number"
-                    value={orgProfile.critical_order_threshold_inr}
-                    onChange={(e) => setOrgProfile({ ...orgProfile, critical_order_threshold_inr: Number(e.target.value) })}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                  <span className="text-[10px] text-[#00e676] mt-1 block">
-                    Orders exceeding this value are automatically tagged as CRITICAL priority in the Disruption Control Tower.
-                  </span>
-                </div>
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Primary Production Plant / Gigafactory</label>
+                <input
+                  type="text"
+                  value={orgProfile.primary_plant}
+                  onChange={(e) => setOrgProfile({ ...orgProfile, primary_plant: e.target.value })}
+                  placeholder="e.g. Pune Advanced Automotive Assembly, India"
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Primary Inbound Maritime Import Terminal</label>
+                <input
+                  type="text"
+                  value={orgProfile.primary_port}
+                  onChange={(e) => setOrgProfile({ ...orgProfile, primary_port: e.target.value })}
+                  placeholder="e.g. Port of Nhava Sheva (JNPT Mumbai)"
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
               </div>
             </div>
           </div>
-        )}
 
-        {/* Tab 2: Plants & Fabs */}
-        {activeTab === 'plants' && (
-          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[INTERNAL PRODUCTION ASSETS]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Manufacturing Plants & Assembly Lines</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Production facilities, assembly lines, and daily throughput capacity.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newId = `PLANT-${plants.length + 1 < 10 ? '0' : ''}${plants.length + 1}`;
-                  setPlants([
-                    ...plants,
-                    {
-                      id: newId,
-                      name: 'Chennai Tier-1 Electronics Plant',
-                      location: 'Sriperumbudur, Tamil Nadu, India',
-                      capacity_units_day: 500,
-                      critical_lines: 'Line C (Telematics Modules)',
-                      status: 'OPERATIONAL',
-                    },
-                  ]);
-                }}
-                className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
-              >
-                <Plus className="h-3.5 w-3.5" /> ADD PLANT
-              </button>
+          <div className="space-y-4">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[FINANCIAL & VOLUME THRESHOLDS]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Throughput Volumes & Alert Thresholds</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Parameters controlling revenue exposure alerts and Bayesian shock escalation.
+              </p>
             </div>
 
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Base Currency</label>
+                <input
+                  type="text"
+                  value={orgProfile.currency}
+                  disabled
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Annual Volume Throughput (Units)</label>
+                <input
+                  type="number"
+                  value={orgProfile.annual_volume_units}
+                  onChange={(e) => setOrgProfile({ ...orgProfile, annual_volume_units: Number(e.target.value) })}
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Critical Customer Order Threshold (INR)</label>
+                <input
+                  type="number"
+                  value={orgProfile.critical_order_threshold_inr}
+                  onChange={(e) => setOrgProfile({ ...orgProfile, critical_order_threshold_inr: Number(e.target.value) })}
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Plants & Fabs */}
+      {activeTab === 'plants' && (
+        <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[INTERNAL PRODUCTION ASSETS]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Manufacturing Plants & Assembly Lines</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Production facilities, assembly lines, and daily throughput capacity.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setNewPlant({
+                  id: `PLANT-0${plants.length + 1}`,
+                  name: '',
+                  location: 'Pune, Maharashtra, India',
+                  capacity_units_day: 1000,
+                  critical_lines: 'Assembly Line 1',
+                  status: 'OPERATIONAL',
+                });
+                setModalType('plant');
+              }}
+              className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> + ADD PLANT
+            </button>
+          </div>
+
+          {plants.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#112818] bg-[#050805] p-6 space-y-3">
+              <MapPin className="h-8 w-8 text-[#4e6e58] mx-auto" />
+              <div className="text-sm font-bold text-white">No Manufacturing Plants Registered</div>
+              <p className="text-xs text-[#87a894] max-w-md mx-auto">
+                You currently have no internal facilities configured. Add your first facility or load the 3PL Contractor Demo Profile to see a multi-plant semiconductor network.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setModalType('plant')}
+                  className="border border-[#00e676] bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676]"
+                >
+                  + Add Facility
+                </button>
+                <button
+                  onClick={handleLoadDemoProfile}
+                  className="border border-cyan-500/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300"
+                >
+                  Load 3PL Demo Profile
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -631,34 +761,63 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Tab 3: Suppliers */}
-        {activeTab === 'suppliers' && (
-          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[TIER-1 & TIER-2 SUPPLIERS]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Supplier Contracts & Sourcing Dependencies</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Direct suppliers, component dependencies, and single-source risk designations. All fields are editable inline.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newId = `SUP-00${suppliers.length + 1}`;
-                  setSuppliers([
-                    ...suppliers,
-                    { id: newId, name: 'New Component Vendor Corp', country: 'Malaysia', part_sku: 'CAP-220', lead_time_days: 15, single_source: false, spend_inr: 5000000 },
-                  ]);
-                }}
-                className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
-              >
-                <Plus className="h-3.5 w-3.5" /> ADD SUPPLIER
-              </button>
+      {/* Tab 3: Suppliers */}
+      {activeTab === 'suppliers' && (
+        <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[TIER-1 & TIER-2 SUPPLIERS]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Supplier Contracts & Sourcing Dependencies</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Direct vendors, part dependencies, single-source flags, and annual spends.
+              </p>
             </div>
+            <button
+              onClick={() => {
+                setNewSup({
+                  id: `SUP-00${suppliers.length + 1}`,
+                  name: '',
+                  country: 'Taiwan',
+                  part_sku: 'MCU-441',
+                  lead_time_days: 18,
+                  single_source: false,
+                  spend_inr: 5000000,
+                });
+                setModalType('supplier');
+              }}
+              className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> + ADD SUPPLIER
+            </button>
+          </div>
 
+          {suppliers.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#112818] bg-[#050805] p-6 space-y-3">
+              <Truck className="h-8 w-8 text-[#4e6e58] mx-auto" />
+              <div className="text-sm font-bold text-white">No Suppliers Registered</div>
+              <p className="text-xs text-[#87a894] max-w-md mx-auto">
+                No vendors are currently registered. Add your suppliers manually or load the 3PL Contractor Demo Profile to see TSMC, Renesas, ASML, and Alpha Micro.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setModalType('supplier')}
+                  className="border border-[#00e676] bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676]"
+                >
+                  + Add Supplier
+                </button>
+                <button
+                  onClick={handleLoadDemoProfile}
+                  className="border border-cyan-500/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300"
+                >
+                  Load 3PL Demo Profile
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -758,7 +917,6 @@ export default function AdminPage() {
                         <button
                           onClick={() => setSuppliers(suppliers.filter((_, i) => i !== idx))}
                           className="p-1 text-red-400 hover:text-red-300"
-                          title="Delete Supplier"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -768,34 +926,63 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Tab 4: SKUs */}
-        {activeTab === 'skus' && (
-          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[FINISHED PRODUCTS & BILL OF MATERIALS]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Internal Finished Product SKUs</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Configure inventory runway, daily consumption burn, and safety buffer targets. All fields are editable inline.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newSkuId = `SKU-${Math.floor(Math.random() * 800 + 100)}`;
-                  setSkus([
-                    ...skus,
-                    { sku_id: newSkuId, name: 'Industrial Subsystem Controller', current_stock_units: 1200, daily_burn_units: 80, runway_days: 15, safety_buffer_days: 18, critical_part: 'IC-99' },
-                  ]);
-                }}
-                className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
-              >
-                <Plus className="h-3.5 w-3.5" /> ADD SKU
-              </button>
+      {/* Tab 4: SKUs */}
+      {activeTab === 'skus' && (
+        <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[FINISHED PRODUCTS & BILL OF MATERIALS]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Internal Finished Product SKUs</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Current stock, daily burn consumption, runway days, and buffer targets.
+              </p>
             </div>
+            <button
+              onClick={() => {
+                setNewSku({
+                  sku_id: `SKU-${Math.floor(Math.random() * 800 + 100)}`,
+                  name: '',
+                  current_stock_units: 1000,
+                  daily_burn_units: 100,
+                  runway_days: 14,
+                  safety_buffer_days: 20,
+                  critical_part: 'MCU-441',
+                });
+                setModalType('sku');
+              }}
+              className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> + ADD SKU
+            </button>
+          </div>
 
+          {skus.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#112818] bg-[#050805] p-6 space-y-3">
+              <Box className="h-8 w-8 text-[#4e6e58] mx-auto" />
+              <div className="text-sm font-bold text-white">No Finished Product SKUs Configured</div>
+              <p className="text-xs text-[#87a894] max-w-md mx-auto">
+                No finished products or bill-of-materials items exist. Add your SKUs or load the 3PL Contractor Demo Profile to see Motor Controllers, Inverters, and Telematics modules.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setModalType('sku')}
+                  className="border border-[#00e676] bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676]"
+                >
+                  + Add SKU
+                </button>
+                <button
+                  onClick={handleLoadDemoProfile}
+                  className="border border-cyan-500/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300"
+                >
+                  Load 3PL Demo Profile
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -914,34 +1101,64 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Tab 5: Customer Orders */}
-        {activeTab === 'orders' && (
-          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[CUSTOMER COMMITMENTS & EXPOSURE]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Customer Order Portfolio & SLA Commitments</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Revenue exposure, delivery SLAs, and contractual late penalties. All fields are editable inline.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newOrdId = `ORD-${Math.floor(Math.random() * 8000 + 10000)}`;
-                  setOrders([
-                    ...orders,
-                    { order_id: newOrdId, customer_name: 'Tata Motors EV Systems', sku_id: 'SKU-441', units: 150, order_value_inr: 850000, promised_delivery_date: '2026-09-30', late_penalty_daily_inr: 15000, priority: 'HIGH' },
-                  ]);
-                }}
-                className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
-              >
-                <Plus className="h-3.5 w-3.5" /> ADD CUSTOMER ORDER
-              </button>
+      {/* Tab 5: Customer Orders */}
+      {activeTab === 'orders' && (
+        <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[CUSTOMER COMMITMENTS & EXPOSURE]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Customer Order Portfolio & Delivery SLAs</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Contract values, promised delivery deadlines, and contractual daily late penalties.
+              </p>
             </div>
+            <button
+              onClick={() => {
+                setNewOrder({
+                  order_id: `ORD-${Math.floor(Math.random() * 8000 + 10000)}`,
+                  customer_name: '',
+                  sku_id: skus[0]?.sku_id || 'SKU-001',
+                  units: 250,
+                  order_value_inr: 1200000,
+                  promised_delivery_date: '2026-10-01',
+                  late_penalty_daily_inr: 25000,
+                  priority: 'HIGH',
+                });
+                setModalType('order');
+              }}
+              className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> + ADD CUSTOMER ORDER
+            </button>
+          </div>
 
+          {orders.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#112818] bg-[#050805] p-6 space-y-3">
+              <FileText className="h-8 w-8 text-[#4e6e58] mx-auto" />
+              <div className="text-sm font-bold text-white">No Customer Orders Registered</div>
+              <p className="text-xs text-[#87a894] max-w-md mx-auto">
+                No active orders are registered. Add an order with contract values and SLA penalties or load the 3PL Contractor Demo Profile to see Tata Motors, Siemens Mobility, and ABB orders.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setModalType('order')}
+                  className="border border-[#00e676] bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676]"
+                >
+                  + Add Order
+                </button>
+                <button
+                  onClick={handleLoadDemoProfile}
+                  className="border border-cyan-500/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300"
+                >
+                  Load 3PL Demo Profile
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -1062,45 +1279,66 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Tab 6: Routes & Corridors */}
-        {activeTab === 'routes' && (
-          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[MULTIMODAL TRANSIT ARTERIES]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Maritime, Air, and Freight Corridors</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Active shipping lines, air cargo routes, and critical bottleneck waypoints.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  const newId = `RTE-00${routes.length + 1}`;
-                  setRoutes([
-                    ...routes,
-                    {
-                      id: newId,
-                      name: 'Rotterdam Gateway -> JNPT Maritime Trunk',
-                      transport_mode: 'MARITIME_CONTAINER',
-                      carrier: 'CMA CGM / Hapag-Lloyd',
-                      origin: 'Port of Rotterdam, Netherlands',
-                      destination: 'JNPT Nhava Sheva, India',
-                      transit_days: 24,
-                      critical_sku: 'SKU-808 (Telematics Gateway)',
-                      chokepoints_traversed: ['Suez Canal', 'Bab-el-Mandeb'],
-                      risk_level: 'HIGH',
-                    },
-                  ]);
-                }}
-                className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
-              >
-                <Plus className="h-3.5 w-3.5" /> ADD ROUTE
-              </button>
+      {/* Tab 6: Routes & Corridors */}
+      {activeTab === 'routes' && (
+        <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#112818] pb-3">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[MULTIMODAL TRANSIT ARTERIES]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Maritime, Air, and Freight Corridors</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Active freight corridors, carrier lines, and bottleneck chokepoints traversed.
+              </p>
             </div>
+            <button
+              onClick={() => {
+                setNewRoute({
+                  id: `RTE-00${routes.length + 1}`,
+                  name: '',
+                  transport_mode: 'MARITIME_FEEDER',
+                  carrier: 'Maersk Line',
+                  origin: 'Kaohsiung, Taiwan',
+                  destination: 'Port of Nhava Sheva (JNPT)',
+                  transit_days: 18,
+                  critical_sku: skus[0]?.sku_id || 'SKU-441',
+                  chokepoints_traversed: ['Taiwan Strait', 'Strait of Malacca'],
+                  risk_level: 'HIGH',
+                });
+                setModalType('route');
+              }}
+              className="flex items-center gap-1.5 border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> + ADD ROUTE
+            </button>
+          </div>
 
+          {routes.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-[#112818] bg-[#050805] p-6 space-y-3">
+              <Layers className="h-8 w-8 text-[#4e6e58] mx-auto" />
+              <div className="text-sm font-bold text-white">No Multimodal Routes Registered</div>
+              <p className="text-xs text-[#87a894] max-w-md mx-auto">
+                No shipping or air cargo lanes are registered. Add a route or load the 3PL Contractor Demo Profile to see Taiwan Strait, Malacca, Suez, and BOM Air corridors.
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setModalType('route')}
+                  className="border border-[#00e676] bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676]"
+                >
+                  + Add Route
+                </button>
+                <button
+                  onClick={handleLoadDemoProfile}
+                  className="border border-cyan-500/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300"
+                >
+                  Load 3PL Demo Profile
+                </button>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -1181,7 +1419,7 @@ export default function AdminPage() {
                         />
                       </td>
                       <td className="py-2.5 px-3 text-[#87a894] text-[10px]">
-                        {rte.chokepoints_traversed?.join(', ') || 'Direct Route'}
+                        {rte.chokepoints_traversed?.join(', ') || 'Direct Corridor'}
                       </td>
                       <td className="py-2.5 px-3">
                         <span
@@ -1209,390 +1447,383 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {/* Tab 7: Custom 3PL Supply Chains (Globe) */}
-        {activeTab === 'chains' && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[3D GLOBE SPATIAL REGISTRATION]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Bespoke 3PL Transit Corridors</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Define geographic coordinates connecting overseas suppliers and 3PL carriers directly into the 3D WebGL Globe and 2D Tactical Drill-Down.
-                </p>
-              </div>
-            </div>
-
-            {chainStatus && (
-              <div className="border border-[#00e676] bg-[#00e676]/10 p-3 text-xs text-[#00e676] flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>{chainStatus}</span>
-              </div>
-            )}
-
-            {/* List of currently registered supply chains */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {customChains.map((ch, idx) => (
-                <div key={ch.id || idx} className="border border-[#112818] bg-[#000000] p-4 space-y-3 hover:border-[#00e676]/50 transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 border ${
-                        ch.priority === 'CRITICAL' ? 'border-red-500/60 bg-red-500/20 text-red-400' : 'border-amber-500/60 bg-amber-500/20 text-amber-400'
-                      }`}>
-                        {ch.priority || 'CRITICAL'}
-                      </span>
-                      <h4 className="text-xs font-bold text-white mt-1 leading-snug">{ch.name}</h4>
-                    </div>
-                  </div>
-
-                  <div className="border border-[#112818] bg-[#050805] p-2.5 text-[11px] space-y-1 text-[#87a894]">
-                    <div><strong className="text-white">3PL Carrier:</strong> {ch.partner_3pl || 'Enterprise Logistics'}</div>
-                    <div><strong className="text-white">Origin:</strong> {ch.origin?.name || 'Origin Hub'}</div>
-                    <div><strong className="text-white">Destination:</strong> {ch.destination?.name || 'Destination Hub'}</div>
-                    <div><strong className="text-white">Transit:</strong> {ch.transit_days} days &middot; <strong className="text-white">SKU:</strong> {ch.sku_carried}</div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-[#00e676] pt-1">
-                    <span>LIVE ON 3D GLOBE</span>
-                    <Link href="/command" className="hover:underline flex items-center gap-1 font-bold">
-                      View on Globe &rarr;
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Form to Register a New Supply Chain */}
-            <form onSubmit={handleAddCustomChain} className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-              <div className="flex items-center gap-2 border-b border-[#112818] pb-3 mb-2">
-                <Plus className="h-4 w-4 text-[#00e676]" />
-                <h4 className="text-sm font-bold text-white">Register New Enterprise Corridor in 3D Engine</h4>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div className="md:col-span-2">
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Supply Chain Route Name</label>
-                  <input
-                    type="text"
-                    value={newChainName}
-                    onChange={(e) => setNewChainName(e.target.value)}
-                    required
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                    placeholder="e.g. Taiwan Semi -> Pune Gigafactory Automotive Line"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Primary 3PL Logistics Partner</label>
-                  <input
-                    type="text"
-                    value={newPartner3pl}
-                    onChange={(e) => setNewPartner3pl(e.target.value)}
-                    required
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                    placeholder="e.g. Maersk / DHL / Kuehne+Nagel"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Origin Hub Name</label>
-                  <input
-                    type="text"
-                    value={newOriginName}
-                    onChange={(e) => setNewOriginName(e.target.value)}
-                    required
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Origin Lat / Lon</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newOriginLat}
-                      onChange={(e) => setNewOriginLat(e.target.value)}
-                      className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                      placeholder="Lat"
-                    />
-                    <input
-                      type="text"
-                      value={newOriginLon}
-                      onChange={(e) => setNewOriginLon(e.target.value)}
-                      className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                      placeholder="Lon"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Priority Tier</label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value)}
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                  >
-                    <option value="CRITICAL">CRITICAL (Top Tier)</option>
-                    <option value="HIGH">HIGH (Standard Semi)</option>
-                    <option value="MEDIUM">MEDIUM (Buffer)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Destination Hub Name</label>
-                  <input
-                    type="text"
-                    value={newDestName}
-                    onChange={(e) => setNewDestName(e.target.value)}
-                    required
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Destination Lat / Lon</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newDestLat}
-                      onChange={(e) => setNewDestLat(e.target.value)}
-                      className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                      placeholder="Lat"
-                    />
-                    <input
-                      type="text"
-                      value={newDestLon}
-                      onChange={(e) => setNewDestLon(e.target.value)}
-                      className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                      placeholder="Lon"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Critical Part / SKU Carried</label>
-                  <input
-                    type="text"
-                    value={newSkuCarried}
-                    onChange={(e) => setNewSkuCarried(e.target.value)}
-                    required
-                    className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={chainSaveLoading}
-                  className="flex items-center gap-2 border border-[#00e676] bg-[#00e676]/25 px-5 py-2.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/40 transition-colors disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>{chainSaveLoading ? 'REGISTERING IN GRAPH...' : 'REGISTER SUPPLY CHAIN IN GRAPH'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Tab 8: Synthetic Disruption Injection */}
-        {activeTab === 'inject' && (
-          <div className="border border-amber-500/40 bg-[#000000] p-6 space-y-6">
+      {/* Tab 7: Custom 3PL Supply Chains (Globe) */}
+      {activeTab === 'chains' && (
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Zap className="h-4 w-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Manual Disruption Injection Simulator</h3>
-                <span className="border border-amber-500/60 bg-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-amber-400">
-                  LIVE CAUSAL TESTING
-                </span>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[3D GLOBE SPATIAL REGISTRATION]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Bespoke 3PL Transit Corridors</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Geographic coordinates connecting overseas suppliers directly into the 3D WebGL Globe and 2D Tactical Drill-Down.
+              </p>
+            </div>
+          </div>
+
+          {chainStatus && (
+            <div className="border border-[#00e676] bg-[#00e676]/10 p-3 text-xs text-[#00e676] flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>{chainStatus}</span>
+            </div>
+          )}
+
+          {/* List of currently registered supply chains */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customChains.map((ch, idx) => (
+              <div key={ch.id || idx} className="border border-[#112818] bg-[#000000] p-4 space-y-3 hover:border-[#00e676]/50 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 border ${
+                      ch.priority === 'CRITICAL' ? 'border-red-500/60 bg-red-500/20 text-red-400' : 'border-amber-500/60 bg-amber-500/20 text-amber-400'
+                    }`}>
+                      {ch.priority || 'CRITICAL'}
+                    </span>
+                    <h4 className="text-xs font-bold text-white mt-1 leading-snug">{ch.name}</h4>
+                  </div>
+                </div>
+
+                <div className="border border-[#112818] bg-[#050805] p-2.5 text-[11px] space-y-1 text-[#87a894]">
+                  <div><strong className="text-white">3PL Carrier:</strong> {ch.partner_3pl || 'Enterprise Logistics'}</div>
+                  <div><strong className="text-white">Origin:</strong> {ch.origin?.name || 'Origin Hub'}</div>
+                  <div><strong className="text-white">Destination:</strong> {ch.destination?.name || 'Destination Hub'}</div>
+                  <div><strong className="text-white">Transit:</strong> {ch.transit_days} days &middot; <strong className="text-white">SKU:</strong> {ch.sku_carried}</div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-[#00e676] pt-1">
+                  <span>LIVE ON 3D GLOBE</span>
+                  <Link href="/command" className="hover:underline flex items-center gap-1 font-bold">
+                    View on Globe &rarr;
+                  </Link>
+                </div>
               </div>
-              <p className="text-xs text-[#87a894] font-sans">
-                Directly inject synthetic disruption events into any network node to observe cascading propagation across the Bayesian graph.
+            ))}
+          </div>
+
+          {/* Form to Register a New Supply Chain */}
+          <form onSubmit={handleAddCustomChain} className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#112818] pb-3 mb-2">
+              <Plus className="h-4 w-4 text-[#00e676]" />
+              <h4 className="text-sm font-bold text-white">Register New Enterprise Corridor in 3D Engine</h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="md:col-span-2">
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Supply Chain Route Name</label>
+                <input
+                  type="text"
+                  value={newChainName}
+                  onChange={(e) => setNewChainName(e.target.value)}
+                  required
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  placeholder="e.g. Taiwan Semi -> Pune Gigafactory Automotive Line"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Primary 3PL Logistics Partner</label>
+                <input
+                  type="text"
+                  value={newPartner3pl}
+                  onChange={(e) => setNewPartner3pl(e.target.value)}
+                  required
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                  placeholder="e.g. Maersk / DHL / Kuehne+Nagel"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Origin Hub Name</label>
+                <input
+                  type="text"
+                  value={newOriginName}
+                  onChange={(e) => setNewOriginName(e.target.value)}
+                  required
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Origin Lat / Lon</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newOriginLat}
+                    onChange={(e) => setNewOriginLat(e.target.value)}
+                    className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                    placeholder="Lat"
+                  />
+                  <input
+                    type="text"
+                    value={newOriginLon}
+                    onChange={(e) => setNewOriginLon(e.target.value)}
+                    className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                    placeholder="Lon"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Priority Tier</label>
+                <select
+                  value={newPriority}
+                  onChange={(e) => setNewPriority(e.target.value)}
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                >
+                  <option value="CRITICAL">CRITICAL (Top Tier)</option>
+                  <option value="HIGH">HIGH (Standard Semi)</option>
+                  <option value="MEDIUM">MEDIUM (Buffer)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Destination Hub Name</label>
+                <input
+                  type="text"
+                  value={newDestName}
+                  onChange={(e) => setNewDestName(e.target.value)}
+                  required
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Destination Lat / Lon</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDestLat}
+                    onChange={(e) => setNewDestLat(e.target.value)}
+                    className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                    placeholder="Lat"
+                  />
+                  <input
+                    type="text"
+                    value={newDestLon}
+                    onChange={(e) => setNewDestLon(e.target.value)}
+                    className="w-1/2 border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                    placeholder="Lon"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#4e6e58] block mb-1 font-bold uppercase">Critical Part / SKU Carried</label>
+                <input
+                  type="text"
+                  value={newSkuCarried}
+                  onChange={(e) => setNewSkuCarried(e.target.value)}
+                  required
+                  className="w-full border border-[#112818] bg-[#050805] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={chainSaveLoading}
+                className="flex items-center gap-2 border border-[#00e676] bg-[#00e676]/25 px-5 py-2.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/40 transition-colors disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{chainSaveLoading ? 'REGISTERING IN GRAPH...' : 'REGISTER SUPPLY CHAIN IN GRAPH'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 8: Synthetic Disruption Injection */}
+      {activeTab === 'inject' && (
+        <div className="border border-amber-500/40 bg-[#000000] p-6 space-y-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-white">Manual Disruption Injection Simulator</h3>
+              <span className="border border-amber-500/60 bg-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-amber-400">
+                LIVE CAUSAL TESTING
+              </span>
+            </div>
+            <p className="text-xs text-[#87a894] font-sans">
+              Inject synthetic disruptions into global chokepoints to observe causal cascade propagation across the Bayesian graph.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Target Geographic Node or Maritime Lane</label>
+                <select
+                  value={injectNode}
+                  onChange={(e) => setInjectNode(e.target.value)}
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none font-mono"
+                >
+                  <option value="port-singapore">Port of Singapore (Maritime Transshipment Hub)</option>
+                  <option value="suez-canal">Suez Canal Transit Corridor</option>
+                  <option value="strait-of-malacca">Strait of Malacca (Primary Container Artery)</option>
+                  <option value="panama-canal">Panama Canal Locks</option>
+                  <option value="port-shanghai">Port of Shanghai (East Asia Hub)</option>
+                  <option value="port-rotterdam">Port of Rotterdam (European Gateway)</option>
+                  <option value="bab-el-mandeb">Bab-el-Mandeb (Red Sea Entrance)</option>
+                  <option value="strait-of-hormuz">Strait of Hormuz (Persian Gulf Energy)</option>
+                  <option value="taiwan-strait">Taiwan Strait (Semiconductor Fab Corridor)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Disruption Scenario Title</label>
+                <input
+                  type="text"
+                  value={injectName}
+                  onChange={(e) => setInjectName(e.target.value)}
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Disruption Event Classification</label>
+                <select
+                  value={injectEventType}
+                  onChange={(e) => setInjectEventType(e.target.value)}
+                  className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none font-mono"
+                >
+                  <option value="PORT_CONGESTION">PORT_CONGESTION (Vessel Queue Surge)</option>
+                  <option value="ROUTE_DISRUPTION">ROUTE_DISRUPTION (Maritime Bottleneck)</option>
+                  <option value="GEOPOLITICAL_TENSION">GEOPOLITICAL_TENSION (Military / Security Alert)</option>
+                  <option value="LABOR_STRIKE">LABOR_STRIKE (Dockworker / Crane Walkout)</option>
+                  <option value="EXTREME_WEATHER">EXTREME_WEATHER (Typhoon Warning)</option>
+                  <option value="CYBER_INCIDENT">CYBER_INCIDENT (TOS System Outage)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[#4e6e58] uppercase text-[10px] font-bold">Simulated Disruption Intensity</label>
+                  <span className="font-bold text-amber-400 text-sm">{Math.round(injectIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.10"
+                  max="1.0"
+                  step="0.05"
+                  value={injectIntensity}
+                  onChange={(e) => setInjectIntensity(Number(e.target.value))}
+                  className="w-full accent-amber-400"
+                />
+                <div className="flex justify-between text-[10px] text-[#87a894] mt-1">
+                  <span>10% (Minor Delay)</span>
+                  <span>50% (Substantial Bottleneck)</span>
+                  <span>100% (Complete Closure)</span>
+                </div>
+              </div>
+
+              <div className="border border-[#112818] bg-[#050805] p-3 text-[11px] text-[#87a894] space-y-1">
+                <div className="font-bold text-white mb-1 uppercase text-[10px]">[CASCADE IMPACT PREVIEW]</div>
+                <div>&bull; Posterior disruption probability shifts to <strong>{Math.round(injectIntensity * 100)}%</strong></div>
+                <div>&bull; Stamped directly onto <strong>{injectNode}</strong> in the graph</div>
+                <div>&bull; Triggers automated downstream customer SLA delay & loss recalculation</div>
+              </div>
+
+              <button
+                onClick={handleInjectDisruption}
+                disabled={injectLoading}
+                className="w-full flex items-center justify-center gap-2 border border-amber-400 bg-amber-400/20 px-4 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-400/30 transition-all disabled:opacity-50"
+              >
+                <Zap className="h-4 w-4" />
+                <span>{injectLoading ? 'INJECTING EVENT...' : 'INJECT DISRUPTION INTO LIVE NETWORK'}</span>
+              </button>
+            </div>
+          </div>
+
+          {injectStatus && (
+            <div className="border border-amber-500/60 bg-amber-500/10 p-3 text-xs text-amber-300 font-mono">
+              {injectStatus}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 9: API Credentials */}
+      {activeTab === 'api' && (
+        <div className="space-y-6">
+          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[LLM & AI AGENT CREDENTIALS]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Autonomous Decision Engine API Keys</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Saved credentials persist across restarts and arm the AI Analyst co-pilot and Scenario Engine.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Target Geographic Node or Maritime Lane</label>
-                  <select
-                    value={injectNode}
-                    onChange={(e) => setInjectNode(e.target.value)}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none font-mono"
-                  >
-                    <option value="port-singapore">Port of Singapore (Maritime Transshipment Hub)</option>
-                    <option value="suez-canal">Suez Canal Transit Corridor</option>
-                    <option value="strait-of-malacca">Strait of Malacca (Primary Container Artery)</option>
-                    <option value="panama-canal">Panama Canal Locks</option>
-                    <option value="port-shanghai">Port of Shanghai (East Asia Hub)</option>
-                    <option value="port-rotterdam">Port of Rotterdam (European Gateway)</option>
-                    <option value="bab-el-mandeb">Bab-el-Mandeb (Red Sea Entrance)</option>
-                    <option value="strait-of-hormuz">Strait of Hormuz (Persian Gulf Energy)</option>
-                    <option value="taiwan-strait">Taiwan Strait (Semiconductor Fab Corridor)</option>
-                  </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* OpenRouter Key */}
+              <div className="border border-[#112818] bg-[#050805] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white uppercase">[PRIMARY] OPENROUTER API KEY</span>
+                  <span className="border border-[#00e676]/40 bg-[#00e676]/20 px-1.5 py-0.2 text-[9px] text-[#00e676]">RECOMMENDED</span>
                 </div>
-
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Disruption Scenario Title</label>
-                  <input
-                    type="text"
-                    value={injectName}
-                    onChange={(e) => setInjectName(e.target.value)}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#4e6e58] uppercase text-[10px] mb-1 font-bold">Disruption Event Classification</label>
-                  <select
-                    value={injectEventType}
-                    onChange={(e) => setInjectEventType(e.target.value)}
-                    className="w-full border border-[#112818] bg-[#050805] p-2.5 text-white focus:border-[#00e676] focus:outline-none font-mono"
-                  >
-                    <option value="PORT_CONGESTION">PORT_CONGESTION (Vessel Queue Surge)</option>
-                    <option value="ROUTE_DISRUPTION">ROUTE_DISRUPTION (Maritime Bottleneck)</option>
-                    <option value="GEOPOLITICAL_TENSION">GEOPOLITICAL_TENSION (Security / Military Advisory)</option>
-                    <option value="LABOR_STRIKE">LABOR_STRIKE (Dockworker / Crane Operator Walkout)</option>
-                    <option value="EXTREME_WEATHER">EXTREME_WEATHER (Typhoon / Cyclone Warning)</option>
-                    <option value="CYBER_INCIDENT">CYBER_INCIDENT (Terminal TOS Outage)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-[#4e6e58] uppercase text-[10px] font-bold">Simulated Disruption Intensity (Stress Severity)</label>
-                    <span className="font-bold text-amber-400 text-sm">{Math.round(injectIntensity * 100)}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.10"
-                    max="1.0"
-                    step="0.05"
-                    value={injectIntensity}
-                    onChange={(e) => setInjectIntensity(Number(e.target.value))}
-                    className="w-full accent-amber-400"
-                  />
-                  <div className="flex justify-between text-[10px] text-[#87a894] mt-1">
-                    <span>10% (Minor Delay)</span>
-                    <span>50% (Substantial Bottleneck)</span>
-                    <span>100% (Complete Closure)</span>
-                  </div>
-                </div>
-
-                <div className="border border-[#112818] bg-[#050805] p-3 text-[11px] text-[#87a894] space-y-1">
-                  <div className="font-bold text-white mb-1 uppercase text-[10px]">[CASCADE IMPACT PREVIEW]</div>
-                  <div>&bull; Prior Probability: <strong>18%</strong> &rarr; Posterior will shift to <strong>{Math.round(injectIntensity * 100)}%</strong></div>
-                  <div>&bull; Will trigger automatic Bayesian alert on <strong>{injectNode}</strong></div>
-                  <div>&bull; Will re-evaluate downstream bill-of-materials and customer order exposure</div>
-                </div>
-
-                <button
-                  onClick={handleInjectDisruption}
-                  disabled={injectLoading}
-                  className="w-full flex items-center justify-center gap-2 border border-amber-400 bg-amber-400/20 px-4 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-400/30 transition-all disabled:opacity-50"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span>{injectLoading ? 'INJECTING EVENT...' : 'INJECT DISRUPTION INTO LIVE NETWORK'}</span>
-                </button>
-              </div>
-            </div>
-
-            {injectStatus && (
-              <div className="border border-amber-500/60 bg-amber-500/10 p-3 text-xs text-amber-300 font-mono">
-                {injectStatus}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 9: API Credentials */}
-        {activeTab === 'api' && (
-          <div className="space-y-6">
-            <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[LLM & AI AGENT CREDENTIALS]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Autonomous Decision Engine API Keys</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Configure live AI model access keys. The platform uses these keys directly for the AI Analyst, scenario generator, and mitigation engine.
+                <p className="text-[10px] text-[#87a894] font-sans">
+                  Fast multi-model failover for DeepSeek, Gemini Flash, and Llama reasoning models.
                 </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                {/* OpenRouter Key */}
-                <div className="border border-[#112818] bg-[#050805] p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white uppercase">[PRIMARY] OPENROUTER API KEY</span>
-                    <span className="border border-[#00e676]/40 bg-[#00e676]/20 px-1.5 py-0.2 text-[9px] text-[#00e676]">RECOMMENDED</span>
-                  </div>
-                  <p className="text-[10px] text-[#87a894] font-sans">
-                    Enables fast failover access to free & premium reasoning models (Gemini Flash, DeepSeek, Llama 3).
-                  </p>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showOpenRouterKey ? 'text' : 'password'}
-                        value={apiCredentials.openrouter_api_key || ''}
-                        onChange={(e) =>
-                          setApiCredentials({ ...apiCredentials, openrouter_api_key: e.target.value })
-                        }
-                        placeholder="sk-or-v1-..."
-                        className="w-full border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none pr-8"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
-                        className="absolute right-2 top-2.5 text-[#87a894] hover:text-white"
-                      >
-                        {showOpenRouterKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showOpenRouterKey ? 'text' : 'password'}
+                      value={apiCredentials.openrouter_api_key || ''}
+                      onChange={(e) =>
+                        setApiCredentials({ ...apiCredentials, openrouter_api_key: e.target.value })
+                      }
+                      placeholder="sk-or-v1-..."
+                      className="w-full border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none pr-8"
+                    />
                     <button
                       type="button"
-                      onClick={() => handleValidateKey('openrouter')}
-                      className="border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+                      onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                      className="absolute right-2 top-2.5 text-[#87a894] hover:text-white"
                     >
-                      TEST KEY
+                      {showOpenRouterKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  {keyValidateMsg && keyValidateMsg.provider === 'openrouter' && (
-                    <div className={`text-[10px] font-bold ${keyValidateMsg.valid ? 'text-[#00e676]' : 'text-red-400'}`}>
-                      {keyValidateMsg.msg}
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleValidateKey('openrouter')}
+                    className="border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
+                  >
+                    TEST KEY
+                  </button>
                 </div>
-
-                {/* Gemini Key */}
-                <div className="border border-[#112818] bg-[#050805] p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white uppercase">[STANDALONE] GOOGLE GEMINI API KEY</span>
-                    <span className="border border-[#4e6e58] bg-[#112818] px-1.5 py-0.2 text-[9px] text-[#87a894]">OPTIONAL</span>
+                {keyValidateMsg && keyValidateMsg.provider === 'openrouter' && (
+                  <div className={`text-[10px] font-bold ${keyValidateMsg.valid ? 'text-[#00e676]' : 'text-red-400'}`}>
+                    {keyValidateMsg.msg}
                   </div>
-                  <p className="text-[10px] text-[#87a894] font-sans">
-                    Direct Google AI Studio API key for Gemini 1.5 / 2.0 Flash agent inference.
-                  </p>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showGeminiKey ? 'text' : 'password'}
-                        value={apiCredentials.gemini_api_key || ''}
-                        onChange={(e) =>
-                          setApiCredentials({ ...apiCredentials, gemini_api_key: e.target.value })
-                        }
-                        placeholder="AIzaSy..."
-                        className="w-full border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none pr-8"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowGeminiKey(!showGeminiKey)}
-                        className="absolute right-2 top-2.5 text-[#87a894] hover:text-white"
-                      >
-                        {showGeminiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                )}
+              </div>
+
+              {/* Gemini Key */}
+              <div className="border border-[#112818] bg-[#050805] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-white uppercase">[STANDALONE] GOOGLE GEMINI API KEY</span>
+                  <span className="border border-[#4e6e58] bg-[#112818] px-1.5 py-0.2 text-[9px] text-[#87a894]">OPTIONAL</span>
+                </div>
+                <p className="text-[10px] text-[#87a894] font-sans">
+                  Direct Google AI Studio API key for Gemini 1.5 / 2.0 Flash inference.
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showGeminiKey ? 'text' : 'password'}
+                      value={apiCredentials.gemini_api_key || ''}
+                      onChange={(e) =>
+                        setApiCredentials({ ...apiCredentials, gemini_api_key: e.target.value })
+                      }
+                      placeholder="AIzaSy..."
+                      className="w-full border border-[#112818] bg-[#000000] px-3 py-2 text-xs text-white focus:border-[#00e676] focus:outline-none pr-8"
+                    />
                     <button
                       type="button"
                       onClick={() => handleValidateKey('gemini')}
@@ -1609,62 +1840,534 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Ingestion Pipeline Status */}
-            <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
-              <div>
-                <span className="text-[10px] text-[#00e676] font-bold uppercase">[INGESTION TELEMETRY]</span>
-                <h3 className="text-sm font-bold text-white mt-0.5">Real-time Satellite, Marine AIS & Hazard Feeds</h3>
-                <p className="text-xs text-[#87a894] font-sans mt-0.5">
-                  Live sensor pipeline status and external API telemetry health.
-                </p>
+          {/* Ingestion Pipeline Telemetry */}
+          <div className="border border-[#112818] bg-[#000000] p-6 space-y-4">
+            <div>
+              <span className="text-[10px] text-[#00e676] font-bold uppercase">[INGESTION TELEMETRY]</span>
+              <h3 className="text-sm font-bold text-white mt-0.5">Real-time Satellite, Marine AIS & Hazard Feeds</h3>
+              <p className="text-xs text-[#87a894] font-sans mt-0.5">
+                Ingested records from real-time feeds and archive intelligence.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white">OpenSky Network (Cargo ADS-B)</div>
+                  <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Air cargo flight telemetry (Hong Kong, Frankfurt, Mumbai)</div>
+                </div>
+                <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
+                  CONNECTED
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">OpenSky Network (ADS-B Cargo Flights)</div>
-                    <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">High-altitude cargo air corridors (Hong Kong, Frankfurt, Mumbai)</div>
-                  </div>
-                  <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
-                    CONNECTED
-                  </span>
+              <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white">Live Maritime AIS Transponders</div>
+                  <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Real-time transponders for container vessels & tankers</div>
                 </div>
+                <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
+                  162 VESSELS LIVE
+                </span>
+              </div>
 
-                <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">Live Maritime AIS Stream</div>
-                    <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Real-time transponders for container ships & oil tankers</div>
-                  </div>
-                  <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
-                    162 VESSELS LIVE
-                  </span>
+              <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white">USGS Global Seismic & Earthquake Hazard</div>
+                  <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Automated earthquake magnitude & tsunami alerts</div>
                 </div>
+                <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
+                  PERSISTED (SQLITE)
+                </span>
+              </div>
 
-                <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">USGS Global Seismic Hazard Feed</div>
-                    <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Automated earthquake magnitude and tsunami warning feed</div>
-                  </div>
-                  <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
-                    POLLING (5m)
-                  </span>
+              <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white">GDACS & Severe Weather Hazard Stream</div>
+                  <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Tropical cyclone and port extreme weather telemetry</div>
                 </div>
-
-                <div className="border border-[#112818] bg-[#050805] p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-white">GDACS & Open-Meteo Severe Weather</div>
-                    <div className="text-[10px] text-[#87a894] mt-0.5 font-sans">Tropical cyclone and port extreme weather hazard telemetry</div>
-                  </div>
-                  <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
-                    OPERATIONAL
-                  </span>
-                </div>
+                <span className="border border-[#00e676]/60 bg-[#00e676]/20 px-2 py-0.5 text-[10px] font-bold text-[#00e676]">
+                  OPERATIONAL
+                </span>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Record Creation Modal */}
+      {modalType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono">
+          <div className="w-full max-w-lg border border-[#00e676] bg-[#050805] p-6 shadow-[0_0_30px_rgba(0,255,136,0.25)] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#112818] pb-3">
+              <div className="flex items-center gap-2">
+                <Plus className="h-4 w-4 text-[#00e676]" />
+                <h3 className="text-sm font-bold uppercase text-white">
+                  {modalType === 'supplier' && 'REGISTER NEW SUPPLIER'}
+                  {modalType === 'plant' && 'REGISTER NEW FACILITY / PLANT'}
+                  {modalType === 'sku' && 'REGISTER NEW FINISHED SKU'}
+                  {modalType === 'order' && 'REGISTER NEW CUSTOMER ORDER'}
+                  {modalType === 'route' && 'REGISTER NEW TRANSIT ROUTE'}
+                </h3>
+              </div>
+              <button onClick={() => setModalType(null)} className="text-[#87a894] hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleModalSubmit} className="space-y-3 text-xs">
+              {modalType === 'supplier' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Supplier ID</label>
+                    <input
+                      type="text"
+                      value={newSup.id}
+                      onChange={(e) => setNewSup({ ...newSup, id: e.target.value })}
+                      required
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Supplier / Vendor Legal Name</label>
+                    <input
+                      type="text"
+                      value={newSup.name}
+                      onChange={(e) => setNewSup({ ...newSup, name: e.target.value })}
+                      required
+                      placeholder="e.g. Taiwan Semiconductor Fab 14"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Country of Origin</label>
+                      <input
+                        type="text"
+                        value={newSup.country}
+                        onChange={(e) => setNewSup({ ...newSup, country: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Component / Part SKU</label>
+                      <input
+                        type="text"
+                        value={newSup.part_sku}
+                        onChange={(e) => setNewSup({ ...newSup, part_sku: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Lead Time (Days)</label>
+                      <input
+                        type="number"
+                        value={newSup.lead_time_days}
+                        onChange={(e) => setNewSup({ ...newSup, lead_time_days: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Annual Spend (INR)</label>
+                      <input
+                        type="number"
+                        value={newSup.spend_inr}
+                        onChange={(e) => setNewSup({ ...newSup, spend_inr: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="singleSource"
+                      checked={newSup.single_source}
+                      onChange={(e) => setNewSup({ ...newSup, single_source: e.target.checked })}
+                      className="accent-[#00e676]"
+                    />
+                    <label htmlFor="singleSource" className="text-xs text-white">
+                      Single-Source Supplier (Flag for High Monopolistic Risk)
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'plant' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Plant ID</label>
+                    <input
+                      type="text"
+                      value={newPlant.id}
+                      onChange={(e) => setNewPlant({ ...newPlant, id: e.target.value })}
+                      required
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Facility Name</label>
+                    <input
+                      type="text"
+                      value={newPlant.name}
+                      onChange={(e) => setNewPlant({ ...newPlant, name: e.target.value })}
+                      required
+                      placeholder="e.g. Pune Gigafactory Assembly"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Geographic Location</label>
+                    <input
+                      type="text"
+                      value={newPlant.location}
+                      onChange={(e) => setNewPlant({ ...newPlant, location: e.target.value })}
+                      required
+                      placeholder="e.g. Chakan, Pune, Maharashtra, India"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Capacity (Units/Day)</label>
+                      <input
+                        type="number"
+                        value={newPlant.capacity_units_day}
+                        onChange={(e) => setNewPlant({ ...newPlant, capacity_units_day: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Operational Status</label>
+                      <select
+                        value={newPlant.status}
+                        onChange={(e) => setNewPlant({ ...newPlant, status: e.target.value })}
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      >
+                        <option value="OPERATIONAL">OPERATIONAL</option>
+                        <option value="MAINTENANCE">MAINTENANCE</option>
+                        <option value="EXPANDING">EXPANDING</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Critical Assembly Lines</label>
+                    <input
+                      type="text"
+                      value={newPlant.critical_lines}
+                      onChange={(e) => setNewPlant({ ...newPlant, critical_lines: e.target.value })}
+                      required
+                      placeholder="e.g. Line 1 (Motor Controllers), Line 2 (Inverters)"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                </>
+              )}
+
+              {modalType === 'sku' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">SKU ID</label>
+                      <input
+                        type="text"
+                        value={newSku.sku_id}
+                        onChange={(e) => setNewSku({ ...newSku, sku_id: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Key Component Part</label>
+                      <input
+                        type="text"
+                        value={newSku.critical_part}
+                        onChange={(e) => setNewSku({ ...newSku, critical_part: e.target.value })}
+                        required
+                        placeholder="e.g. MCU-441"
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Finished Product Name</label>
+                    <input
+                      type="text"
+                      value={newSku.name}
+                      onChange={(e) => setNewSku({ ...newSku, name: e.target.value })}
+                      required
+                      placeholder="e.g. Industrial Motor Controller v4"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Current Stock (Units)</label>
+                      <input
+                        type="number"
+                        value={newSku.current_stock_units}
+                        onChange={(e) => setNewSku({ ...newSku, current_stock_units: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Daily Burn Rate</label>
+                      <input
+                        type="number"
+                        value={newSku.daily_burn_units}
+                        onChange={(e) => setNewSku({ ...newSku, daily_burn_units: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Runway (Days)</label>
+                      <input
+                        type="number"
+                        value={newSku.runway_days}
+                        onChange={(e) => setNewSku({ ...newSku, runway_days: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Target Buffer (Days)</label>
+                      <input
+                        type="number"
+                        value={newSku.safety_buffer_days}
+                        onChange={(e) => setNewSku({ ...newSku, safety_buffer_days: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'order' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Order ID</label>
+                      <input
+                        type="text"
+                        value={newOrder.order_id}
+                        onChange={(e) => setNewOrder({ ...newOrder, order_id: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Target SKU</label>
+                      <input
+                        type="text"
+                        value={newOrder.sku_id}
+                        onChange={(e) => setNewOrder({ ...newOrder, sku_id: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Customer / Client Name</label>
+                    <input
+                      type="text"
+                      value={newOrder.customer_name}
+                      onChange={(e) => setNewOrder({ ...newOrder, customer_name: e.target.value })}
+                      required
+                      placeholder="e.g. Tata Motors EV Powertrain Systems"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Units Ordered</label>
+                      <input
+                        type="number"
+                        value={newOrder.units}
+                        onChange={(e) => setNewOrder({ ...newOrder, units: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Contract Value (INR)</label>
+                      <input
+                        type="number"
+                        value={newOrder.order_value_inr}
+                        onChange={(e) => setNewOrder({ ...newOrder, order_value_inr: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Promised Delivery SLA</label>
+                      <input
+                        type="date"
+                        value={newOrder.promised_delivery_date}
+                        onChange={(e) => setNewOrder({ ...newOrder, promised_delivery_date: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Daily Late Penalty (INR)</label>
+                      <input
+                        type="number"
+                        value={newOrder.late_penalty_daily_inr}
+                        onChange={(e) => setNewOrder({ ...newOrder, late_penalty_daily_inr: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Priority Tier</label>
+                    <select
+                      value={newOrder.priority}
+                      onChange={(e) => setNewOrder({ ...newOrder, priority: e.target.value })}
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    >
+                      <option value="CRITICAL">CRITICAL</option>
+                      <option value="HIGH">HIGH</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="LOW">LOW</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'route' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Route ID</label>
+                      <input
+                        type="text"
+                        value={newRoute.id}
+                        onChange={(e) => setNewRoute({ ...newRoute, id: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Transport Mode</label>
+                      <select
+                        value={newRoute.transport_mode}
+                        onChange={(e) => setNewRoute({ ...newRoute, transport_mode: e.target.value })}
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      >
+                        <option value="MARITIME_FEEDER">MARITIME_FEEDER</option>
+                        <option value="MARITIME_CONTAINER">MARITIME_CONTAINER</option>
+                        <option value="MULTIMODAL_AIR_SEA">MULTIMODAL_AIR_SEA</option>
+                        <option value="AIR_CARGO">AIR_CARGO</option>
+                        <option value="RAIL_FREIGHT">RAIL_FREIGHT</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Corridor Name</label>
+                    <input
+                      type="text"
+                      value={newRoute.name}
+                      onChange={(e) => setNewRoute({ ...newRoute, name: e.target.value })}
+                      required
+                      placeholder="e.g. Taiwan Semi Fab -> JNPT Maritime Feeder"
+                      className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Origin</label>
+                      <input
+                        type="text"
+                        value={newRoute.origin}
+                        onChange={(e) => setNewRoute({ ...newRoute, origin: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Destination</label>
+                      <input
+                        type="text"
+                        value={newRoute.destination}
+                        onChange={(e) => setNewRoute({ ...newRoute, destination: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Primary Carrier</label>
+                      <input
+                        type="text"
+                        value={newRoute.carrier}
+                        onChange={(e) => setNewRoute({ ...newRoute, carrier: e.target.value })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Transit (Days)</label>
+                      <input
+                        type="number"
+                        value={newRoute.transit_days}
+                        onChange={(e) => setNewRoute({ ...newRoute, transit_days: Number(e.target.value) })}
+                        required
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-[#4e6e58] uppercase font-bold mb-1">Risk Tier</label>
+                      <select
+                        value={newRoute.risk_level}
+                        onChange={(e) => setNewRoute({ ...newRoute, risk_level: e.target.value })}
+                        className="w-full border border-[#112818] bg-[#000000] p-2 text-white focus:border-[#00e676] focus:outline-none"
+                      >
+                        <option value="CRITICAL">CRITICAL</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="MEDIUM">MEDIUM</option>
+                        <option value="LOW">LOW</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#112818]">
+                <button
+                  type="button"
+                  onClick={() => setModalType(null)}
+                  className="border border-[#112818] bg-[#000000] px-3 py-1.5 text-xs text-[#87a894] hover:text-white"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  className="border border-[#00e676] bg-[#00e676]/25 px-4 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/40"
+                >
+                  ADD TO NETWORK
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -775,7 +775,7 @@ def _get_enterprise_skus() -> list[SKUExposureItem]:
     cfg = _get_enterprise_config()
     custom_skus = cfg.get("custom_skus", [])
     if not custom_skus:
-        return CANONICAL_SKUS
+        return []
     
     custom_suppliers = {s.get("part_sku"): s for s in cfg.get("custom_suppliers", [])}
     customer_orders = cfg.get("customer_orders", [])
@@ -854,7 +854,7 @@ def _get_enterprise_orders() -> list[CustomerOrderExposureItem]:
     cfg = _get_enterprise_config()
     custom_orders = cfg.get("customer_orders", [])
     if not custom_orders:
-        return CANONICAL_ORDERS
+        return []
         
     custom_skus = {s.get("sku_id"): s for s in cfg.get("custom_skus", [])}
     items = []
@@ -899,7 +899,7 @@ def _get_enterprise_suppliers() -> list[SupplierProfile]:
     cfg = _get_enterprise_config()
     custom_suppliers = cfg.get("custom_suppliers", [])
     if not custom_suppliers:
-        return CANONICAL_SUPPLIERS
+        return []
         
     profiles = []
     for s in custom_suppliers:
@@ -946,21 +946,21 @@ def _get_enterprise_dashboard_summary() -> DashboardSummaryResponse:
     ist_now = (now + timedelta(hours=5, minutes=30)).strftime("%H:%M:%S IST")
     
     return DashboardSummaryResponse(
-        network_health=68.5,
+        network_health=100.0 if not orders and not skus else 68.5,
         network_health_breakdown=NetworkHealthBreakdown(
-            supply_continuity=74.0,
-            transport_stability=62.0,
-            supplier_health=79.0,
-            inventory_resilience=58.0,
+            supply_continuity=100.0 if not skus else 74.0,
+            transport_stability=100.0 if not skus else 62.0,
+            supplier_health=100.0 if not skus else 79.0,
+            inventory_resilience=100.0 if not skus else 58.0,
             external_disruption=50.0
         ),
         active_disruptions_count=8,
         exposed_orders_count=len(orders),
         at_risk_skus_count=len(at_risk_skus),
         predicted_stockouts_count=len(predicted_stockouts),
-        network_stress_pct=62.0,
-        revenue_exposure_inr=total_rev_exposed if total_rev_exposed > 0 else 48000000.0,
-        expected_delay_days=5.8,
+        network_stress_pct=15.0 if not orders else 62.0,
+        revenue_exposure_inr=total_rev_exposed,
+        expected_delay_days=0.0 if not orders else 5.8,
         critical_chokepoints_count=4,
         as_of=ist_now
     )
@@ -979,7 +979,7 @@ def get_sku_detail(sku_id: str):
     for sku in skus:
         if sku.id.lower() == sku_id.lower():
             return sku
-    return skus[0]
+    return skus[0] if skus else CANONICAL_SKUS[0]
 
 @router.get("/orders", response_model=list[CustomerOrderExposureItem], summary="Customer Order Exposure list")
 def get_orders_exposure():
@@ -991,7 +991,7 @@ def get_order_detail(order_id: str):
     for ord_item in orders:
         if ord_item.id.lower() == order_id.lower():
             return ord_item
-    return orders[0]
+    return orders[0] if orders else CANONICAL_ORDERS[0]
 
 @router.get("/shipments", response_model=list[ShipmentItem], summary="Active Shipments with ETA distributions")
 def get_shipments():
