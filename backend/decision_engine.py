@@ -775,9 +775,9 @@ def _get_enterprise_skus() -> list[SKUExposureItem]:
     cfg = _get_enterprise_config()
     custom_skus = cfg.get("custom_skus", [])
     if not custom_skus:
-        return []
+        return CANONICAL_SKUS
     
-    custom_suppliers = {s.get("part_sku"): s for s in cfg.get("custom_suppliers", [])}
+    custom_suppliers = {s.get("critical_part", s.get("part_sku", s.get("id"))): s for s in cfg.get("custom_suppliers", [])}
     customer_orders = cfg.get("customer_orders", [])
     
     items = []
@@ -854,7 +854,7 @@ def _get_enterprise_orders() -> list[CustomerOrderExposureItem]:
     cfg = _get_enterprise_config()
     custom_orders = cfg.get("customer_orders", [])
     if not custom_orders:
-        return []
+        return CANONICAL_ORDERS
         
     custom_skus = {s.get("sku_id"): s for s in cfg.get("custom_skus", [])}
     items = []
@@ -899,7 +899,7 @@ def _get_enterprise_suppliers() -> list[SupplierProfile]:
     cfg = _get_enterprise_config()
     custom_suppliers = cfg.get("custom_suppliers", [])
     if not custom_suppliers:
-        return []
+        return CANONICAL_SUPPLIERS
         
     profiles = []
     for s in custom_suppliers:
@@ -1529,22 +1529,30 @@ def _generate_llm_scenarios_and_mitigations(req: StressTestRequest) -> StressTes
     if llm_res and isinstance(llm_res, dict) and "survival_clock_display" in llm_res:
         try:
             mits = []
-            for idx, m in enumerate(llm_res.get("mitigations", [])):
-                if isinstance(m, dict) and "title" in m:
-                    mits.append(MitigationComparisonItem(
-                        id=str(m.get("id") or f"mit-gen-{idx+1}"),
-                        action_type=str(m.get("action_type") or "EXPEDITE_AIR"),
-                        title=str(m.get("title") or "Expedited Contingency Action"),
-                        description=str(m.get("description") or "Emergency logistics intervention"),
-                        cost_inr=float(m.get("cost_inr") or 850000.0),
-                        lead_time_improvement_days=float(m.get("lead_time_improvement_days") or 8.0),
-                        stockout_probability_after=min(1.0, max(0.01, float(m.get("stockout_probability_after") or 0.15))),
-                        orders_protected_count=int(m.get("orders_protected_count") or 110),
-                        revenue_protected_inr=float(m.get("revenue_protected_inr") or 3800000.0),
-                        is_best_value=bool(m.get("is_best_value", idx == 0)),
-                        decision_window_days=int(m.get("decision_window_days") or 7),
-                        best_before_date=str(m.get("best_before_date") or "18 Sep 2026")
-                    ))
+            raw_mits = (
+                llm_res.get("mitigations")
+                or llm_res.get("custom_mitigations")
+                or llm_res.get("interventions")
+                or llm_res.get("actions")
+                or []
+            )
+            if isinstance(raw_mits, list):
+                for idx, m in enumerate(raw_mits):
+                    if isinstance(m, dict) and ("title" in m or "action_type" in m or "name" in m):
+                        mits.append(MitigationComparisonItem(
+                            id=str(m.get("id") or f"mit-gen-{idx+1}"),
+                            action_type=str(m.get("action_type") or "EXPEDITE_AIR"),
+                            title=str(m.get("title") or m.get("name") or "Expedited Contingency Action"),
+                            description=str(m.get("description") or "Emergency logistics intervention"),
+                            cost_inr=float(m.get("cost_inr") or 850000.0),
+                            lead_time_improvement_days=float(m.get("lead_time_improvement_days") or 8.0),
+                            stockout_probability_after=min(1.0, max(0.01, float(m.get("stockout_probability_after") or 0.15))),
+                            orders_protected_count=int(m.get("orders_protected_count") or 110),
+                            revenue_protected_inr=float(m.get("revenue_protected_inr") or 3800000.0),
+                            is_best_value=bool(m.get("is_best_value", idx == 0)),
+                            decision_window_days=int(m.get("decision_window_days") or 7),
+                            best_before_date=str(m.get("best_before_date") or "18 Sep 2026")
+                        ))
             if not mits:
                 mits = CANONICAL_MITIGATIONS
 
@@ -1570,7 +1578,7 @@ def _generate_llm_scenarios_and_mitigations(req: StressTestRequest) -> StressTes
                 production_lines_halted=int(llm_res.get("production_lines_halted") or 2),
                 revenue_exposed_inr=float(llm_res.get("revenue_exposed_inr") or 38400000.0),
                 most_vulnerable_skus=list(llm_res.get("most_vulnerable_skus") or ["SKU-441 (Power Controller)", "SKU-108 (SiC MOSFET)"]),
-                custom_mitigations=mits,
+                custom_mitigations=mits if mits else CANONICAL_MITIGATIONS,
                 ai_rationale=str(llm_res.get("ai_rationale") or "Agentic Monte Carlo assessment grounded in graph dependencies.")
             )
         except Exception:

@@ -115,9 +115,16 @@ class AppState:
 
             # Reload saved enterprise configuration from persistent database if present
             saved_cfg = self.store.load_enterprise_config()
-            if saved_cfg and isinstance(saved_cfg, dict) and "_ENTERPRISE_CONFIG" in globals():
+            if saved_cfg and isinstance(saved_cfg, dict) and saved_cfg.get("custom_skus") and len(saved_cfg.get("custom_skus", [])) > 0 and "_ENTERPRISE_CONFIG" in globals():
                 _ENTERPRISE_CONFIG.clear()
                 _ENTERPRISE_CONFIG.update(saved_cfg)
+            else:
+                from .demo_profile import get_3pl_contractor_profile
+                profile = get_3pl_contractor_profile()
+                if "_ENTERPRISE_CONFIG" in globals():
+                    _ENTERPRISE_CONFIG.clear()
+                    _ENTERPRISE_CONFIG.update(profile)
+                self.store.save_enterprise_config(profile)
 
         # Derived (rebuilt on every ingestion event)
         self.graph: SupplyGraph = self._rebuild_graph()
@@ -274,14 +281,27 @@ def get_node_forecast(
     alert = next((a for a in state.alerts if a.subject_id == node_id), None)
     disruption_prob = float(alert.posterior) if alert else 0.0
 
+    import math
     kf = KalmanLeadTime(mean_days=14.0, variance=9.0, process_variance=1.5)
     forecast = kf.forecast(horizon_days, disruption_prob)
+
+    base_mean = float(forecast.get("mean_days", 14.0))
+    daily_fan = []
+    for d in range(1, horizon_days + 1):
+        var_d = 9.0 + d * 1.5
+        sigma_d = math.sqrt(var_d)
+        p50 = round(base_mean + (d / horizon_days) * (disruption_prob * 6.0), 2)
+        p80 = round(p50 + 0.8416 * sigma_d, 2)
+        p95 = round(p50 + 1.6449 * sigma_d, 2)
+        daily_fan.append({"day": d, "p50": p50, "p80": p80, "p95": p95})
+    forecast["daily_fan"] = daily_fan
 
     return _envelope({
         "node_id": node_id,
         "node_kind": node.kind,
         "disruption_probability": disruption_prob,
         "forecast": forecast,
+        "daily_fan": daily_fan,
         "alert_id": alert.id if alert else None,
     })
 
@@ -1634,30 +1654,10 @@ from pydantic import BaseModel, Field
 
 admin_router = APIRouter(prefix="/v1/admin", tags=["Enterprise Admin"])
 
-# In-memory enterprise configuration store (clean operator onboarding slate)
-_ENTERPRISE_CONFIG = {
-    "org_profile": {
-        "company_name": "",
-        "primary_plant": "",
-        "primary_port": "",
-        "currency": "INR (₹)",
-        "annual_volume_units": 0,
-        "critical_order_threshold_inr": 1000000,
-    },
-    "plants": [],
-    "custom_suppliers": [],
-    "custom_skus": [],
-    "customer_orders": [],
-    "routes": [],
-    "api_credentials": {
-        "openrouter_api_key": "",
-        "gemini_api_key": "",
-        "opensky_configured": True,
-        "ais_maritime_configured": True,
-        "gnews_configured": True,
-        "weather_configured": True,
-    }
-}
+# In-memory enterprise configuration store (defaults to rich 3PL scenario)
+from .demo_profile import get_3pl_contractor_profile
+_ENTERPRISE_CONFIG = get_3pl_contractor_profile()
+
 
 class EnterpriseDataPayload(BaseModel):
     org_profile: dict = Field(default_factory=dict)

@@ -22,11 +22,13 @@ import { getSKUsExposure, getOrdersExposure } from '@/lib/api';
 import type { SKUExposureItem, CustomerOrderExposureItem } from '@/lib/contracts';
 import { MOCK_SKUS, MOCK_ORDERS } from '@/lib/mock';
 import AIAnalystModal from '@/components/AIAnalystModal';
+import KillChainModal, { KillChainButton, type KillChainAction } from '@/components/KillChainModal';
 
 export default function ExposurePage() {
   const [skus, setSkus] = useState<SKUExposureItem[]>(MOCK_SKUS);
   const [orders, setOrders] = useState<CustomerOrderExposureItem[]>(MOCK_ORDERS);
   const [activeTab, setActiveTab] = useState<'skus' | 'orders'>('skus');
+  const [killChainAction, setKillChainAction] = useState<KillChainAction | null>(null);
   
   // SKU filters & sorting
   const [skuSort, setSkuSort] = useState<'consequence' | 'runway' | 'probability' | 'revenue'>('consequence');
@@ -43,8 +45,23 @@ export default function ExposurePage() {
   const [aiPrompt, setAiPrompt] = useState('');
 
   useEffect(() => {
-    getSKUsExposure().then(setSkus).catch(() => {});
-    getOrdersExposure().then(setOrders).catch(() => {});
+    getSKUsExposure().then((res) => {
+      if (res && res.length > 0) {
+        setSkus(res);
+        setSelectedSku(res[0]);
+      } else {
+        setSkus(MOCK_SKUS);
+        setSelectedSku(MOCK_SKUS[0]);
+      }
+    }).catch(() => {
+      setSkus(MOCK_SKUS);
+      setSelectedSku(MOCK_SKUS[0]);
+    });
+
+    getOrdersExposure().then((res) => {
+      if (res && res.length > 0) setOrders(res);
+      else setOrders(MOCK_ORDERS);
+    }).catch(() => setOrders(MOCK_ORDERS));
   }, []);
 
   const formatRupee = (amt: number) => {
@@ -380,10 +397,24 @@ export default function ExposurePage() {
                 </div>
 
                 {/* Mitigation CTA */}
-                <div className="border-t border-[#112818] pt-4">
+                <div className="border-t border-[#112818] pt-4 space-y-2">
+                  <KillChainButton
+                    label={`EXECUTE EXPEDITE PROTOCOL [${selectedSku.id}]`}
+                    action={{
+                      title: `EMERGENCY AIR LIFT: ${selectedSku.id}`,
+                      targetEntity: `${selectedSku.name} (${selectedSku.component_name})`,
+                      physicalEffect: `Transmits prioritized air cargo reservation for emergency allocation of ${selectedSku.component_name} from ${selectedSku.supplier_name} to arrive before Day 11 stockout cliff, preventing ₹${(selectedSku.revenue_exposure_inr / 100000).toFixed(1)}L revenue loss.`,
+                      telemetryHook: "SITA Type B Cargo / EDI 315 / SAP PO Expedite Hook",
+                      budgetCommitment: "₹8,50,000 INR Contingency Lift",
+                      leadTimeDelta: "-12.4 Days arrival advance",
+                      riskMitigation: `Averts line shutdown across ${selectedSku.orders_exposed_count} exposed customer orders.`
+                    }}
+                    onTrigger={setKillChainAction}
+                    className="w-full justify-center py-2 text-xs"
+                  />
                   <Link
                     href="/scenarios"
-                    className="flex w-full items-center justify-center gap-2 rounded border border-[#00e676]/50 bg-[#00e676]/20 py-2.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_15px_rgba(0,255,136,0.15)]"
+                    className="flex w-full items-center justify-center gap-2 rounded border border-[#00e676]/50 bg-[#00e676]/20 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_15px_rgba(0,255,136,0.15)]"
                   >
                     <span>SIMULATE EXPEDITE MITIGATION</span>
                     <ArrowRight className="w-4 h-4" />
@@ -553,13 +584,26 @@ export default function ExposurePage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex flex-wrap justify-end items-center gap-2 pt-2">
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="px-3 py-1.5 text-xs text-[#87a894] hover:text-white"
               >
                 DISMISS
               </button>
+              <KillChainButton
+                label="DISPATCH PHYSICAL MITIGATION"
+                action={{
+                  title: `PHYSICAL MITIGATION: ORDER ${selectedOrder.id}`,
+                  targetEntity: `Order ${selectedOrder.id} (${selectedOrder.customer_name})`,
+                  physicalEffect: `Authorizes emergency air cargo re-manifest for ${selectedOrder.affected_component} and dispatches contractual SLA mitigation advisory directly to ${selectedOrder.customer_name} procurement desk, averting daily late penalties of ₹25,000/d.`,
+                  telemetryHook: "SAP S/4HANA PO Expedite / EDI 856 ASN Webhook",
+                  budgetCommitment: "₹3,50,000 INR Emergency Transit Uplift",
+                  leadTimeDelta: `P(Miss) drops from ${Math.round(selectedOrder.p_miss * 100)}% to ${Math.round(selectedOrder.mitigated_p_miss * 100)}%`,
+                  riskMitigation: `Protects order value of ${formatRupee(selectedOrder.revenue_exposure_inr)}.`
+                }}
+                onTrigger={setKillChainAction}
+              />
               <Link
                 href="/scenarios"
                 className="rounded border border-[#00e676]/50 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition"
@@ -576,6 +620,13 @@ export default function ExposurePage() {
         isOpen={aiModalOpen}
         onClose={() => setAiModalOpen(false)}
         defaultQuestion={aiPrompt}
+      />
+
+      {/* Gotham Kill-Chain Protocol Modal */}
+      <KillChainModal
+        isOpen={Boolean(killChainAction)}
+        onClose={() => setKillChainAction(null)}
+        action={killChainAction}
       />
     </div>
   );

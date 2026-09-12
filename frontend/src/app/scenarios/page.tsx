@@ -19,9 +19,13 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { runDecisionStressTest, getMitigationsComparison } from '@/lib/api';
+import {
+  runDecisionStressTest,
+  getMitigationsComparison,
+} from '@/lib/api';
 import type { MitigationComparisonItem, DecisionStressTestResult } from '@/lib/contracts';
-import { MOCK_MITIGATIONS, MOCK_DECISION_STRESS_TEST } from '@/lib/mock';
+import { MOCK_DECISION_STRESS_TEST, MOCK_MITIGATIONS } from '@/lib/mock';
+import KillChainModal, { KillChainButton, type KillChainAction } from '@/components/KillChainModal';
 
 interface ScenarioPreset {
   id: string;
@@ -116,11 +120,13 @@ export default function ScenariosPage() {
   const [cOrders, setCOrders] = useState('195');
   const [cRevenue, setCRevenue] = useState('28000000');
   const [cBestBefore, setCBestBefore] = useState('24 Sep 2026');
+  const [killChainAction, setKillChainAction] = useState<KillChainAction | null>(null);
 
   useEffect(() => {
     getMitigationsComparison().then((res) => {
       if (res && res.length) setMitigations(res);
-    }).catch(() => {});
+      else setMitigations(MOCK_MITIGATIONS);
+    }).catch(() => setMitigations(MOCK_MITIGATIONS));
   }, []);
 
   const handleRunSimulation = async () => {
@@ -146,9 +152,13 @@ export default function ScenariosPage() {
         setMitigations(res.custom_mitigations);
         const best = res.custom_mitigations.find((m) => m.is_best_value) || res.custom_mitigations[0];
         setSelectedPlanIds(new Set([best.id]));
+      } else {
+        setMitigations(MOCK_MITIGATIONS);
+        setSelectedPlanIds(new Set([MOCK_MITIGATIONS[0].id]));
       }
     } catch {
       setStressResult(MOCK_DECISION_STRESS_TEST);
+      setMitigations(MOCK_MITIGATIONS);
     } finally {
       setSimulating(false);
     }
@@ -539,6 +549,7 @@ export default function ScenariosPage() {
                 <th className="p-3 text-right">Orders Protected</th>
                 <th className="p-3 text-right">Revenue Protected</th>
                 <th className="p-3 text-center">Best Before</th>
+                <th className="p-3 text-center">Protocol</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0e2716]">
@@ -586,6 +597,21 @@ export default function ScenariosPage() {
                       {formatRupee(m.revenue_protected_inr)}
                     </td>
                     <td className="p-3 text-center text-[#87a894] text-[10px]">{m.best_before_date}</td>
+                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <KillChainButton
+                        label="EXECUTE"
+                        action={{
+                          title: `EXECUTE INTERVENTION: ${m.title}`,
+                          targetEntity: `Intervention [${m.id}] · ${m.action_type}`,
+                          physicalEffect: `Authorizes immediate operational directive for '${m.title}'. ${m.description} - Releases ${formatRupee(m.cost_inr)} from logistics budget to compress inbound transit lead time by ${m.lead_time_improvement_days} days.`,
+                          telemetryHook: "EDI 315 / AS2 Webhook / SAP S/4HANA Workflow",
+                          budgetCommitment: `${formatRupee(m.cost_inr)} Authorized`,
+                          leadTimeDelta: `-${m.lead_time_improvement_days} Days`,
+                          riskMitigation: `Secures ${m.orders_protected_count} customer orders and protects ${formatRupee(m.revenue_protected_inr)} revenue exposure.`
+                        }}
+                        onTrigger={setKillChainAction}
+                      />
+                    </td>
                   </tr>
                 );
               })}
@@ -639,11 +665,26 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          <div className="border-t border-[#112818] pt-3 flex justify-between items-center">
+          <div className="border-t border-[#112818] pt-3 flex flex-wrap justify-between items-center gap-2">
             <span className="text-[11px] text-[#87a894]">Ready to apply to ERP schedule</span>
-            <button className="border border-[#00e676]/60 bg-[#00e676]/20 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
-              COMMIT DECISION PLAN
-            </button>
+            <div className="flex items-center gap-2">
+              <KillChainButton
+                label="COMMIT TO KILL-CHAIN"
+                action={{
+                  title: "INTEGRATED MULTI-CHOKE MITIGATION DISPATCH",
+                  targetEntity: `Active Mitigation Plan (${selectedPlanIds.size} Interventions Selected)`,
+                  physicalEffect: `Authorizes release of ${formatRupee(planAggregates.totalCost)} from logistics contingency reserve. Transmits multi-party carrier EDI directives and triggers ERP purchase order priority upgrades across all impacted facilities.`,
+                  telemetryHook: "EDI 315 / AS2 / SAP S/4HANA PO Workflow",
+                  budgetCommitment: `${formatRupee(planAggregates.totalCost)} Authorized`,
+                  leadTimeDelta: `Residual Stockout P: ${Math.round(planAggregates.residualStockout * 100)}%`,
+                  riskMitigation: `Protects ${planAggregates.ordersProtected} orders and ${formatRupee(planAggregates.revenueProtected)} revenue.`
+                }}
+                onTrigger={setKillChainAction}
+              />
+              <button className="border border-[#00e676]/60 bg-[#00e676]/20 px-3 py-1.5 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/30 transition shadow-[0_0_12px_rgba(0,255,136,0.15)]">
+                COMMIT PLAN
+              </button>
+            </div>
           </div>
         </div>
 
@@ -826,6 +867,13 @@ export default function ScenariosPage() {
           </div>
         </div>
       )}
+
+      {/* Gotham Kill-Chain Protocol Modal */}
+      <KillChainModal
+        isOpen={Boolean(killChainAction)}
+        onClose={() => setKillChainAction(null)}
+        action={killChainAction}
+      />
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { getDashboardSummary, getAlerts } from '@/lib/api';
 import type { DashboardSummary, AlertCard } from '@/lib/contracts';
 import { MOCK_DASHBOARD_SUMMARY, MOCK_ALERTS } from '@/lib/mock';
 import AIAnalystModal from '@/components/AIAnalystModal';
+import KillChainModal, { KillChainButton, type KillChainAction } from '@/components/KillChainModal';
 
 export default function ControlTowerPage() {
   const [summary, setSummary] = useState<DashboardSummary>(MOCK_DASHBOARD_SUMMARY);
@@ -33,6 +34,7 @@ export default function ControlTowerPage() {
   const [showHealthMethodology, setShowHealthMethodology] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [killChainAction, setKillChainAction] = useState<KillChainAction | null>(null);
 
   useEffect(() => {
     getDashboardSummary().then(setSummary).catch(() => {});
@@ -66,16 +68,31 @@ export default function ControlTowerPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setAiPrompt('Provide executive briefing on current network stress and exposed orders');
-            setAiModalOpen(true);
-          }}
-          className="flex items-center gap-2 rounded border border-[#00e676]/60 bg-[#00e676]/15 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/25 shadow-[0_0_15px_rgba(0,255,136,0.15)] transition"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>AI EXECUTIVE BRIEFING</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <KillChainButton
+            label="DISPATCH MITIGATION BATCH"
+            action={{
+              title: "BATCH DISPATCH MULTI-CHOKE MITIGATION",
+              targetEntity: "Automotive Network (Singapore / Hormuz / Malacca)",
+              physicalEffect: "Simultaneously reserves 18 air freight pallets on Lufthansa Cargo MUC-BOM, transmits EDI 315 reroute for SHP-8821 via Malacca bypass, and commits ₹14.2L from contingency budget.",
+              telemetryHook: "EDI 315 / SITA Air / SAP S/4HANA PO Split",
+              budgetCommitment: "₹14,20,000 INR committed",
+              leadTimeDelta: "-14.0 Days across 3 critical SKUs",
+              riskMitigation: "Protects 8 customer orders and ₹5.2 Cr exposure against line stoppage"
+            }}
+            onTrigger={setKillChainAction}
+          />
+          <button
+            onClick={() => {
+              setAiPrompt('Provide executive briefing on current network stress and exposed orders');
+              setAiModalOpen(true);
+            }}
+            className="flex items-center gap-2 rounded border border-[#00e676]/60 bg-[#00e676]/15 px-4 py-2 text-xs font-bold text-[#00e676] hover:bg-[#00e676]/25 shadow-[0_0_15px_rgba(0,255,136,0.15)] transition"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>AI EXECUTIVE BRIEFING</span>
+          </button>
+        </div>
       </div>
 
       {/* Row 1: Hero Metrics Grid (Section 16 & 17) */}
@@ -184,14 +201,20 @@ export default function ControlTowerPage() {
                 Choked via Singapore Port. 43 orders exposed valued at ₹28.4L.
               </p>
             </div>
-            <div className="flex items-center justify-between border-t border-[#112818] pt-2 text-xs">
-              <Link
-                href="/scenarios"
-                className="flex items-center gap-1 text-[#00e676] hover:underline text-[11px]"
-              >
-                <span>Expedite Air (+12.4d)</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+            <div className="flex flex-wrap items-center justify-between border-t border-[#112818] pt-2 gap-2 text-xs">
+              <KillChainButton
+                label="EXECUTE AIR LIFT"
+                action={{
+                  title: "DIRECT AIR CARGO CHARTER DISPATCH",
+                  targetEntity: "SKU-441 (Motor Controller) / Taipei -> Mumbai BOM",
+                  physicalEffect: "Dispatches air charter booking on Air India Cargo flight AI-1944 for 450 units of MCU-441 microcontroller ICs directly to Mumbai CSMI, bypassing congested feeder maritime lane.",
+                  telemetryHook: "SITA Type B Air Waybill EDI / Webhook",
+                  budgetCommitment: "₹8,50,000 INR ($10,200 USD)",
+                  leadTimeDelta: "-12.4 Days arrival advance",
+                  riskMitigation: "Restores safety runway from 11.0d to 23.4d, averting Acme Automotive assembly halt."
+                }}
+                onTrigger={setKillChainAction}
+              />
               <Link href="/exposure?sku=SKU-441" className="text-[#87a894] hover:text-white text-[10px]">
                 [VIEW SKU]
               </Link>
@@ -212,14 +235,20 @@ export default function ControlTowerPage() {
                 Delayed +6.4d at outer anchorage. Chokes automotive gateway production.
               </p>
             </div>
-            <div className="flex items-center justify-between border-t border-[#112818] pt-2 text-xs">
-              <Link
-                href="/scenarios"
-                className="flex items-center gap-1 text-[#00e676] hover:underline text-[11px]"
-              >
-                <span>Reroute Bypass</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+            <div className="flex flex-wrap items-center justify-between border-t border-[#112818] pt-2 gap-2 text-xs">
+              <KillChainButton
+                label="DISPATCH REROUTE"
+                action={{
+                  title: "CARRIER MARITIME REROUTE DIRECTIVE",
+                  targetEntity: "Shipment SHP-8821 (Taipei -> Port of Singapore)",
+                  physicalEffect: "Transmits EDI 315 instruction to Evergreen Marine port agent to divert container SHP-8821 away from outer anchorage queue into express berth via Sunda Strait alternate corridor.",
+                  telemetryHook: "EDI 315 Status / Carrier API Webhook",
+                  budgetCommitment: "₹4,20,000 INR Bunker Surcharge",
+                  leadTimeDelta: "-6.4 Days clearance reduction",
+                  riskMitigation: "Prevents secondary congestion cascade across 43 downstream purchase orders."
+                }}
+                onTrigger={setKillChainAction}
+              />
               <Link href="/command" className="text-[#87a894] hover:text-white text-[10px]">
                 [LOCATE ON GLOBE]
               </Link>
@@ -240,14 +269,20 @@ export default function ControlTowerPage() {
                 72% sole-source dependency for MCU chips. Tier-2 risk on TSMC Fab 14.
               </p>
             </div>
-            <div className="flex items-center justify-between border-t border-[#112818] pt-2 text-xs">
-              <Link
-                href="/suppliers"
-                className="flex items-center gap-1 text-[#00e676] hover:underline text-[11px]"
-              >
-                <span>Simulate Second Source</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+            <div className="flex flex-wrap items-center justify-between border-t border-[#112818] pt-2 gap-2 text-xs">
+              <KillChainButton
+                label="ACTIVATE SECOND SOURCE"
+                action={{
+                  title: "AUTOMATED DUAL-SOURCE FAILOVER COMMITTED",
+                  targetEntity: "Supplier TSMC Fab 14 -> Alternate STMicro Ang Mo Kio",
+                  physicalEffect: "Transmits automated purchase order split via SAP Ariba to secondary qualified supplier STMicroelectronics, shifting 40% wafer fabrication volume to activate second source.",
+                  telemetryHook: "SAP Ariba cXML / EDI 850 Purchase Order",
+                  budgetCommitment: "₹6,80,000 INR tooling & qualification",
+                  leadTimeDelta: "Establishes parallel 14-day pipeline",
+                  riskMitigation: "Reduces single-source concentration risk index from 72/100 to 28/100."
+                }}
+                onTrigger={setKillChainAction}
+              />
               <Link href="/suppliers" className="text-[#87a894] hover:text-white text-[10px]">
                 [VIEW TIER-2]
               </Link>
@@ -670,6 +705,13 @@ export default function ControlTowerPage() {
         isOpen={aiModalOpen}
         onClose={() => setAiModalOpen(false)}
         defaultQuestion={aiPrompt}
+      />
+
+      {/* Gotham Kill-Chain Protocol Modal */}
+      <KillChainModal
+        isOpen={Boolean(killChainAction)}
+        onClose={() => setKillChainAction(null)}
+        action={killChainAction}
       />
     </div>
   );

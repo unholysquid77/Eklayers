@@ -43,6 +43,7 @@ import type {
 } from '@/lib/contracts';
 import { DEFAULT_LAYER_VISIBILITY, INFRA_LAYER_NAMES } from '@/lib/contracts';
 import TacticalDrillDownModal from '@/components/TacticalDrillDownModal';
+import KillChainModal, { KillChainButton, type KillChainAction } from '@/components/KillChainModal';
 import { ChevronLeft } from 'lucide-react';
 import {
   getMarketTelemetry,
@@ -186,6 +187,7 @@ export default function CommandPage() {
     category?: string;
     stress?: number;
   } | null>(null);
+  const [killChainAction, setKillChainAction] = useState<KillChainAction | null>(null);
 
   const cpCount = cascadeData?.chokepoints.length ?? 0;
   const evCount = cascadeData?.events.length ?? 0;
@@ -740,21 +742,39 @@ export default function CommandPage() {
                       </div>
                     </div>
                   </div>
-                  {forecast && forecast.forecast && (
-                    <div className="p-3 rounded bg-[#000000] border border-[#112818] space-y-2">
-                      <div className="text-[10px] text-slate-400 hud-text">14-DAY TRAJECTORY FAN</div>
-                      <div className="space-y-1 text-[10px] font-mono">
-                        {forecast.forecast.slice(0, 5).map((f) => (
-                          <div key={f.day} className="flex justify-between py-0.5 border-b border-[#112818]/50">
-                            <span className="text-slate-400">Day +{f.day}</span>
-                            <span className="text-[#22c55e]">P50: {f.p50.toFixed(2)}</span>
-                            <span className="text-amber-400">P80: {f.p80.toFixed(2)}</span>
-                            <span className="text-red-400">P95: {f.p95.toFixed(2)}</span>
-                          </div>
-                        ))}
+                  {(() => {
+                    const fanList: any[] = Array.isArray(forecast?.forecast)
+                      ? forecast.forecast
+                      : Array.isArray((forecast as any)?.daily_fan)
+                      ? (forecast as any).daily_fan
+                      : forecast?.forecast && typeof forecast.forecast === 'object'
+                      ? [
+                          { day: 1, p50: (forecast.forecast as any).p50_days ?? 14.0, p80: (forecast.forecast as any).p80_days ?? 16.5, p95: (forecast.forecast as any).p95_days ?? 18.9 },
+                          { day: 3, p50: ((forecast.forecast as any).p50_days ?? 14.0) + 0.8, p80: ((forecast.forecast as any).p80_days ?? 16.5) + 1.2, p95: ((forecast.forecast as any).p95_days ?? 18.9) + 1.8 },
+                          { day: 7, p50: ((forecast.forecast as any).p50_days ?? 14.0) + 1.9, p80: ((forecast.forecast as any).p80_days ?? 16.5) + 2.8, p95: ((forecast.forecast as any).p95_days ?? 18.9) + 4.1 },
+                          { day: 10, p50: ((forecast.forecast as any).p50_days ?? 14.0) + 2.7, p80: ((forecast.forecast as any).p80_days ?? 16.5) + 3.9, p95: ((forecast.forecast as any).p95_days ?? 18.9) + 5.6 },
+                          { day: 14, p50: ((forecast.forecast as any).p50_days ?? 14.0) + 3.5, p80: ((forecast.forecast as any).p80_days ?? 16.5) + 5.1, p95: ((forecast.forecast as any).p95_days ?? 18.9) + 7.2 },
+                        ]
+                      : [];
+
+                    if (fanList.length === 0) return null;
+
+                    return (
+                      <div className="p-3 rounded bg-[#000000] border border-[#112818] space-y-2">
+                        <div className="text-[10px] text-slate-400 hud-text">14-DAY TRAJECTORY FAN</div>
+                        <div className="space-y-1 text-[10px] font-mono">
+                          {fanList.slice(0, 5).map((f) => (
+                            <div key={f.day} className="flex justify-between py-0.5 border-b border-[#112818]/50">
+                              <span className="text-slate-400">Day +{f.day}</span>
+                              <span className="text-[#22c55e]">P50: {Number(f.p50 ?? 0).toFixed(2)}</span>
+                              <span className="text-amber-400">P80: {Number(f.p80 ?? 0).toFixed(2)}</span>
+                              <span className="text-red-400">P95: {Number(f.p95 ?? 0).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
 
@@ -783,9 +803,21 @@ export default function CommandPage() {
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-300 leading-relaxed">{opt.description}</p>
-                        <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-1">
+                        <div className="flex flex-wrap items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 gap-2">
                           <span>Cost Impact: {((opt.cost_impact || 0.15) * 100).toFixed(0)}% premium</span>
-                          <button className="text-[#00e676] hover:underline">Execute Action →</button>
+                          <KillChainButton
+                            label="DISPATCH ACTION"
+                            action={{
+                              title: `DISPATCH PROTOCOL: ${opt.type || opt.option || 'Mitigation Action'}`,
+                              targetEntity: `${selectedAlert?.title || 'Operational Chokepoint'} [${selectedAlert?.subject_id || 'NODE-01'}]`,
+                              physicalEffect: `Authorizes physical operational intervention for '${opt.description || 'Freight rerouting and emergency air charter lift'}'. Directs automated carrier API webhook to divert manifest away from congested bottleneck.`,
+                              telemetryHook: "EDI 315 / AS2 / Carrier API Webhook",
+                              budgetCommitment: `+${((opt.cost_impact || 0.15) * 100).toFixed(0)}% Logistics Premium Committed`,
+                              leadTimeDelta: `-${opt.expected_delay_reduction || opt.lead_time_reduction_days || 4} Days Lead-time Gain`,
+                              riskMitigation: "Compresses arrival variance and preserves downstream customer fulfillment."
+                            }}
+                            onTrigger={setKillChainAction}
+                          />
                         </div>
                       </div>
                     ))
@@ -1275,6 +1307,13 @@ export default function CommandPage() {
           {liveLoading ? 'PULLING SENSORS…' : '⬇ INGEST LIVE FEEDS'}
         </button>
       </footer>
+
+      {/* Gotham Kill-Chain Protocol Modal */}
+      <KillChainModal
+        isOpen={Boolean(killChainAction)}
+        onClose={() => setKillChainAction(null)}
+        action={killChainAction}
+      />
     </div>
   );
 }
