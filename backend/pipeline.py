@@ -155,6 +155,111 @@ class SignalStore:
             pass
         return traj_map
 
+    def persist_document(self, doc: dict[str, Any]) -> bool:
+        """Persists or updates an intelligence document."""
+        try:
+            with self._connection() as conn:
+                conn.execute("""
+                    INSERT INTO documents (id, source_name, source_url, title, body, published_at, domain, payload_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        title=excluded.title,
+                        body=excluded.body,
+                        published_at=excluded.published_at,
+                        payload_json=excluded.payload_json
+                """, (
+                    doc["id"],
+                    doc.get("source_name", "news_feed"),
+                    doc.get("source_url", ""),
+                    doc.get("title", ""),
+                    doc.get("body", ""),
+                    doc.get("published_at", datetime.now(timezone.utc).isoformat()),
+                    doc.get("domain", "freight_maritime"),
+                    json.dumps(doc, sort_keys=True),
+                ))
+            return True
+        except Exception:
+            return False
+
+    def persist_event(self, ev: dict[str, Any]) -> bool:
+        """Persists or updates an operational event."""
+        try:
+            with self._connection() as conn:
+                conn.execute("""
+                    INSERT INTO events (id, actor, action, object, location, latitude, longitude, occurred_at, confidence, severity, domain, event_category, raw_text, payload_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        occurred_at=excluded.occurred_at,
+                        severity=excluded.severity,
+                        payload_json=excluded.payload_json
+                """, (
+                    ev["id"],
+                    ev.get("actor", "Maritime Authority"),
+                    ev.get("action", "reported_disruption"),
+                    ev.get("object", "Vessel Corridor"),
+                    ev.get("location", ""),
+                    ev.get("latitude"),
+                    ev.get("longitude"),
+                    ev.get("occurred_at", datetime.now(timezone.utc).isoformat()),
+                    float(ev.get("confidence", 0.85)),
+                    float(ev.get("severity", 0.50)),
+                    ev.get("domain", "maritime"),
+                    ev.get("event_category", "congestion"),
+                    ev.get("raw_text", ""),
+                    json.dumps(ev, sort_keys=True),
+                ))
+            return True
+        except Exception:
+            return False
+
+    def load_recent_documents(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Retrieves recent intelligence documents from SQLite."""
+        try:
+            with self._connection() as conn:
+                rows = conn.execute("SELECT id, source_name, source_url, title, body, published_at, domain, payload_json FROM documents ORDER BY published_at DESC LIMIT ?", (limit,)).fetchall()
+                results = []
+                for r in rows:
+                    results.append({
+                        "id": r[0], "source_name": r[1], "source_url": r[2], "title": r[3],
+                        "body": r[4], "published_at": r[5], "domain": r[6],
+                    })
+                return results
+        except Exception:
+            return []
+
+    def load_recent_events(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Retrieves recent operational events from SQLite."""
+        try:
+            with self._connection() as conn:
+                rows = conn.execute("SELECT id, actor, action, object, location, latitude, longitude, occurred_at, confidence, severity, domain, event_category, raw_text FROM events ORDER BY occurred_at DESC LIMIT ?", (limit,)).fetchall()
+                results = []
+                for r in rows:
+                    results.append({
+                        "id": r[0], "actor": r[1], "action": r[2], "object": r[3], "location": r[4],
+                        "latitude": r[5], "longitude": r[6], "occurred_at": r[7], "confidence": r[8],
+                        "severity": r[9], "domain": r[10], "event_category": r[11], "raw_text": r[12]
+                    })
+                return results
+        except Exception:
+            return []
+
+    def count_documents(self) -> int:
+        """Returns total documents count."""
+        try:
+            with self._connection() as conn:
+                return conn.execute("SELECT count(*) FROM documents").fetchone()[0]
+        except Exception:
+            return 0
+
+    def count_events(self) -> int:
+        """Returns total events count."""
+        try:
+            with self._connection() as conn:
+                return conn.execute("SELECT count(*) FROM events").fetchone()[0]
+        except Exception:
+            return 0
+
+
 
 class IngestionPipeline:
     def __init__(self, store: SignalStore, sources: Iterable[SourceDefinition] = SOURCES) -> None:

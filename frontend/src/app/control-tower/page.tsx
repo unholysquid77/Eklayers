@@ -249,11 +249,16 @@ export default function ControlTowerPage() {
                 }}
                 onTrigger={setKillChainAction}
               />
-              <Link href="/command" className="text-[#87a894] hover:text-white text-[10px]">
+              <Link
+
+                href="/command?shipment=SHP-8821&name=Shipment+SHP-8821+(Taipei+%E2%86%92+Sin)&lat=1.29&lon=103.85&fromLat=25.03&fromLon=121.56&toLat=1.29&toLon=103.85&cargo=MCU-441+Automotive+Microcontrollers&status=Delayed+%2B6.4d&isolate=true"
+                className="text-[#00e676] hover:text-white font-mono text-[10px] bg-[#00e676]/10 px-2.5 py-1 rounded border border-[#00e676]/40 hover:bg-[#00e676]/25 transition"
+              >
                 [LOCATE ON GLOBE]
               </Link>
             </div>
           </div>
+
 
           {/* Priority 3 */}
           <div className="rounded-lg border border-[#112818] bg-[#000000] p-3.5 space-y-2">
@@ -374,11 +379,12 @@ export default function ControlTowerPage() {
             {/* Card Actions */}
             <div className="flex items-center justify-between border-t border-[#112818] pt-3 text-xs">
               <Link
-                href="/command?trace=port-singapore"
-                className="rounded border border-[#00e676]/50 bg-[#00e676]/15 px-3 py-1.5 text-xs text-[#00e676] hover:bg-[#00e676]/25 transition"
+                href="/command?trace=port-singapore&name=Port+of+Singapore&lat=1.29&lon=103.85&status=Delayed+%2B4.2d&isolate=true"
+                className="rounded border border-[#00e676]/50 bg-[#00e676]/15 px-3 py-1.5 text-xs text-[#00e676] hover:bg-[#00e676]/25 transition font-bold"
               >
                 TRACE IMPACT
               </Link>
+
               <Link
                 href="/scenarios"
                 className="text-xs text-[#87a894] hover:text-white"
@@ -456,7 +462,7 @@ export default function ControlTowerPage() {
             {/* Card Actions */}
             <div className="flex items-center justify-between border-t border-[#112818] pt-3 text-xs">
               <Link
-                href="/command?trace=cp.strait_of_hormuz"
+                href="/command?trace=cp.strait_of_hormuz&name=Strait+of+Hormuz&lat=26.56&lon=56.25&status=Security+Advisory&isolate=true"
                 className="rounded border border-[#112818] bg-[#000000] px-3 py-1.5 text-xs text-[#87a894] hover:text-[#00e676] hover:border-[#00e676]/50 transition"
               >
                 TRACE IMPACT
@@ -471,7 +477,7 @@ export default function ControlTowerPage() {
                 href="/exposure"
                 className="text-xs text-[#87a894] hover:text-white"
               >
-                VIEW EXPOSURE
+                EXPOSURE
               </Link>
             </div>
           </div>
@@ -491,6 +497,7 @@ export default function ControlTowerPage() {
                 <span className="block text-[10px] text-[#87a894]">P(Disruption)</span>
               </div>
             </div>
+
 
             <div className="grid grid-cols-3 gap-2 border-t border-b border-[#112818] py-3 text-center text-xs">
               <div>
@@ -534,11 +541,12 @@ export default function ControlTowerPage() {
             {/* Card Actions */}
             <div className="flex items-center justify-between border-t border-[#112818] pt-3 text-xs">
               <Link
-                href="/command?trace=suez-canal"
-                className="rounded border border-[#112818] bg-[#000000] px-3 py-1.5 text-xs text-[#87a894] hover:text-[#00e676] hover:border-[#00e676]/50 transition"
+                href="/command?trace=suez-canal&name=Suez+Canal&lat=30.70&lon=32.34&status=Delayed+%2B10.5d&isolate=true"
+                className="rounded border border-[#112818] bg-[#000000] px-3 py-1.5 text-xs text-[#87a894] hover:text-[#00e676] hover:border-[#00e676]/50 transition font-bold"
               >
                 TRACE IMPACT
               </Link>
+
               <Link
                 href="/scenarios"
                 className="text-xs text-[#87a894] hover:text-white"

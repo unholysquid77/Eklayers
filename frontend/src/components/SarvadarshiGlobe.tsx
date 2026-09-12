@@ -110,6 +110,20 @@ export interface HoveredEntityInfo {
   y: number;
 }
 
+export interface TargetEntity {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  fromLat?: number;
+  fromLon?: number;
+  toLat?: number;
+  toLon?: number;
+  cargo?: string;
+  status?: string;
+  type?: string;
+}
+
 export interface SarvadarshiGlobeProps {
   cascadeData?: CascadeMap | null;
   vessels?: Vessel[];
@@ -125,6 +139,8 @@ export interface SarvadarshiGlobeProps {
   onFeatureClick?: (feature: { id: string; name: string; kind: string; data: unknown }) => void;
   onDrillDown?: (drill: { lat: number; lon: number; title: string; category?: string; stress?: number }) => void;
   selectedChokepointId?: string | null;
+  targetEntity?: TargetEntity | null;
+  isolationMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +162,10 @@ export default function SarvadarshiGlobe({
   onFeatureClick,
   onDrillDown,
   selectedChokepointId: externalSelectedId,
+  targetEntity,
+  isolationMode = false,
 }: SarvadarshiGlobeProps) {
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverInfo, setHoverInfo] = useState<HoveredEntityInfo | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(externalSelectedId || null);
@@ -325,6 +344,7 @@ export default function SarvadarshiGlobe({
       infraPoints: new THREE.Group(),
       infraLines: new THREE.Group(),
       earthquakes: new THREE.Group(),
+      target: new THREE.Group(),
     };
 
     Object.values(groups).forEach((g) => scene.add(g));
@@ -352,9 +372,9 @@ export default function SarvadarshiGlobe({
         for (const [id, entry] of cpMeshMap.entries()) {
           if (entry.head === hit.object) {
             let connected = 0;
-            arcMeshList.forEach((a) => {
+            for (const a of arcMeshList) {
               if (a.fromId === id || a.toId === id) connected++;
-            });
+            }
 
             setHoverInfo({
               id: entry.data.id,
@@ -479,6 +499,21 @@ export default function SarvadarshiGlobe({
         if (entry.data.stress_level > 0.5) {
           const s = 1.0 + Math.sin(elapsed * 3.5 + (entry.data.latitude || 0)) * 0.15;
           entry.ring.scale.set(s, s, 1);
+        }
+      }
+
+      // Animate tactical target beacons & trajectory pulse
+      const tg = groups.target;
+      if (tg && tg.children.length > 0) {
+        for (const child of tg.children) {
+          if ((child as any).isTargetRing) {
+            const s = 1.0 + Math.sin(elapsed * 4.5) * 0.22;
+            child.scale.set(s, s, 1);
+          } else if ((child as any).isTargetPulse && (child as any).curve) {
+            const u = (elapsed * 0.30) % 1.0;
+            const pt = (child as any).curve.getPoint(u);
+            child.position.copy(pt);
+          }
         }
       }
 
@@ -1013,6 +1048,164 @@ export default function SarvadarshiGlobe({
       }
     }
   }, [selectedId]);
+
+  // ------------------------------------------------------------------
+  // Target Entity Focus, Trajectory Arc & Tactical Isolation
+  // ------------------------------------------------------------------
+
+  useEffect(() => {
+    const ref = sceneRef.current;
+    if (!ref) return;
+    const { camera, controls, groups, cpMeshMap, arcMeshList } = ref;
+    const targetGroup = groups.target as THREE.Group;
+    if (!targetGroup) return;
+
+    // Clear previous target visuals
+    while (targetGroup.children.length > 0) {
+      const child = targetGroup.children[0];
+      targetGroup.remove(child);
+      if ((child as any).geometry) (child as any).geometry.dispose();
+      if ((child as any).material) {
+        if (Array.isArray((child as any).material)) {
+          (child as any).material.forEach((m: any) => m.dispose());
+        } else {
+          (child as any).material.dispose();
+        }
+      }
+    }
+
+    if (!targetEntity) {
+      // Restore normal opacity if no target
+      for (const entry of cpMeshMap.values()) {
+        (entry.head.material as THREE.MeshBasicMaterial).opacity = 1.0;
+        (entry.beacon.material as THREE.MeshBasicMaterial).opacity = 0.80;
+        (entry.ring.material as THREE.MeshBasicMaterial).opacity = 0.40;
+      }
+      return;
+    }
+
+    const { lat, lon, fromLat, fromLon, toLat, toLon } = targetEntity;
+
+    // 1. Orient & Fly camera directly to target (stop autoRotate while focused)
+    const targetCamPos = latLonToVec3(lat, lon, R * 1.82);
+    camera.position.copy(targetCamPos);
+    controls.target.set(0, 0, 0);
+    controls.update();
+
+    // 2. High-visibility Tactical Beacons at target coordinates
+    const surfacePos = latLonToVec3(lat, lon, R * 1.006);
+
+    // Glowing core
+    const coreGeo = new THREE.SphereGeometry(0.018, 16, 16);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xff3344 });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.position.copy(surfacePos);
+    targetGroup.add(coreMesh);
+
+    // Outer tactical pulsing ring
+    const ringGeo = new THREE.RingGeometry(0.026, 0.048, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xff4455,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.90,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.copy(surfacePos);
+    ringMesh.lookAt(surfacePos.clone().multiplyScalar(2));
+    (ringMesh as any).isTargetRing = true;
+    targetGroup.add(ringMesh);
+
+    // Secondary pulsing halo ring
+    const haloGeo = new THREE.RingGeometry(0.055, 0.070, 32);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.70,
+    });
+    const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+    haloMesh.position.copy(surfacePos);
+    haloMesh.lookAt(surfacePos.clone().multiplyScalar(2));
+    (haloMesh as any).isTargetRing = true;
+    targetGroup.add(haloMesh);
+
+    // Laser vertical beacon beam
+    const beamLength = 0.50;
+    const beamGeo = new THREE.CylinderGeometry(0.003, 0.016, beamLength, 16, 1, true);
+    beamGeo.translate(0, beamLength / 2, 0);
+    beamGeo.rotateX(Math.PI / 2);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xff3344,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+    });
+    const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+    beamMesh.position.copy(surfacePos);
+    beamMesh.lookAt(surfacePos.clone().multiplyScalar(2));
+    targetGroup.add(beamMesh);
+
+    // 3. If corridor endpoints exist (e.g. Taipei -> Singapore), render high-altitude glowing trajectory arc
+    if (fromLat !== undefined && fromLon !== undefined && toLat !== undefined && toLon !== undefined) {
+      const pSrc = latLonToVec3(fromLat, fromLon, R);
+      const pDst = latLonToVec3(toLat, toLon, R);
+      const arcPoints = buildElevationSafeArc(pSrc, pDst, 0.85);
+
+      const curve = new THREE.QuadraticBezierCurve3(
+        arcPoints[0],
+        arcPoints[Math.floor(arcPoints.length / 2)],
+        arcPoints[arcPoints.length - 1]
+      );
+
+      const arcGeo = new THREE.BufferGeometry().setFromPoints(arcPoints);
+      const arcMat = new THREE.LineBasicMaterial({
+        color: 0xff8800,
+        linewidth: 3,
+        transparent: true,
+        opacity: 1.0,
+      });
+      const arcLine = new THREE.Line(arcGeo, arcMat);
+      targetGroup.add(arcLine);
+
+      // Origin anchor pin
+      const origPos = latLonToVec3(fromLat, fromLon, R * 1.006);
+      const origGeo = new THREE.SphereGeometry(0.014, 16, 16);
+      const origMat = new THREE.MeshBasicMaterial({ color: 0x00e676 });
+      const origMesh = new THREE.Mesh(origGeo, origMat);
+      origMesh.position.copy(origPos);
+      targetGroup.add(origMesh);
+
+      // Moving pulse particle along the trajectory
+      const pulseGeo = new THREE.SphereGeometry(0.016, 16, 16);
+      const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const pulseMesh = new THREE.Mesh(pulseGeo, pulseMat);
+      (pulseMesh as any).isTargetPulse = true;
+      (pulseMesh as any).curve = curve;
+      targetGroup.add(pulseMesh);
+    }
+
+    // 4. In Isolation Mode, suppress all clutter
+    if (isolationMode) {
+      for (const entry of cpMeshMap.values()) {
+        const isTargetChokepoint = entry.data.id === targetEntity.id ||
+          (Math.abs(entry.data.latitude - lat) < 0.8 && Math.abs(entry.data.longitude - lon) < 0.8);
+        if (!isTargetChokepoint) {
+          (entry.head.material as THREE.MeshBasicMaterial).opacity = 0.12;
+          (entry.beacon.material as THREE.MeshBasicMaterial).opacity = 0.05;
+          (entry.ring.material as THREE.MeshBasicMaterial).opacity = 0.03;
+          entry.head.scale.set(0.65, 0.65, 0.65);
+        } else {
+          (entry.head.material as THREE.MeshBasicMaterial).opacity = 1.0;
+          (entry.ring.material as THREE.MeshBasicMaterial).opacity = 1.0;
+          entry.head.scale.set(2.2, 2.2, 2.2);
+        }
+      }
+      for (const a of arcMeshList) {
+        (a.line.material as THREE.LineBasicMaterial).opacity = 0.04;
+      }
+    }
+  }, [targetEntity, isolationMode]);
 
   const handleResetCamera = () => {
     if (sceneRef.current) {

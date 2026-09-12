@@ -302,12 +302,25 @@ export default function ForecastPage() {
                   <td className="p-3 text-right text-[#00e676] font-bold">{cp.affected_orders}</td>
                   <td className="p-3 text-center">
                     <Link
-                      href={`/command?trace=${cp.id}`}
-                      className="rounded border border-[#00e676]/40 bg-[#00e676]/10 px-2.5 py-1 text-[10px] text-[#00e676] hover:bg-[#00e676]/20 transition"
+                      href={`/command?trace=${cp.id}&name=${encodeURIComponent(cp.name)}&lat=${
+                        cp.id === 'port-singapore' ? 1.29 :
+                        cp.id === 'cp.strait_of_hormuz' ? 26.56 :
+                        cp.id === 'suez-canal' ? 30.70 :
+                        cp.id === 'panama-canal' ? 9.08 :
+                        cp.id === 'lane-malacca' ? 4.20 : 1.29
+                      }&lon=${
+                        cp.id === 'port-singapore' ? 103.85 :
+                        cp.id === 'cp.strait_of_hormuz' ? 56.25 :
+                        cp.id === 'suez-canal' ? 32.34 :
+                        cp.id === 'panama-canal' ? -79.68 :
+                        cp.id === 'lane-malacca' ? 100.50 : 103.85
+                      }&status=${cp.status}&isolate=true`}
+                      className="rounded border border-[#00e676]/40 bg-[#00e676]/10 px-2.5 py-1 text-[10px] text-[#00e676] hover:bg-[#00e676]/20 transition font-mono"
                     >
                       TRACE ON GLOBE
                     </Link>
                   </td>
+
                 </tr>
               ))}
             </tbody>

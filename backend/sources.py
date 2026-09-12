@@ -18,17 +18,18 @@ from urllib.request import Request, urlopen
 USER_AGENT = "Sarvadarshi/0.1 (hackathon demo; contact: ops@example.invalid)"
 
 
-def get_json(url: str, params: dict[str, Any] | None = None, timeout: int = 20) -> Any:
+def get_json(url: str, params: dict[str, Any] | None = None, timeout: int = 6) -> Any:
     target = f"{url}?{urlencode(params, doseq=True)}" if params else url
     request = Request(target, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     with urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
-def get_text(url: str, timeout: int = 20) -> str:
+def get_text(url: str, timeout: int = 6) -> str:
     request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/xml,text/xml,text/html"})
     with urlopen(request, timeout=timeout) as response:
         return response.read().decode("utf-8", errors="replace")
+
 
 
 @dataclass(frozen=True)
@@ -100,7 +101,8 @@ class NWSAlertsAdapter:
         us_locations = [x for x in locations if x.country_code == "US"]
         if not us_locations:
             return
-        data = get_json(self.endpoint, {"status": "actual,exercise,system,test"})
+        data = get_json(self.endpoint, {"status": "actual", "limit": 25})
+
         for feature in data.get("features", []):
             props = feature.get("properties") or {}
             severity = {"Extreme": 1.0, "Severe": 0.8, "Moderate": 0.55, "Minor": 0.35}.get(props.get("severity"), 0.30)
@@ -159,16 +161,54 @@ class GoogleNewsAdapter:
         "HellenicShipping": "site:hellenicshippingnews.com shipping",
         "Drewry": "Drewry World Container Index freight rates",
         "SupplyChainBrain": "site:supplychainbrain.com disruption",
+        "SingaporePort": "Port of Singapore congestion container delay",
+        "MalaccaStrait": "Strait of Malacca tanker maritime delay",
+        "SuezRedSea": "Suez Canal container queue Red Sea reroute",
+        "HormuzStrait": "Strait of Hormuz tanker transit security",
+        "TaiwanMaritime": "Taiwan Strait shipping lane transit disruption",
+        "PanamaCanal": "Panama Canal vessel draft transit restriction",
+        "SemiconductorLogistics": "semiconductor automotive chip supply delay shipping",
     }
 
     def fetch(self, _locations: Iterable[MonitoredLocation] = ()) -> Iterable[dict[str, Any]]:
         for publisher, query in self.publishers.items():
-            url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl=en-US&gl=US&ceid=US:en"
-            root = ET.fromstring(get_text(url))
-            for item in root.findall(".//item")[:10]:
-                title = item.findtext("title", default="")
-                link = item.findtext("link", default="")
-                yield {"id": f"{publisher}:{link or title}", "type": "freight_news", "title": title,
-                       "body": item.findtext("description", default=""), "source_url": link,
-                       "observed_at": item.findtext("pubDate"), "intensity": 0.35, "confidence": 0.70,
-                       "publisher": publisher}
+            try:
+                url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl=en-US&gl=US&ceid=US:en"
+                text_content = get_text(url)
+                if not text_content:
+                    continue
+                root = ET.fromstring(text_content)
+                for item in root.findall(".//item")[:15]:
+                    title = item.findtext("title", default="").strip()
+                    link = item.findtext("link", default="").strip()
+                    body = item.findtext("description", default="").strip()
+                    # Clean html tags from body if any
+                    import re
+                    clean_body = re.sub(r'<[^>]+>', ' ', body).strip()
+                    pub_date = item.findtext("pubDate")
+                    
+                    # Estimate severity from title/body keywords
+                    text_lower = f"{title} {clean_body}".lower()
+                    sev = 0.35
+                    if any(k in text_lower for k in ["critical", "halt", "blocked", "strike", "attack", "closed"]):
+                        sev = 0.85
+                    elif any(k in text_lower for k in ["delay", "congestion", "reroute", "severe", "queue", "disrupt"]):
+                        sev = 0.65
+                    elif any(k in text_lower for k in ["warning", "storm", "divert", "surge"]):
+                        sev = 0.50
+
+                    yield {
+                        "id": f"{publisher}:{link or title}",
+                        "type": "freight_news",
+                        "title": title,
+                        "body": clean_body,
+                        "source_url": link,
+                        "observed_at": pub_date or datetime.now(timezone.utc).isoformat(),
+                        "intensity": sev,
+                        "confidence": 0.80,
+                        "publisher": publisher,
+                        "domain": "maritime_freight"
+                    }
+            except Exception:
+                continue
+

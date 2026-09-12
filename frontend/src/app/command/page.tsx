@@ -1,6 +1,7 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table,
   MapPin,
@@ -41,10 +42,12 @@ import type {
   ChokepointResearchDossier,
   ChokepointResearchReq,
 } from '@/lib/contracts';
+import type { TargetEntity } from '@/components/SarvadarshiGlobe';
 import { DEFAULT_LAYER_VISIBILITY, INFRA_LAYER_NAMES } from '@/lib/contracts';
 import TacticalDrillDownModal from '@/components/TacticalDrillDownModal';
 import KillChainModal, { KillChainButton, type KillChainAction } from '@/components/KillChainModal';
 import { ChevronLeft } from 'lucide-react';
+
 import {
   getMarketTelemetry,
   MarketTelemetryItem,
@@ -145,7 +148,8 @@ function ZuluClock() {
   );
 }
 
-export default function CommandPage() {
+function CommandPageContent() {
+  const searchParams = useSearchParams();
   const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYER_VISIBILITY);
   const [alerts, setAlerts] = useState<AlertCard[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<AlertCard | null>(null);
@@ -164,9 +168,103 @@ export default function CommandPage() {
   const [chokepointsTableOpen, setChokepointsTableOpen] = useState(false);
   const [chokepointsSearch, setChokepointsSearch] = useState('');
 
+  // Target entity for Tactical Isolation Mode
+  const [targetEntity, setTargetEntity] = useState<TargetEntity | null>(null);
+  const [isIsolated, setIsIsolated] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [liveLoading, setLiveLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'exposure' | 'forecast' | 'mitigations' | 'evidence'>('exposure');
+
+  // Deep link parameter detection
+  useEffect(() => {
+    const shipmentParam = searchParams.get('shipment');
+    const focusParam = searchParams.get('focus') || searchParams.get('trace');
+    const nameParam = searchParams.get('name');
+    const latParam = searchParams.get('lat');
+    const lonParam = searchParams.get('lon');
+    const fromLatParam = searchParams.get('fromLat');
+    const fromLonParam = searchParams.get('fromLon');
+    const toLatParam = searchParams.get('toLat');
+    const toLonParam = searchParams.get('toLon');
+    const cargoParam = searchParams.get('cargo');
+    const statusParam = searchParams.get('status');
+    const isolateParam = searchParams.get('isolate');
+
+    if (shipmentParam || focusParam || latParam) {
+      const lat = latParam ? parseFloat(latParam) : 1.29;
+      const lon = lonParam ? parseFloat(lonParam) : 103.85;
+      const fromLat = fromLatParam ? parseFloat(fromLatParam) : (shipmentParam ? 25.03 : undefined);
+      const fromLon = fromLonParam ? parseFloat(fromLonParam) : (shipmentParam ? 121.56 : undefined);
+      const toLat = toLatParam ? parseFloat(toLatParam) : (shipmentParam ? 1.29 : undefined);
+      const toLon = toLonParam ? parseFloat(toLonParam) : (shipmentParam ? 103.85 : undefined);
+
+      const target: TargetEntity = {
+        id: shipmentParam || focusParam || 'target-entity',
+        name: nameParam || (shipmentParam ? `Shipment ${shipmentParam} (Taipei → Sin)` : (focusParam ? `Corridor: ${focusParam}` : 'Tactical Target Sector')),
+        lat,
+        lon,
+        fromLat,
+        fromLon,
+        toLat,
+        toLon,
+        cargo: cargoParam || (shipmentParam ? 'MCU-441 Automotive Microcontrollers' : undefined),
+        status: statusParam || (shipmentParam ? 'Delayed +6.4d · Anchorage Queue' : 'Disruption Surveillance'),
+      };
+
+      setTargetEntity(target);
+      setAutoRotate(false);
+
+      if (isolateParam === 'true' || shipmentParam) {
+        setIsIsolated(true);
+        // Suppress clutter layers in tactical isolation mode
+        setLayers((prev) => ({
+          ...prev,
+          eventDots: false,
+          countryBorders: false,
+          flights: false,
+          earthquakes: false,
+          acled: false,
+          landRoutes: false,
+          warehouses: false,
+          airports: false,
+          refineries: false,
+          lngTerminals: false,
+          storageFacilities: false,
+          pipelines: false,
+          powerLines: false,
+          underseaCables: false,
+          dataCenters: false,
+          nuclearSites: false,
+          militaryBases: false,
+          spaceports: false,
+          economicCenters: false,
+          chokepointPins: true,
+          cascadeArcs: true,
+          bomArcs: true,
+          vessels: true,
+          shippingLanes: true,
+          ports: true,
+        }));
+      }
+
+
+      // If an alert matches Singapore/Malacca, automatically select it for deep dive
+      if (alerts && alerts.length > 0) {
+        const matchingAlert = alerts.find(a =>
+          (a.subject_id && a.subject_id.toLowerCase().includes('singapore')) ||
+          (a.subject_id && a.subject_id.toLowerCase().includes('malacca')) ||
+          (a.title && a.title.toLowerCase().includes('singapore')) ||
+          a.id === 'ALERT-001'
+        );
+        if (matchingAlert) {
+          setSelectedAlert(matchingAlert);
+        }
+      }
+
+    }
+  }, [searchParams, alerts]);
+
 
   // Autonomous Research Drawer & Modal State
   const [researchOpen, setResearchOpen] = useState(false);
@@ -531,8 +629,98 @@ export default function CommandPage() {
             onToggleAutoRotate={() => setAutoRotate((prev) => !prev)}
             onFeatureClick={handleFeatureClick}
             onDrillDown={(target) => setDrillDownTarget({ ...target, isOpen: true })}
+            targetEntity={targetEntity}
+            isolationMode={isIsolated}
           />
+
+          {/* Tactical Target Isolation Floating HUD Card */}
+          {targetEntity && (
+            <div className="absolute top-14 left-4 z-20 max-w-md rounded-xl border border-red-500/60 bg-[#040806]/95 p-4 shadow-[0_0_30px_rgba(239,68,68,0.25)] backdrop-blur-md space-y-3">
+              <div className="flex items-center justify-between border-b border-[#143a22] pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+                  <span className="font-mono text-xs font-bold tracking-wider text-red-400">
+                    TACTICAL ISOLATION MODE
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setTargetEntity(null);
+                    setIsIsolated(false);
+                    setLayers(DEFAULT_LAYER_VISIBILITY);
+                    setAutoRotate(true);
+                  }}
+                  className="rounded border border-[#143a22] bg-[#020503] px-2 py-0.5 font-mono text-[10px] text-[#87a894] hover:text-white hover:border-[#00e676]/40 transition"
+                  title="Exit isolation and restore all map layers"
+                >
+                  ✕ RESTORE ALL LAYERS
+                </button>
+              </div>
+
+              <div>
+                <div className="text-sm font-bold text-white font-mono">{targetEntity.name}</div>
+                <div className="text-[11px] text-[#87a894] font-sans mt-0.5">
+                  {targetEntity.cargo ? `Cargo: ${targetEntity.cargo}` : 'Strategic Transport Corridor · Direct Telemetry Hooked'}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 font-mono text-xs bg-[#000000]/60 p-2.5 rounded-lg border border-[#112818]">
+                <div>
+                  <span className="text-[#4e6e58] text-[10px] block">CURRENT STATUS</span>
+                  <span className="font-bold text-amber-400">{targetEntity.status || 'Active Surveillance'}</span>
+                </div>
+                <div>
+                  <span className="text-[#4e6e58] text-[10px] block">COORDINATES</span>
+                  <span className="text-[#00e676]">{targetEntity.lat.toFixed(2)}°N, {targetEntity.lon.toFixed(2)}°E</span>
+                </div>
+                {targetEntity.fromLat !== undefined && (
+                  <div className="col-span-2 border-t border-[#112818] pt-1.5 mt-1">
+                    <span className="text-[#4e6e58] text-[10px] block">OPERATIONAL CORRIDOR</span>
+                    <span className="text-slate-200 text-[11px]">
+                      Taipei Fab 12 [25.03°N] ➔ Singapore Outer Anchorage [1.29°N]
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <KillChainButton
+                  label="DISPATCH REROUTE DIRECTIVE"
+                  action={{
+                    title: "TACTICAL CARRIER REROUTE DIRECTIVE",
+                    targetEntity: targetEntity.name,
+                    physicalEffect: "Transmits EDI 315 override diverting shipment away from outer anchorage queue into express priority berth via Sunda Strait alternate corridor.",
+                    telemetryHook: "Carrier EDI Webhook / AIS Geofence",
+                    budgetCommitment: "₹4,20,000 INR Bunker Surcharge",
+                    leadTimeDelta: "-6.4 Days clearance reduction",
+                    riskMitigation: "Averts line stoppage across 43 downstream automotive assembly purchase orders."
+                  }}
+                  onTrigger={setKillChainAction}
+                />
+                <button
+                  onClick={() => {
+                    const alert = alerts.find(a =>
+                      (a.subject_id && a.subject_id.toLowerCase().includes('singapore')) ||
+                      (a.subject_id && a.subject_id.toLowerCase().includes('malacca')) ||
+                      (a.title && a.title.toLowerCase().includes('singapore')) ||
+                      a.id === 'ALERT-001'
+                    );
+                    if (alert) selectAlert(alert);
+                    setAlertsOpen(true);
+                  }}
+
+                  className="rounded border border-[#00e676]/40 bg-[#00e676]/10 px-2.5 py-1.5 font-mono text-[11px] text-[#00e676] hover:bg-[#00e676]/20 transition"
+                >
+                  VIEW MITIGATIONS
+                </button>
+              </div>
+            </div>
+          )}
         </main>
+
 
         {/* ── Floating Toggle for Right Sidebar (when collapsed) ── */}
         {!alertsOpen && (
@@ -1317,3 +1505,17 @@ export default function CommandPage() {
     </div>
   );
 }
+
+export default function CommandPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-sm hud-text text-[#00e676] bg-[#000000]">
+        <Activity className="w-8 h-8 animate-spin text-[#00e676]" />
+        <span>INITIALISING 3D TACTICAL GLOBE SENSORS…</span>
+      </div>
+    }>
+      <CommandPageContent />
+    </Suspense>
+  );
+}
+
